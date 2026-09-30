@@ -1,0 +1,15 @@
+### YamlMime:TableOfContent
+pdf: true
+items:
+  - name: Архитектура
+    href: architecture.md
+  - name: Датафлоу
+    href: dataflow.md
+  - name: Руководства
+    items:
+    - name: Разработка
+      href: guides/development.md
+    - name: Роутеры
+      href: guides/routers.md
+  - name: API refference
+    href: ../api/

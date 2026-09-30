@@ -1,0 +1,17 @@
+### YamlMime:TableOfContent
+items:
+- uid: Kagedama.api
+  name: Kagedama.api
+  type: Namespace
+  items:
+  - uid: Kagedama.api.Class1
+    name: Class1
+    type: Class
+- uid: Kouki.Mugura
+  name: Kouki.Mugura
+  type: Namespace
+  items:
+  - uid: Kouki.Mugura.ExtensionEntrypointCommandSet
+    name: ExtensionEntrypointCommandSet
+    type: Class
+memberLayout: SamePage

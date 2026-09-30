@@ -1,0 +1,6 @@
+- name: Главная
+  href: index.md
+- name: Core API (Shimi & Mugura)
+  href: api/
+- name: Примеры (Kagedama)
+  href: examples/Kagedama/

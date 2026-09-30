@@ -1,0 +1,687 @@
+### YamlMime:ManagedReference
+items:
+- uid: Kouki.Mugura.ExtensionEntrypointCommandSet
+  commentId: T:Kouki.Mugura.ExtensionEntrypointCommandSet
+  id: ExtensionEntrypointCommandSet
+  parent: Kouki.Mugura
+  children:
+  - Kouki.Mugura.ExtensionEntrypointCommandSet.#ctor(System.IServiceProvider)
+  - Kouki.Mugura.ExtensionEntrypointCommandSet.InitializeCommandsAsync(Microsoft.VisualStudio.Extensibility.Commands.CommandSet)
+  langs:
+  - csharp
+  - vb
+  name: ExtensionEntrypointCommandSet
+  nameWithType: ExtensionEntrypointCommandSet
+  fullName: Kouki.Mugura.ExtensionEntrypointCommandSet
+  type: Class
+  source:
+    id: ExtensionEntrypointCommandSet
+    path: F:\Projects\Kouki\Kagedama.vs\obj\Release\net8.0-windows8.0\Microsoft.VisualStudio.Extensibility.JsonGenerators.Sdk\Microsoft.VisualStudio.Extensibility.JsonGenerators.Sdk.ExtensionJsonGenerator\Kouki.Mugura.ExtensionEntrypointCommandSet.g.cs
+    startLine: 5
+  assemblies:
+  - Kagedama.vs
+  namespace: Kouki.Mugura
+  syntax:
+    content: 'public class ExtensionEntrypointCommandSet : CommandSetFactory, ICommandSetFactory, IServiceFactory'
+    content.vb: Public Class ExtensionEntrypointCommandSet Inherits CommandSetFactory Implements ICommandSetFactory, IServiceFactory
+  inheritance:
+  - System.Object
+  - Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory
+  implements:
+  - Microsoft.VisualStudio.Extensibility.Commands.ICommandSetFactory
+  - Microsoft.VisualStudio.Extensibility.IServiceFactory
+  inheritedMembers:
+  - Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory.CreateAsync(Microsoft.ServiceHub.Framework.ServiceMoniker,Microsoft.ServiceHub.Framework.ServiceActivationOptions,System.IServiceProvider,Microsoft.ServiceHub.Framework.Services.AuthorizationServiceClient,System.Type,System.Type,System.Threading.CancellationToken)
+  - Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory.GetServiceDescriptor(Microsoft.ServiceHub.Framework.ServiceMoniker)
+  - Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory.ServiceMoniker
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.ToString
+- uid: Kouki.Mugura.ExtensionEntrypointCommandSet.#ctor(System.IServiceProvider)
+  commentId: M:Kouki.Mugura.ExtensionEntrypointCommandSet.#ctor(System.IServiceProvider)
+  id: '#ctor(System.IServiceProvider)'
+  parent: Kouki.Mugura.ExtensionEntrypointCommandSet
+  langs:
+  - csharp
+  - vb
+  name: ExtensionEntrypointCommandSet(IServiceProvider)
+  nameWithType: ExtensionEntrypointCommandSet.ExtensionEntrypointCommandSet(IServiceProvider)
+  fullName: Kouki.Mugura.ExtensionEntrypointCommandSet.ExtensionEntrypointCommandSet(System.IServiceProvider)
+  type: Constructor
+  source:
+    id: .ctor
+    path: F:\Projects\Kouki\Kagedama.vs\obj\Release\net8.0-windows8.0\Microsoft.VisualStudio.Extensibility.JsonGenerators.Sdk\Microsoft.VisualStudio.Extensibility.JsonGenerators.Sdk.ExtensionJsonGenerator\Kouki.Mugura.ExtensionEntrypointCommandSet.g.cs
+    startLine: 7
+  assemblies:
+  - Kagedama.vs
+  namespace: Kouki.Mugura
+  syntax:
+    content: public ExtensionEntrypointCommandSet(IServiceProvider serviceProvider)
+    parameters:
+    - id: serviceProvider
+      type: System.IServiceProvider
+    content.vb: Public Sub New(serviceProvider As IServiceProvider)
+  overload: Kouki.Mugura.ExtensionEntrypointCommandSet.#ctor*
+  nameWithType.vb: ExtensionEntrypointCommandSet.New(IServiceProvider)
+  fullName.vb: Kouki.Mugura.ExtensionEntrypointCommandSet.New(System.IServiceProvider)
+  name.vb: New(IServiceProvider)
+- uid: Kouki.Mugura.ExtensionEntrypointCommandSet.InitializeCommandsAsync(Microsoft.VisualStudio.Extensibility.Commands.CommandSet)
+  commentId: M:Kouki.Mugura.ExtensionEntrypointCommandSet.InitializeCommandsAsync(Microsoft.VisualStudio.Extensibility.Commands.CommandSet)
+  id: InitializeCommandsAsync(Microsoft.VisualStudio.Extensibility.Commands.CommandSet)
+  parent: Kouki.Mugura.ExtensionEntrypointCommandSet
+  langs:
+  - csharp
+  - vb
+  name: InitializeCommandsAsync(CommandSet)
+  nameWithType: ExtensionEntrypointCommandSet.InitializeCommandsAsync(CommandSet)
+  fullName: Kouki.Mugura.ExtensionEntrypointCommandSet.InitializeCommandsAsync(Microsoft.VisualStudio.Extensibility.Commands.CommandSet)
+  type: Method
+  source:
+    id: InitializeCommandsAsync
+    path: F:\Projects\Kouki\Kagedama.vs\obj\Release\net8.0-windows8.0\Microsoft.VisualStudio.Extensibility.JsonGenerators.Sdk\Microsoft.VisualStudio.Extensibility.JsonGenerators.Sdk.ExtensionJsonGenerator\Kouki.Mugura.ExtensionEntrypointCommandSet.g.cs
+    startLine: 8
+  assemblies:
+  - Kagedama.vs
+  namespace: Kouki.Mugura
+  summary: Called when command set is about to be initialized. This can be used to add commands, set up initial state.
+  example: []
+  syntax:
+    content: public override Task InitializeCommandsAsync(CommandSet commandSet)
+    parameters:
+    - id: commandSet
+      type: Microsoft.VisualStudio.Extensibility.Commands.CommandSet
+      description: Command set instance that is being initialized.
+    return:
+      type: System.Threading.Tasks.Task
+      description: a Task indicating completion.
+    content.vb: Public Overrides Function InitializeCommandsAsync(commandSet As CommandSet) As Task
+  overridden: Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory.InitializeCommandsAsync(Microsoft.VisualStudio.Extensibility.Commands.CommandSet)
+  overload: Kouki.Mugura.ExtensionEntrypointCommandSet.InitializeCommandsAsync*
+references:
+- uid: Kouki.Mugura
+  commentId: N:Kouki.Mugura
+  href: Kouki.html
+  name: Kouki.Mugura
+  nameWithType: Kouki.Mugura
+  fullName: Kouki.Mugura
+  spec.csharp:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  spec.vb:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory
+  commentId: T:Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory
+  parent: Microsoft.VisualStudio.Extensibility.Commands
+  isExternal: true
+  name: CommandSetFactory
+  nameWithType: CommandSetFactory
+  fullName: Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory
+- uid: Microsoft.VisualStudio.Extensibility.Commands.ICommandSetFactory
+  commentId: T:Microsoft.VisualStudio.Extensibility.Commands.ICommandSetFactory
+  parent: Microsoft.VisualStudio.Extensibility.Commands
+  isExternal: true
+  name: ICommandSetFactory
+  nameWithType: ICommandSetFactory
+  fullName: Microsoft.VisualStudio.Extensibility.Commands.ICommandSetFactory
+- uid: Microsoft.VisualStudio.Extensibility.IServiceFactory
+  commentId: T:Microsoft.VisualStudio.Extensibility.IServiceFactory
+  parent: Microsoft.VisualStudio.Extensibility
+  isExternal: true
+  name: IServiceFactory
+  nameWithType: IServiceFactory
+  fullName: Microsoft.VisualStudio.Extensibility.IServiceFactory
+- uid: Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory.CreateAsync(Microsoft.ServiceHub.Framework.ServiceMoniker,Microsoft.ServiceHub.Framework.ServiceActivationOptions,System.IServiceProvider,Microsoft.ServiceHub.Framework.Services.AuthorizationServiceClient,System.Type,System.Type,System.Threading.CancellationToken)
+  commentId: M:Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory.CreateAsync(Microsoft.ServiceHub.Framework.ServiceMoniker,Microsoft.ServiceHub.Framework.ServiceActivationOptions,System.IServiceProvider,Microsoft.ServiceHub.Framework.Services.AuthorizationServiceClient,System.Type,System.Type,System.Threading.CancellationToken)
+  parent: Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/microsoft.servicehub.framework.servicemoniker
+  name: CreateAsync(ServiceMoniker, ServiceActivationOptions, IServiceProvider, AuthorizationServiceClient, Type, Type, CancellationToken)
+  nameWithType: CommandSetFactory.CreateAsync(ServiceMoniker, ServiceActivationOptions, IServiceProvider, AuthorizationServiceClient, Type, Type, CancellationToken)
+  fullName: Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory.CreateAsync(Microsoft.ServiceHub.Framework.ServiceMoniker, Microsoft.ServiceHub.Framework.ServiceActivationOptions, System.IServiceProvider, Microsoft.ServiceHub.Framework.Services.AuthorizationServiceClient, System.Type, System.Type, System.Threading.CancellationToken)
+  spec.csharp:
+  - uid: Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory.CreateAsync(Microsoft.ServiceHub.Framework.ServiceMoniker,Microsoft.ServiceHub.Framework.ServiceActivationOptions,System.IServiceProvider,Microsoft.ServiceHub.Framework.Services.AuthorizationServiceClient,System.Type,System.Type,System.Threading.CancellationToken)
+    name: CreateAsync
+    isExternal: true
+  - name: (
+  - uid: Microsoft.ServiceHub.Framework.ServiceMoniker
+    name: ServiceMoniker
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/microsoft.servicehub.framework.servicemoniker
+  - name: ','
+  - name: " "
+  - uid: Microsoft.ServiceHub.Framework.ServiceActivationOptions
+    name: ServiceActivationOptions
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/microsoft.servicehub.framework.serviceactivationoptions
+  - name: ','
+  - name: " "
+  - uid: System.IServiceProvider
+    name: IServiceProvider
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iserviceprovider
+  - name: ','
+  - name: " "
+  - uid: Microsoft.ServiceHub.Framework.Services.AuthorizationServiceClient
+    name: AuthorizationServiceClient
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/microsoft.servicehub.framework.services.authorizationserviceclient
+  - name: ','
+  - name: " "
+  - uid: System.Type
+    name: Type
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.type
+  - name: ','
+  - name: " "
+  - uid: System.Type
+    name: Type
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.type
+  - name: ','
+  - name: " "
+  - uid: System.Threading.CancellationToken
+    name: CancellationToken
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  - name: )
+  spec.vb:
+  - uid: Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory.CreateAsync(Microsoft.ServiceHub.Framework.ServiceMoniker,Microsoft.ServiceHub.Framework.ServiceActivationOptions,System.IServiceProvider,Microsoft.ServiceHub.Framework.Services.AuthorizationServiceClient,System.Type,System.Type,System.Threading.CancellationToken)
+    name: CreateAsync
+    isExternal: true
+  - name: (
+  - uid: Microsoft.ServiceHub.Framework.ServiceMoniker
+    name: ServiceMoniker
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/microsoft.servicehub.framework.servicemoniker
+  - name: ','
+  - name: " "
+  - uid: Microsoft.ServiceHub.Framework.ServiceActivationOptions
+    name: ServiceActivationOptions
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/microsoft.servicehub.framework.serviceactivationoptions
+  - name: ','
+  - name: " "
+  - uid: System.IServiceProvider
+    name: IServiceProvider
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iserviceprovider
+  - name: ','
+  - name: " "
+  - uid: Microsoft.ServiceHub.Framework.Services.AuthorizationServiceClient
+    name: AuthorizationServiceClient
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/microsoft.servicehub.framework.services.authorizationserviceclient
+  - name: ','
+  - name: " "
+  - uid: System.Type
+    name: Type
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.type
+  - name: ','
+  - name: " "
+  - uid: System.Type
+    name: Type
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.type
+  - name: ','
+  - name: " "
+  - uid: System.Threading.CancellationToken
+    name: CancellationToken
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  - name: )
+- uid: Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory.GetServiceDescriptor(Microsoft.ServiceHub.Framework.ServiceMoniker)
+  commentId: M:Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory.GetServiceDescriptor(Microsoft.ServiceHub.Framework.ServiceMoniker)
+  parent: Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/microsoft.servicehub.framework.servicemoniker
+  name: GetServiceDescriptor(ServiceMoniker)
+  nameWithType: CommandSetFactory.GetServiceDescriptor(ServiceMoniker)
+  fullName: Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory.GetServiceDescriptor(Microsoft.ServiceHub.Framework.ServiceMoniker)
+  spec.csharp:
+  - uid: Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory.GetServiceDescriptor(Microsoft.ServiceHub.Framework.ServiceMoniker)
+    name: GetServiceDescriptor
+    isExternal: true
+  - name: (
+  - uid: Microsoft.ServiceHub.Framework.ServiceMoniker
+    name: ServiceMoniker
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/microsoft.servicehub.framework.servicemoniker
+  - name: )
+  spec.vb:
+  - uid: Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory.GetServiceDescriptor(Microsoft.ServiceHub.Framework.ServiceMoniker)
+    name: GetServiceDescriptor
+    isExternal: true
+  - name: (
+  - uid: Microsoft.ServiceHub.Framework.ServiceMoniker
+    name: ServiceMoniker
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/microsoft.servicehub.framework.servicemoniker
+  - name: )
+- uid: Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory.ServiceMoniker
+  commentId: P:Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory.ServiceMoniker
+  parent: Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory
+  isExternal: true
+  name: ServiceMoniker
+  nameWithType: CommandSetFactory.ServiceMoniker
+  fullName: Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory.ServiceMoniker
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  name: Equals(object)
+  nameWithType: object.Equals(object)
+  fullName: object.Equals(object)
+  nameWithType.vb: Object.Equals(Object)
+  fullName.vb: Object.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  name: GetHashCode()
+  nameWithType: object.GetHashCode()
+  fullName: object.GetHashCode()
+  nameWithType.vb: Object.GetHashCode()
+  fullName.vb: Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  name: MemberwiseClone()
+  nameWithType: object.MemberwiseClone()
+  fullName: object.MemberwiseClone()
+  nameWithType.vb: Object.MemberwiseClone()
+  fullName.vb: Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  name: ToString()
+  nameWithType: object.ToString()
+  fullName: object.ToString()
+  nameWithType.vb: Object.ToString()
+  fullName.vb: Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Microsoft.VisualStudio.Extensibility.Commands
+  commentId: N:Microsoft.VisualStudio.Extensibility.Commands
+  isExternal: true
+  name: Microsoft.VisualStudio.Extensibility.Commands
+  nameWithType: Microsoft.VisualStudio.Extensibility.Commands
+  fullName: Microsoft.VisualStudio.Extensibility.Commands
+  spec.csharp:
+  - uid: Microsoft
+    name: Microsoft
+    isExternal: true
+  - name: .
+  - uid: Microsoft.VisualStudio
+    name: VisualStudio
+    isExternal: true
+  - name: .
+  - uid: Microsoft.VisualStudio.Extensibility
+    name: Extensibility
+    isExternal: true
+  - name: .
+  - uid: Microsoft.VisualStudio.Extensibility.Commands
+    name: Commands
+    isExternal: true
+  spec.vb:
+  - uid: Microsoft
+    name: Microsoft
+    isExternal: true
+  - name: .
+  - uid: Microsoft.VisualStudio
+    name: VisualStudio
+    isExternal: true
+  - name: .
+  - uid: Microsoft.VisualStudio.Extensibility
+    name: Extensibility
+    isExternal: true
+  - name: .
+  - uid: Microsoft.VisualStudio.Extensibility.Commands
+    name: Commands
+    isExternal: true
+- uid: Microsoft.VisualStudio.Extensibility
+  commentId: N:Microsoft.VisualStudio.Extensibility
+  isExternal: true
+  name: Microsoft.VisualStudio.Extensibility
+  nameWithType: Microsoft.VisualStudio.Extensibility
+  fullName: Microsoft.VisualStudio.Extensibility
+  spec.csharp:
+  - uid: Microsoft
+    name: Microsoft
+    isExternal: true
+  - name: .
+  - uid: Microsoft.VisualStudio
+    name: VisualStudio
+    isExternal: true
+  - name: .
+  - uid: Microsoft.VisualStudio.Extensibility
+    name: Extensibility
+    isExternal: true
+  spec.vb:
+  - uid: Microsoft
+    name: Microsoft
+    isExternal: true
+  - name: .
+  - uid: Microsoft.VisualStudio
+    name: VisualStudio
+    isExternal: true
+  - name: .
+  - uid: Microsoft.VisualStudio.Extensibility
+    name: Extensibility
+    isExternal: true
+- uid: Kouki.Mugura.ExtensionEntrypointCommandSet.#ctor*
+  commentId: Overload:Kouki.Mugura.ExtensionEntrypointCommandSet.#ctor
+  href: Kouki.Mugura.ExtensionEntrypointCommandSet.html#Kouki_Mugura_ExtensionEntrypointCommandSet__ctor_System_IServiceProvider_
+  name: ExtensionEntrypointCommandSet
+  nameWithType: ExtensionEntrypointCommandSet.ExtensionEntrypointCommandSet
+  fullName: Kouki.Mugura.ExtensionEntrypointCommandSet.ExtensionEntrypointCommandSet
+  nameWithType.vb: ExtensionEntrypointCommandSet.New
+  fullName.vb: Kouki.Mugura.ExtensionEntrypointCommandSet.New
+  name.vb: New
+- uid: System.IServiceProvider
+  commentId: T:System.IServiceProvider
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.iserviceprovider
+  name: IServiceProvider
+  nameWithType: IServiceProvider
+  fullName: System.IServiceProvider
+- uid: Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory.InitializeCommandsAsync(Microsoft.VisualStudio.Extensibility.Commands.CommandSet)
+  commentId: M:Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory.InitializeCommandsAsync(Microsoft.VisualStudio.Extensibility.Commands.CommandSet)
+  parent: Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory
+  isExternal: true
+  name: InitializeCommandsAsync(CommandSet)
+  nameWithType: CommandSetFactory.InitializeCommandsAsync(CommandSet)
+  fullName: Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory.InitializeCommandsAsync(Microsoft.VisualStudio.Extensibility.Commands.CommandSet)
+  spec.csharp:
+  - uid: Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory.InitializeCommandsAsync(Microsoft.VisualStudio.Extensibility.Commands.CommandSet)
+    name: InitializeCommandsAsync
+    isExternal: true
+  - name: (
+  - uid: Microsoft.VisualStudio.Extensibility.Commands.CommandSet
+    name: CommandSet
+    isExternal: true
+  - name: )
+  spec.vb:
+  - uid: Microsoft.VisualStudio.Extensibility.Commands.CommandSetFactory.InitializeCommandsAsync(Microsoft.VisualStudio.Extensibility.Commands.CommandSet)
+    name: InitializeCommandsAsync
+    isExternal: true
+  - name: (
+  - uid: Microsoft.VisualStudio.Extensibility.Commands.CommandSet
+    name: CommandSet
+    isExternal: true
+  - name: )
+- uid: Kouki.Mugura.ExtensionEntrypointCommandSet.InitializeCommandsAsync*
+  commentId: Overload:Kouki.Mugura.ExtensionEntrypointCommandSet.InitializeCommandsAsync
+  href: Kouki.Mugura.ExtensionEntrypointCommandSet.html#Kouki_Mugura_ExtensionEntrypointCommandSet_InitializeCommandsAsync_Microsoft_VisualStudio_Extensibility_Commands_CommandSet_
+  name: InitializeCommandsAsync
+  nameWithType: ExtensionEntrypointCommandSet.InitializeCommandsAsync
+  fullName: Kouki.Mugura.ExtensionEntrypointCommandSet.InitializeCommandsAsync
+- uid: Microsoft.VisualStudio.Extensibility.Commands.CommandSet
+  commentId: T:Microsoft.VisualStudio.Extensibility.Commands.CommandSet
+  parent: Microsoft.VisualStudio.Extensibility.Commands
+  isExternal: true
+  name: CommandSet
+  nameWithType: CommandSet
+  fullName: Microsoft.VisualStudio.Extensibility.Commands.CommandSet
+- uid: System.Threading.Tasks.Task
+  commentId: T:System.Threading.Tasks.Task
+  parent: System.Threading.Tasks
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task
+  name: Task
+  nameWithType: Task
+  fullName: System.Threading.Tasks.Task
+- uid: System.Threading.Tasks
+  commentId: N:System.Threading.Tasks
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Threading.Tasks
+  nameWithType: System.Threading.Tasks
+  fullName: System.Threading.Tasks
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  - name: .
+  - uid: System.Threading.Tasks
+    name: Tasks
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  - name: .
+  - uid: System.Threading.Tasks
+    name: Tasks
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks
