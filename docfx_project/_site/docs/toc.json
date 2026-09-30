@@ -1,0 +1,2 @@
+
+{"items":[{"name":"Архитектура","href":"architecture.html","topicHref":"architecture.html"},{"name":"Датафлоу","href":"dataflow.html","topicHref":"dataflow.html"},{"name":"Руководства","items":[{"name":"Разработка","href":"guides/development.html","topicHref":"guides/development.html"},{"name":"Роутеры","href":"guides/routers.html","topicHref":"guides/routers.html"}]},{"name":"API refference","href":"../api/Kouki.Mugura.Attributes.html","tocHref":"../api/toc.html","topicHref":"../api/Kouki.Mugura.Attributes.html","topicUid":"Kouki.Mugura.Attributes"}],"pdf":true}

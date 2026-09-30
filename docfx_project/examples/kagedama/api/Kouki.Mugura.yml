@@ -1,0 +1,23 @@
+### YamlMime:ManagedReference
+items:
+- uid: Kouki.Mugura
+  commentId: N:Kouki.Mugura
+  id: Kouki.Mugura
+  children:
+  - Kouki.Mugura.ExtensionEntrypointCommandSet
+  langs:
+  - csharp
+  - vb
+  name: Kouki.Mugura
+  nameWithType: Kouki.Mugura
+  fullName: Kouki.Mugura
+  type: Namespace
+  assemblies:
+  - Kagedama.vs
+references:
+- uid: Kouki.Mugura.ExtensionEntrypointCommandSet
+  commentId: T:Kouki.Mugura.ExtensionEntrypointCommandSet
+  href: Kouki.Mugura.ExtensionEntrypointCommandSet.html
+  name: ExtensionEntrypointCommandSet
+  nameWithType: ExtensionEntrypointCommandSet
+  fullName: Kouki.Mugura.ExtensionEntrypointCommandSet

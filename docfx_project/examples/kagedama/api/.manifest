@@ -1,0 +1,8 @@
+{
+  "Kagedama.api": "Kagedama.api.yml",
+  "Kagedama.api.Class1": "Kagedama.api.Class1.yml",
+  "Kouki.Mugura": "Kouki.Mugura.yml",
+  "Kouki.Mugura.ExtensionEntrypointCommandSet": "Kouki.Mugura.ExtensionEntrypointCommandSet.yml",
+  "Kouki.Mugura.ExtensionEntrypointCommandSet.#ctor(System.IServiceProvider)": "Kouki.Mugura.ExtensionEntrypointCommandSet.yml",
+  "Kouki.Mugura.ExtensionEntrypointCommandSet.InitializeCommandsAsync(Microsoft.VisualStudio.Extensibility.Commands.CommandSet)": "Kouki.Mugura.ExtensionEntrypointCommandSet.yml"
+}

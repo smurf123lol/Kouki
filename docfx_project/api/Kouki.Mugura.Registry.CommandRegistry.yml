@@ -1,0 +1,677 @@
+### YamlMime:ManagedReference
+items:
+- uid: Kouki.Mugura.Registry.CommandRegistry
+  commentId: T:Kouki.Mugura.Registry.CommandRegistry
+  id: CommandRegistry
+  parent: Kouki.Mugura.Registry
+  children:
+  - Kouki.Mugura.Registry.CommandRegistry.#ctor(System.Collections.Generic.IEnumerable{System.Reflection.Assembly})
+  - Kouki.Mugura.Registry.CommandRegistry.GetEntry(System.String)
+  - Kouki.Mugura.Registry.CommandRegistry.GetEntryByCommandType(System.Type)
+  - Kouki.Mugura.Registry.CommandRegistry.Names
+  langs:
+  - csharp
+  - vb
+  name: CommandRegistry
+  nameWithType: CommandRegistry
+  fullName: Kouki.Mugura.Registry.CommandRegistry
+  type: Class
+  source:
+    id: CommandRegistry
+    path: F:\Projects\Kouki\Kouki.Mugura\Registry\CommandRegistry.cs
+    startLine: 16
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Registry
+  summary: Реестр команд, построенный путём сканирования сборок.
+  remarks: >-
+    Сканирование выполняется в конструкторе один раз. Находит классы с <xref href="Kouki.Mugura.Attributes.CommandAttribute" data-throw-if-not-resolved="false"></xref>,
+
+    проверяет реализацию <xref href="Kouki.Mugura.Handlers.ICommandHandler%601" data-throw-if-not-resolved="false"></xref>, извлекает DTO и правила валидации.
+
+    Предоставляет доступ к записям по имени команды и по типу DTO.
+  example: []
+  syntax:
+    content: public sealed class CommandRegistry
+    content.vb: Public NotInheritable Class CommandRegistry
+  inheritance:
+  - System.Object
+  inheritedMembers:
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.ToString
+- uid: Kouki.Mugura.Registry.CommandRegistry.Names
+  commentId: P:Kouki.Mugura.Registry.CommandRegistry.Names
+  id: Names
+  parent: Kouki.Mugura.Registry.CommandRegistry
+  langs:
+  - csharp
+  - vb
+  name: Names
+  nameWithType: CommandRegistry.Names
+  fullName: Kouki.Mugura.Registry.CommandRegistry.Names
+  type: Property
+  source:
+    id: Names
+    path: F:\Projects\Kouki\Kouki.Mugura\Registry\CommandRegistry.cs
+    startLine: 21
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Registry
+  syntax:
+    content: public IReadOnlyCollection<string> Names { get; }
+    parameters: []
+    return:
+      type: System.Collections.Generic.IReadOnlyCollection{System.String}
+    content.vb: Public ReadOnly Property Names As IReadOnlyCollection(Of String)
+  overload: Kouki.Mugura.Registry.CommandRegistry.Names*
+- uid: Kouki.Mugura.Registry.CommandRegistry.#ctor(System.Collections.Generic.IEnumerable{System.Reflection.Assembly})
+  commentId: M:Kouki.Mugura.Registry.CommandRegistry.#ctor(System.Collections.Generic.IEnumerable{System.Reflection.Assembly})
+  id: '#ctor(System.Collections.Generic.IEnumerable{System.Reflection.Assembly})'
+  parent: Kouki.Mugura.Registry.CommandRegistry
+  langs:
+  - csharp
+  - vb
+  name: CommandRegistry(IEnumerable<Assembly>)
+  nameWithType: CommandRegistry.CommandRegistry(IEnumerable<Assembly>)
+  fullName: Kouki.Mugura.Registry.CommandRegistry.CommandRegistry(System.Collections.Generic.IEnumerable<System.Reflection.Assembly>)
+  type: Constructor
+  source:
+    id: .ctor
+    path: F:\Projects\Kouki\Kouki.Mugura\Registry\CommandRegistry.cs
+    startLine: 23
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Registry
+  syntax:
+    content: public CommandRegistry(IEnumerable<Assembly> assemblies)
+    parameters:
+    - id: assemblies
+      type: System.Collections.Generic.IEnumerable{System.Reflection.Assembly}
+    content.vb: Public Sub New(assemblies As IEnumerable(Of Assembly))
+  overload: Kouki.Mugura.Registry.CommandRegistry.#ctor*
+  nameWithType.vb: CommandRegistry.New(IEnumerable(Of Assembly))
+  fullName.vb: Kouki.Mugura.Registry.CommandRegistry.New(System.Collections.Generic.IEnumerable(Of System.Reflection.Assembly))
+  name.vb: New(IEnumerable(Of Assembly))
+- uid: Kouki.Mugura.Registry.CommandRegistry.GetEntry(System.String)
+  commentId: M:Kouki.Mugura.Registry.CommandRegistry.GetEntry(System.String)
+  id: GetEntry(System.String)
+  parent: Kouki.Mugura.Registry.CommandRegistry
+  langs:
+  - csharp
+  - vb
+  name: GetEntry(string)
+  nameWithType: CommandRegistry.GetEntry(string)
+  fullName: Kouki.Mugura.Registry.CommandRegistry.GetEntry(string)
+  type: Method
+  source:
+    id: GetEntry
+    path: F:\Projects\Kouki\Kouki.Mugura\Registry\CommandRegistry.cs
+    startLine: 62
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Registry
+  syntax:
+    content: public CommandEntry? GetEntry(string name)
+    parameters:
+    - id: name
+      type: System.String
+    return:
+      type: Kouki.Mugura.Registry.CommandEntry
+    content.vb: Public Function GetEntry(name As String) As CommandEntry
+  overload: Kouki.Mugura.Registry.CommandRegistry.GetEntry*
+  nameWithType.vb: CommandRegistry.GetEntry(String)
+  fullName.vb: Kouki.Mugura.Registry.CommandRegistry.GetEntry(String)
+  name.vb: GetEntry(String)
+- uid: Kouki.Mugura.Registry.CommandRegistry.GetEntryByCommandType(System.Type)
+  commentId: M:Kouki.Mugura.Registry.CommandRegistry.GetEntryByCommandType(System.Type)
+  id: GetEntryByCommandType(System.Type)
+  parent: Kouki.Mugura.Registry.CommandRegistry
+  langs:
+  - csharp
+  - vb
+  name: GetEntryByCommandType(Type)
+  nameWithType: CommandRegistry.GetEntryByCommandType(Type)
+  fullName: Kouki.Mugura.Registry.CommandRegistry.GetEntryByCommandType(System.Type)
+  type: Method
+  source:
+    id: GetEntryByCommandType
+    path: F:\Projects\Kouki\Kouki.Mugura\Registry\CommandRegistry.cs
+    startLine: 64
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Registry
+  syntax:
+    content: public CommandEntry? GetEntryByCommandType(Type commandType)
+    parameters:
+    - id: commandType
+      type: System.Type
+    return:
+      type: Kouki.Mugura.Registry.CommandEntry
+    content.vb: Public Function GetEntryByCommandType(commandType As Type) As CommandEntry
+  overload: Kouki.Mugura.Registry.CommandRegistry.GetEntryByCommandType*
+references:
+- uid: Kouki.Mugura.Attributes.CommandAttribute
+  commentId: T:Kouki.Mugura.Attributes.CommandAttribute
+  parent: Kouki.Mugura.Attributes
+  href: Kouki.Mugura.Attributes.CommandAttribute.html
+  name: CommandAttribute
+  nameWithType: CommandAttribute
+  fullName: Kouki.Mugura.Attributes.CommandAttribute
+- uid: Kouki.Mugura.Handlers.ICommandHandler`1
+  commentId: T:Kouki.Mugura.Handlers.ICommandHandler`1
+  href: Kouki.Mugura.Handlers.ICommandHandler-1.html
+  name: ICommandHandler<TCommand>
+  nameWithType: ICommandHandler<TCommand>
+  fullName: Kouki.Mugura.Handlers.ICommandHandler<TCommand>
+  nameWithType.vb: ICommandHandler(Of TCommand)
+  fullName.vb: Kouki.Mugura.Handlers.ICommandHandler(Of TCommand)
+  name.vb: ICommandHandler(Of TCommand)
+  spec.csharp:
+  - uid: Kouki.Mugura.Handlers.ICommandHandler`1
+    name: ICommandHandler
+    href: Kouki.Mugura.Handlers.ICommandHandler-1.html
+  - name: <
+  - name: TCommand
+  - name: '>'
+  spec.vb:
+  - uid: Kouki.Mugura.Handlers.ICommandHandler`1
+    name: ICommandHandler
+    href: Kouki.Mugura.Handlers.ICommandHandler-1.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: TCommand
+  - name: )
+- uid: Kouki.Mugura.Registry
+  commentId: N:Kouki.Mugura.Registry
+  href: Kouki.html
+  name: Kouki.Mugura.Registry
+  nameWithType: Kouki.Mugura.Registry
+  fullName: Kouki.Mugura.Registry
+  spec.csharp:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Registry
+    name: Registry
+    href: Kouki.Mugura.Registry.html
+  spec.vb:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Registry
+    name: Registry
+    href: Kouki.Mugura.Registry.html
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  name: Equals(object)
+  nameWithType: object.Equals(object)
+  fullName: object.Equals(object)
+  nameWithType.vb: Object.Equals(Object)
+  fullName.vb: Object.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  name: GetHashCode()
+  nameWithType: object.GetHashCode()
+  fullName: object.GetHashCode()
+  nameWithType.vb: Object.GetHashCode()
+  fullName.vb: Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  name: ToString()
+  nameWithType: object.ToString()
+  fullName: object.ToString()
+  nameWithType.vb: Object.ToString()
+  fullName.vb: Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+- uid: Kouki.Mugura.Attributes
+  commentId: N:Kouki.Mugura.Attributes
+  href: Kouki.html
+  name: Kouki.Mugura.Attributes
+  nameWithType: Kouki.Mugura.Attributes
+  fullName: Kouki.Mugura.Attributes
+  spec.csharp:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Attributes
+    name: Attributes
+    href: Kouki.Mugura.Attributes.html
+  spec.vb:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Attributes
+    name: Attributes
+    href: Kouki.Mugura.Attributes.html
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Kouki.Mugura.Registry.CommandRegistry.Names*
+  commentId: Overload:Kouki.Mugura.Registry.CommandRegistry.Names
+  href: Kouki.Mugura.Registry.CommandRegistry.html#Kouki_Mugura_Registry_CommandRegistry_Names
+  name: Names
+  nameWithType: CommandRegistry.Names
+  fullName: Kouki.Mugura.Registry.CommandRegistry.Names
+- uid: System.Collections.Generic.IReadOnlyCollection{System.String}
+  commentId: T:System.Collections.Generic.IReadOnlyCollection{System.String}
+  parent: System.Collections.Generic
+  definition: System.Collections.Generic.IReadOnlyCollection`1
+  href: https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlycollection-1
+  name: IReadOnlyCollection<string>
+  nameWithType: IReadOnlyCollection<string>
+  fullName: System.Collections.Generic.IReadOnlyCollection<string>
+  nameWithType.vb: IReadOnlyCollection(Of String)
+  fullName.vb: System.Collections.Generic.IReadOnlyCollection(Of String)
+  name.vb: IReadOnlyCollection(Of String)
+  spec.csharp:
+  - uid: System.Collections.Generic.IReadOnlyCollection`1
+    name: IReadOnlyCollection
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlycollection-1
+  - name: <
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.IReadOnlyCollection`1
+    name: IReadOnlyCollection
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlycollection-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+- uid: System.Collections.Generic.IReadOnlyCollection`1
+  commentId: T:System.Collections.Generic.IReadOnlyCollection`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlycollection-1
+  name: IReadOnlyCollection<T>
+  nameWithType: IReadOnlyCollection<T>
+  fullName: System.Collections.Generic.IReadOnlyCollection<T>
+  nameWithType.vb: IReadOnlyCollection(Of T)
+  fullName.vb: System.Collections.Generic.IReadOnlyCollection(Of T)
+  name.vb: IReadOnlyCollection(Of T)
+  spec.csharp:
+  - uid: System.Collections.Generic.IReadOnlyCollection`1
+    name: IReadOnlyCollection
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlycollection-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.IReadOnlyCollection`1
+    name: IReadOnlyCollection
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlycollection-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: System.Collections.Generic
+  commentId: N:System.Collections.Generic
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Collections.Generic
+  nameWithType: System.Collections.Generic
+  fullName: System.Collections.Generic
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Collections
+    name: Collections
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections
+  - name: .
+  - uid: System.Collections.Generic
+    name: Generic
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Collections
+    name: Collections
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections
+  - name: .
+  - uid: System.Collections.Generic
+    name: Generic
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic
+- uid: Kouki.Mugura.Registry.CommandRegistry.#ctor*
+  commentId: Overload:Kouki.Mugura.Registry.CommandRegistry.#ctor
+  href: Kouki.Mugura.Registry.CommandRegistry.html#Kouki_Mugura_Registry_CommandRegistry__ctor_System_Collections_Generic_IEnumerable_System_Reflection_Assembly__
+  name: CommandRegistry
+  nameWithType: CommandRegistry.CommandRegistry
+  fullName: Kouki.Mugura.Registry.CommandRegistry.CommandRegistry
+  nameWithType.vb: CommandRegistry.New
+  fullName.vb: Kouki.Mugura.Registry.CommandRegistry.New
+  name.vb: New
+- uid: System.Collections.Generic.IEnumerable{System.Reflection.Assembly}
+  commentId: T:System.Collections.Generic.IEnumerable{System.Reflection.Assembly}
+  parent: System.Collections.Generic
+  definition: System.Collections.Generic.IEnumerable`1
+  href: https://learn.microsoft.com/dotnet/api/system.collections.generic.ienumerable-1
+  name: IEnumerable<Assembly>
+  nameWithType: IEnumerable<Assembly>
+  fullName: System.Collections.Generic.IEnumerable<System.Reflection.Assembly>
+  nameWithType.vb: IEnumerable(Of Assembly)
+  fullName.vb: System.Collections.Generic.IEnumerable(Of System.Reflection.Assembly)
+  name.vb: IEnumerable(Of Assembly)
+  spec.csharp:
+  - uid: System.Collections.Generic.IEnumerable`1
+    name: IEnumerable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.ienumerable-1
+  - name: <
+  - uid: System.Reflection.Assembly
+    name: Assembly
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.reflection.assembly
+  - name: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.IEnumerable`1
+    name: IEnumerable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.ienumerable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.Reflection.Assembly
+    name: Assembly
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.reflection.assembly
+  - name: )
+- uid: System.Collections.Generic.IEnumerable`1
+  commentId: T:System.Collections.Generic.IEnumerable`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.collections.generic.ienumerable-1
+  name: IEnumerable<T>
+  nameWithType: IEnumerable<T>
+  fullName: System.Collections.Generic.IEnumerable<T>
+  nameWithType.vb: IEnumerable(Of T)
+  fullName.vb: System.Collections.Generic.IEnumerable(Of T)
+  name.vb: IEnumerable(Of T)
+  spec.csharp:
+  - uid: System.Collections.Generic.IEnumerable`1
+    name: IEnumerable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.ienumerable-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.IEnumerable`1
+    name: IEnumerable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.ienumerable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Kouki.Mugura.Registry.CommandRegistry.GetEntry*
+  commentId: Overload:Kouki.Mugura.Registry.CommandRegistry.GetEntry
+  href: Kouki.Mugura.Registry.CommandRegistry.html#Kouki_Mugura_Registry_CommandRegistry_GetEntry_System_String_
+  name: GetEntry
+  nameWithType: CommandRegistry.GetEntry
+  fullName: Kouki.Mugura.Registry.CommandRegistry.GetEntry
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String
+- uid: Kouki.Mugura.Registry.CommandEntry
+  commentId: T:Kouki.Mugura.Registry.CommandEntry
+  parent: Kouki.Mugura.Registry
+  href: Kouki.Mugura.Registry.CommandEntry.html
+  name: CommandEntry
+  nameWithType: CommandEntry
+  fullName: Kouki.Mugura.Registry.CommandEntry
+- uid: Kouki.Mugura.Registry.CommandRegistry.GetEntryByCommandType*
+  commentId: Overload:Kouki.Mugura.Registry.CommandRegistry.GetEntryByCommandType
+  href: Kouki.Mugura.Registry.CommandRegistry.html#Kouki_Mugura_Registry_CommandRegistry_GetEntryByCommandType_System_Type_
+  name: GetEntryByCommandType
+  nameWithType: CommandRegistry.GetEntryByCommandType
+  fullName: Kouki.Mugura.Registry.CommandRegistry.GetEntryByCommandType
+- uid: System.Type
+  commentId: T:System.Type
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.type
+  name: Type
+  nameWithType: Type
+  fullName: System.Type

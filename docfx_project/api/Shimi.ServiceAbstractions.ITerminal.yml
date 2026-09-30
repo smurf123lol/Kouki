@@ -1,0 +1,243 @@
+### YamlMime:ManagedReference
+items:
+- uid: Shimi.ServiceAbstractions.ITerminal
+  commentId: T:Shimi.ServiceAbstractions.ITerminal
+  id: ITerminal
+  parent: Shimi.ServiceAbstractions
+  children:
+  - Shimi.ServiceAbstractions.ITerminal.RunCommandAsync(System.String,System.String,System.Threading.CancellationToken)
+  langs:
+  - csharp
+  - vb
+  name: ITerminal
+  nameWithType: ITerminal
+  fullName: Shimi.ServiceAbstractions.ITerminal
+  type: Interface
+  source:
+    id: ITerminal
+    path: F:\Projects\Kouki\Shimi\ServiceAbstractions\ITerminal.cs
+    startLine: 5
+  assemblies:
+  - Shimi
+  namespace: Shimi.ServiceAbstractions
+  summary: TODO
+  example: []
+  syntax:
+    content: public interface ITerminal
+    content.vb: Public Interface ITerminal
+- uid: Shimi.ServiceAbstractions.ITerminal.RunCommandAsync(System.String,System.String,System.Threading.CancellationToken)
+  commentId: M:Shimi.ServiceAbstractions.ITerminal.RunCommandAsync(System.String,System.String,System.Threading.CancellationToken)
+  id: RunCommandAsync(System.String,System.String,System.Threading.CancellationToken)
+  parent: Shimi.ServiceAbstractions.ITerminal
+  langs:
+  - csharp
+  - vb
+  name: RunCommandAsync(string, string?, CancellationToken)
+  nameWithType: ITerminal.RunCommandAsync(string, string?, CancellationToken)
+  fullName: Shimi.ServiceAbstractions.ITerminal.RunCommandAsync(string, string?, System.Threading.CancellationToken)
+  type: Method
+  source:
+    id: RunCommandAsync
+    path: F:\Projects\Kouki\Shimi\ServiceAbstractions\ITerminal.cs
+    startLine: 7
+  assemblies:
+  - Shimi
+  namespace: Shimi.ServiceAbstractions
+  syntax:
+    content: Task<string> RunCommandAsync(string command, string? workingDirectory = null, CancellationToken ct = default)
+    parameters:
+    - id: command
+      type: System.String
+    - id: workingDirectory
+      type: System.String
+    - id: ct
+      type: System.Threading.CancellationToken
+    return:
+      type: System.Threading.Tasks.Task{System.String}
+    content.vb: Function RunCommandAsync(command As String, workingDirectory As String = Nothing, ct As CancellationToken = Nothing) As Task(Of String)
+  overload: Shimi.ServiceAbstractions.ITerminal.RunCommandAsync*
+  nameWithType.vb: ITerminal.RunCommandAsync(String, String, CancellationToken)
+  fullName.vb: Shimi.ServiceAbstractions.ITerminal.RunCommandAsync(String, String, System.Threading.CancellationToken)
+  name.vb: RunCommandAsync(String, String, CancellationToken)
+references:
+- uid: Shimi.ServiceAbstractions
+  commentId: N:Shimi.ServiceAbstractions
+  href: Shimi.html
+  name: Shimi.ServiceAbstractions
+  nameWithType: Shimi.ServiceAbstractions
+  fullName: Shimi.ServiceAbstractions
+  spec.csharp:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.ServiceAbstractions
+    name: ServiceAbstractions
+    href: Shimi.ServiceAbstractions.html
+  spec.vb:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.ServiceAbstractions
+    name: ServiceAbstractions
+    href: Shimi.ServiceAbstractions.html
+- uid: Shimi.ServiceAbstractions.ITerminal.RunCommandAsync*
+  commentId: Overload:Shimi.ServiceAbstractions.ITerminal.RunCommandAsync
+  href: Shimi.ServiceAbstractions.ITerminal.html#Shimi_ServiceAbstractions_ITerminal_RunCommandAsync_System_String_System_String_System_Threading_CancellationToken_
+  name: RunCommandAsync
+  nameWithType: ITerminal.RunCommandAsync
+  fullName: Shimi.ServiceAbstractions.ITerminal.RunCommandAsync
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String
+- uid: System.Threading.CancellationToken
+  commentId: T:System.Threading.CancellationToken
+  parent: System.Threading
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  name: CancellationToken
+  nameWithType: CancellationToken
+  fullName: System.Threading.CancellationToken
+- uid: System.Threading.Tasks.Task{System.String}
+  commentId: T:System.Threading.Tasks.Task{System.String}
+  parent: System.Threading.Tasks
+  definition: System.Threading.Tasks.Task`1
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  name: Task<string>
+  nameWithType: Task<string>
+  fullName: System.Threading.Tasks.Task<string>
+  nameWithType.vb: Task(Of String)
+  fullName.vb: System.Threading.Tasks.Task(Of String)
+  name.vb: Task(Of String)
+  spec.csharp:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: <
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: '>'
+  spec.vb:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.Threading
+  commentId: N:System.Threading
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Threading
+  nameWithType: System.Threading
+  fullName: System.Threading
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+- uid: System.Threading.Tasks.Task`1
+  commentId: T:System.Threading.Tasks.Task`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  name: Task<TResult>
+  nameWithType: Task<TResult>
+  fullName: System.Threading.Tasks.Task<TResult>
+  nameWithType.vb: Task(Of TResult)
+  fullName.vb: System.Threading.Tasks.Task(Of TResult)
+  name.vb: Task(Of TResult)
+  spec.csharp:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: <
+  - name: TResult
+  - name: '>'
+  spec.vb:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: TResult
+  - name: )
+- uid: System.Threading.Tasks
+  commentId: N:System.Threading.Tasks
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Threading.Tasks
+  nameWithType: System.Threading.Tasks
+  fullName: System.Threading.Tasks
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  - name: .
+  - uid: System.Threading.Tasks
+    name: Tasks
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  - name: .
+  - uid: System.Threading.Tasks
+    name: Tasks
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks

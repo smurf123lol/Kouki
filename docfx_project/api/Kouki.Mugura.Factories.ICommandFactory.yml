@@ -1,0 +1,194 @@
+### YamlMime:ManagedReference
+items:
+- uid: Kouki.Mugura.Factories.ICommandFactory
+  commentId: T:Kouki.Mugura.Factories.ICommandFactory
+  id: ICommandFactory
+  parent: Kouki.Mugura.Factories
+  children:
+  - Kouki.Mugura.Factories.ICommandFactory.Create(Kouki.Mugura.Registry.CommandEntry,System.Text.Json.Nodes.JsonNode)
+  langs:
+  - csharp
+  - vb
+  name: ICommandFactory
+  nameWithType: ICommandFactory
+  fullName: Kouki.Mugura.Factories.ICommandFactory
+  type: Interface
+  source:
+    id: ICommandFactory
+    path: F:\Projects\Kouki\Kouki.Mugura\Factories\ICommandFactory.cs
+    startLine: 6
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Factories
+  syntax:
+    content: public interface ICommandFactory
+    content.vb: Public Interface ICommandFactory
+  derivedClasses:
+  - Kouki.Mugura.Factories.CommandFactory
+- uid: Kouki.Mugura.Factories.ICommandFactory.Create(Kouki.Mugura.Registry.CommandEntry,System.Text.Json.Nodes.JsonNode)
+  commentId: M:Kouki.Mugura.Factories.ICommandFactory.Create(Kouki.Mugura.Registry.CommandEntry,System.Text.Json.Nodes.JsonNode)
+  id: Create(Kouki.Mugura.Registry.CommandEntry,System.Text.Json.Nodes.JsonNode)
+  parent: Kouki.Mugura.Factories.ICommandFactory
+  langs:
+  - csharp
+  - vb
+  name: Create(CommandEntry, JsonNode?)
+  nameWithType: ICommandFactory.Create(CommandEntry, JsonNode?)
+  fullName: Kouki.Mugura.Factories.ICommandFactory.Create(Kouki.Mugura.Registry.CommandEntry, System.Text.Json.Nodes.JsonNode?)
+  type: Method
+  source:
+    id: Create
+    path: F:\Projects\Kouki\Kouki.Mugura\Factories\ICommandFactory.cs
+    startLine: 8
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Factories
+  syntax:
+    content: ICommand? Create(CommandEntry entry, JsonNode? argument)
+    parameters:
+    - id: entry
+      type: Kouki.Mugura.Registry.CommandEntry
+    - id: argument
+      type: System.Text.Json.Nodes.JsonNode
+    return:
+      type: ICommand
+    content.vb: Function Create(entry As CommandEntry, argument As JsonNode) As ICommand
+  overload: Kouki.Mugura.Factories.ICommandFactory.Create*
+  nameWithType.vb: ICommandFactory.Create(CommandEntry, JsonNode)
+  fullName.vb: Kouki.Mugura.Factories.ICommandFactory.Create(Kouki.Mugura.Registry.CommandEntry, System.Text.Json.Nodes.JsonNode)
+  name.vb: Create(CommandEntry, JsonNode)
+references:
+- uid: Kouki.Mugura.Factories
+  commentId: N:Kouki.Mugura.Factories
+  href: Kouki.html
+  name: Kouki.Mugura.Factories
+  nameWithType: Kouki.Mugura.Factories
+  fullName: Kouki.Mugura.Factories
+  spec.csharp:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Factories
+    name: Factories
+    href: Kouki.Mugura.Factories.html
+  spec.vb:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Factories
+    name: Factories
+    href: Kouki.Mugura.Factories.html
+- uid: Kouki.Mugura.Factories.ICommandFactory.Create*
+  commentId: Overload:Kouki.Mugura.Factories.ICommandFactory.Create
+  href: Kouki.Mugura.Factories.ICommandFactory.html#Kouki_Mugura_Factories_ICommandFactory_Create_Kouki_Mugura_Registry_CommandEntry_System_Text_Json_Nodes_JsonNode_
+  name: Create
+  nameWithType: ICommandFactory.Create
+  fullName: Kouki.Mugura.Factories.ICommandFactory.Create
+- uid: Kouki.Mugura.Registry.CommandEntry
+  commentId: T:Kouki.Mugura.Registry.CommandEntry
+  parent: Kouki.Mugura.Registry
+  href: Kouki.Mugura.Registry.CommandEntry.html
+  name: CommandEntry
+  nameWithType: CommandEntry
+  fullName: Kouki.Mugura.Registry.CommandEntry
+- uid: System.Text.Json.Nodes.JsonNode
+  commentId: T:System.Text.Json.Nodes.JsonNode
+  parent: System.Text.Json.Nodes
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.text.json.nodes.jsonnode
+  name: JsonNode
+  nameWithType: JsonNode
+  fullName: System.Text.Json.Nodes.JsonNode
+- uid: ICommand
+  commentId: T:ICommand
+  href: ICommand.html
+  name: ICommand
+  nameWithType: ICommand
+  fullName: ICommand
+- uid: Kouki.Mugura.Registry
+  commentId: N:Kouki.Mugura.Registry
+  href: Kouki.html
+  name: Kouki.Mugura.Registry
+  nameWithType: Kouki.Mugura.Registry
+  fullName: Kouki.Mugura.Registry
+  spec.csharp:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Registry
+    name: Registry
+    href: Kouki.Mugura.Registry.html
+  spec.vb:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Registry
+    name: Registry
+    href: Kouki.Mugura.Registry.html
+- uid: System.Text.Json.Nodes
+  commentId: N:System.Text.Json.Nodes
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Text.Json.Nodes
+  nameWithType: System.Text.Json.Nodes
+  fullName: System.Text.Json.Nodes
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Text
+    name: Text
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text
+  - name: .
+  - uid: System.Text.Json
+    name: Json
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json
+  - name: .
+  - uid: System.Text.Json.Nodes
+    name: Nodes
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json.nodes
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Text
+    name: Text
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text
+  - name: .
+  - uid: System.Text.Json
+    name: Json
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json
+  - name: .
+  - uid: System.Text.Json.Nodes
+    name: Nodes
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json.nodes

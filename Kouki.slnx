@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/Kagedama/">
+    <Project Path="Kagedama.api/Kagedama.api.csproj" Id="89706de5-0fa8-4291-be06-0a79cdaf224b" />
+    <Project Path="Kagedama.vs/Kagedama.vs.csproj" />
+  </Folder>
+  <Project Path="Kouki.Mugura/Kouki.Mugura.csproj" />
+  <Project Path="Shimi/Shimi.csproj" />
+  <Project Path="Ubusuna/Ubusuna.csproj" Id="59534aff-3df5-4886-a61f-ba65fd48b84d" />
+</Solution>

@@ -1,0 +1,1944 @@
+### YamlMime:XRefMap
+sorted: true
+references:
+- uid: Kagedama.api
+  name: Kagedama.api
+  href: examples/kagedama/api/Kagedama.api.html
+  commentId: N:Kagedama.api
+  fullName: Kagedama.api
+  nameWithType: Kagedama.api
+- uid: Kagedama.api.Class1
+  name: Class1
+  href: examples/kagedama/api/Kagedama.api.Class1.html
+  commentId: T:Kagedama.api.Class1
+  fullName: Kagedama.api.Class1
+  nameWithType: Class1
+- uid: Kouki.Mugura
+  name: Kouki.Mugura
+  href: examples/kagedama/api/Kouki.Mugura.html
+  commentId: N:Kouki.Mugura
+  fullName: Kouki.Mugura
+  nameWithType: Kouki.Mugura
+- uid: Kouki.Mugura.Attributes
+  name: Kouki.Mugura.Attributes
+  href: api/Kouki.Mugura.Attributes.html
+  commentId: N:Kouki.Mugura.Attributes
+  fullName: Kouki.Mugura.Attributes
+  nameWithType: Kouki.Mugura.Attributes
+- uid: Kouki.Mugura.Attributes.CommandAttribute
+  name: CommandAttribute
+  href: api/Kouki.Mugura.Attributes.CommandAttribute.html
+  commentId: T:Kouki.Mugura.Attributes.CommandAttribute
+  fullName: Kouki.Mugura.Attributes.CommandAttribute
+  nameWithType: CommandAttribute
+- uid: Kouki.Mugura.Attributes.CommandAttribute.#ctor(System.String)
+  name: CommandAttribute(string)
+  href: api/Kouki.Mugura.Attributes.CommandAttribute.html#Kouki_Mugura_Attributes_CommandAttribute__ctor_System_String_
+  commentId: M:Kouki.Mugura.Attributes.CommandAttribute.#ctor(System.String)
+  name.vb: New(String)
+  fullName: Kouki.Mugura.Attributes.CommandAttribute.CommandAttribute(string)
+  fullName.vb: Kouki.Mugura.Attributes.CommandAttribute.New(String)
+  nameWithType: CommandAttribute.CommandAttribute(string)
+  nameWithType.vb: CommandAttribute.New(String)
+- uid: Kouki.Mugura.Attributes.CommandAttribute.#ctor*
+  name: CommandAttribute
+  href: api/Kouki.Mugura.Attributes.CommandAttribute.html#Kouki_Mugura_Attributes_CommandAttribute__ctor_
+  commentId: Overload:Kouki.Mugura.Attributes.CommandAttribute.#ctor
+  isSpec: "True"
+  name.vb: New
+  fullName: Kouki.Mugura.Attributes.CommandAttribute.CommandAttribute
+  fullName.vb: Kouki.Mugura.Attributes.CommandAttribute.New
+  nameWithType: CommandAttribute.CommandAttribute
+  nameWithType.vb: CommandAttribute.New
+- uid: Kouki.Mugura.Attributes.CommandAttribute.Category
+  name: Category
+  href: api/Kouki.Mugura.Attributes.CommandAttribute.html#Kouki_Mugura_Attributes_CommandAttribute_Category
+  commentId: P:Kouki.Mugura.Attributes.CommandAttribute.Category
+  fullName: Kouki.Mugura.Attributes.CommandAttribute.Category
+  nameWithType: CommandAttribute.Category
+- uid: Kouki.Mugura.Attributes.CommandAttribute.Category*
+  name: Category
+  href: api/Kouki.Mugura.Attributes.CommandAttribute.html#Kouki_Mugura_Attributes_CommandAttribute_Category_
+  commentId: Overload:Kouki.Mugura.Attributes.CommandAttribute.Category
+  isSpec: "True"
+  fullName: Kouki.Mugura.Attributes.CommandAttribute.Category
+  nameWithType: CommandAttribute.Category
+- uid: Kouki.Mugura.Attributes.CommandAttribute.Description
+  name: Description
+  href: api/Kouki.Mugura.Attributes.CommandAttribute.html#Kouki_Mugura_Attributes_CommandAttribute_Description
+  commentId: P:Kouki.Mugura.Attributes.CommandAttribute.Description
+  fullName: Kouki.Mugura.Attributes.CommandAttribute.Description
+  nameWithType: CommandAttribute.Description
+- uid: Kouki.Mugura.Attributes.CommandAttribute.Description*
+  name: Description
+  href: api/Kouki.Mugura.Attributes.CommandAttribute.html#Kouki_Mugura_Attributes_CommandAttribute_Description_
+  commentId: Overload:Kouki.Mugura.Attributes.CommandAttribute.Description
+  isSpec: "True"
+  fullName: Kouki.Mugura.Attributes.CommandAttribute.Description
+  nameWithType: CommandAttribute.Description
+- uid: Kouki.Mugura.Attributes.CommandAttribute.Example
+  name: Example
+  href: api/Kouki.Mugura.Attributes.CommandAttribute.html#Kouki_Mugura_Attributes_CommandAttribute_Example
+  commentId: P:Kouki.Mugura.Attributes.CommandAttribute.Example
+  fullName: Kouki.Mugura.Attributes.CommandAttribute.Example
+  nameWithType: CommandAttribute.Example
+- uid: Kouki.Mugura.Attributes.CommandAttribute.Example*
+  name: Example
+  href: api/Kouki.Mugura.Attributes.CommandAttribute.html#Kouki_Mugura_Attributes_CommandAttribute_Example_
+  commentId: Overload:Kouki.Mugura.Attributes.CommandAttribute.Example
+  isSpec: "True"
+  fullName: Kouki.Mugura.Attributes.CommandAttribute.Example
+  nameWithType: CommandAttribute.Example
+- uid: Kouki.Mugura.Attributes.CommandAttribute.Name
+  name: Name
+  href: api/Kouki.Mugura.Attributes.CommandAttribute.html#Kouki_Mugura_Attributes_CommandAttribute_Name
+  commentId: P:Kouki.Mugura.Attributes.CommandAttribute.Name
+  fullName: Kouki.Mugura.Attributes.CommandAttribute.Name
+  nameWithType: CommandAttribute.Name
+- uid: Kouki.Mugura.Attributes.CommandAttribute.Name*
+  name: Name
+  href: api/Kouki.Mugura.Attributes.CommandAttribute.html#Kouki_Mugura_Attributes_CommandAttribute_Name_
+  commentId: Overload:Kouki.Mugura.Attributes.CommandAttribute.Name
+  isSpec: "True"
+  fullName: Kouki.Mugura.Attributes.CommandAttribute.Name
+  nameWithType: CommandAttribute.Name
+- uid: Kouki.Mugura.Attributes.CommandAttribute.RequiresConfirmation
+  name: RequiresConfirmation
+  href: api/Kouki.Mugura.Attributes.CommandAttribute.html#Kouki_Mugura_Attributes_CommandAttribute_RequiresConfirmation
+  commentId: P:Kouki.Mugura.Attributes.CommandAttribute.RequiresConfirmation
+  fullName: Kouki.Mugura.Attributes.CommandAttribute.RequiresConfirmation
+  nameWithType: CommandAttribute.RequiresConfirmation
+- uid: Kouki.Mugura.Attributes.CommandAttribute.RequiresConfirmation*
+  name: RequiresConfirmation
+  href: api/Kouki.Mugura.Attributes.CommandAttribute.html#Kouki_Mugura_Attributes_CommandAttribute_RequiresConfirmation_
+  commentId: Overload:Kouki.Mugura.Attributes.CommandAttribute.RequiresConfirmation
+  isSpec: "True"
+  fullName: Kouki.Mugura.Attributes.CommandAttribute.RequiresConfirmation
+  nameWithType: CommandAttribute.RequiresConfirmation
+- uid: Kouki.Mugura.Attributes.CommandCategory
+  name: CommandCategory
+  href: api/Kouki.Mugura.Attributes.CommandCategory.html
+  commentId: T:Kouki.Mugura.Attributes.CommandCategory
+  fullName: Kouki.Mugura.Attributes.CommandCategory
+  nameWithType: CommandCategory
+- uid: Kouki.Mugura.Attributes.CommandCategory.Admin
+  name: Admin
+  href: api/Kouki.Mugura.Attributes.CommandCategory.html#Kouki_Mugura_Attributes_CommandCategory_Admin
+  commentId: F:Kouki.Mugura.Attributes.CommandCategory.Admin
+  fullName: Kouki.Mugura.Attributes.CommandCategory.Admin
+  nameWithType: CommandCategory.Admin
+- uid: Kouki.Mugura.Attributes.CommandCategory.Dangerous
+  name: Dangerous
+  href: api/Kouki.Mugura.Attributes.CommandCategory.html#Kouki_Mugura_Attributes_CommandCategory_Dangerous
+  commentId: F:Kouki.Mugura.Attributes.CommandCategory.Dangerous
+  fullName: Kouki.Mugura.Attributes.CommandCategory.Dangerous
+  nameWithType: CommandCategory.Dangerous
+- uid: Kouki.Mugura.Attributes.CommandCategory.Environment
+  name: Environment
+  href: api/Kouki.Mugura.Attributes.CommandCategory.html#Kouki_Mugura_Attributes_CommandCategory_Environment
+  commentId: F:Kouki.Mugura.Attributes.CommandCategory.Environment
+  fullName: Kouki.Mugura.Attributes.CommandCategory.Environment
+  nameWithType: CommandCategory.Environment
+- uid: Kouki.Mugura.Attributes.CommandCategory.FileOperations
+  name: FileOperations
+  href: api/Kouki.Mugura.Attributes.CommandCategory.html#Kouki_Mugura_Attributes_CommandCategory_FileOperations
+  commentId: F:Kouki.Mugura.Attributes.CommandCategory.FileOperations
+  fullName: Kouki.Mugura.Attributes.CommandCategory.FileOperations
+  nameWithType: CommandCategory.FileOperations
+- uid: Kouki.Mugura.Attributes.CommandCategory.Git
+  name: Git
+  href: api/Kouki.Mugura.Attributes.CommandCategory.html#Kouki_Mugura_Attributes_CommandCategory_Git
+  commentId: F:Kouki.Mugura.Attributes.CommandCategory.Git
+  fullName: Kouki.Mugura.Attributes.CommandCategory.Git
+  nameWithType: CommandCategory.Git
+- uid: Kouki.Mugura.Attributes.CommandCategory.Integration
+  name: Integration
+  href: api/Kouki.Mugura.Attributes.CommandCategory.html#Kouki_Mugura_Attributes_CommandCategory_Integration
+  commentId: F:Kouki.Mugura.Attributes.CommandCategory.Integration
+  fullName: Kouki.Mugura.Attributes.CommandCategory.Integration
+  nameWithType: CommandCategory.Integration
+- uid: Kouki.Mugura.Attributes.CommandCategory.Navigation
+  name: Navigation
+  href: api/Kouki.Mugura.Attributes.CommandCategory.html#Kouki_Mugura_Attributes_CommandCategory_Navigation
+  commentId: F:Kouki.Mugura.Attributes.CommandCategory.Navigation
+  fullName: Kouki.Mugura.Attributes.CommandCategory.Navigation
+  nameWithType: CommandCategory.Navigation
+- uid: Kouki.Mugura.Attributes.CommandCategory.Terminal
+  name: Terminal
+  href: api/Kouki.Mugura.Attributes.CommandCategory.html#Kouki_Mugura_Attributes_CommandCategory_Terminal
+  commentId: F:Kouki.Mugura.Attributes.CommandCategory.Terminal
+  fullName: Kouki.Mugura.Attributes.CommandCategory.Terminal
+  nameWithType: CommandCategory.Terminal
+- uid: Kouki.Mugura.Attributes.CommandCategory.Uncategorized
+  name: Uncategorized
+  href: api/Kouki.Mugura.Attributes.CommandCategory.html#Kouki_Mugura_Attributes_CommandCategory_Uncategorized
+  commentId: F:Kouki.Mugura.Attributes.CommandCategory.Uncategorized
+  fullName: Kouki.Mugura.Attributes.CommandCategory.Uncategorized
+  nameWithType: CommandCategory.Uncategorized
+- uid: Kouki.Mugura.Commands
+  name: Kouki.Mugura.Commands
+  href: api/Kouki.Mugura.Commands.html
+  commentId: N:Kouki.Mugura.Commands
+  fullName: Kouki.Mugura.Commands
+  nameWithType: Kouki.Mugura.Commands
+- uid: Kouki.Mugura.Commands.CommandBase
+  name: CommandBase
+  href: api/Kouki.Mugura.Commands.CommandBase.html
+  commentId: T:Kouki.Mugura.Commands.CommandBase
+  fullName: Kouki.Mugura.Commands.CommandBase
+  nameWithType: CommandBase
+- uid: Kouki.Mugura.Commands.CommandBase.#ctor(System.Text.Json.Nodes.JsonNode)
+  name: CommandBase(JsonNode?)
+  href: api/Kouki.Mugura.Commands.CommandBase.html#Kouki_Mugura_Commands_CommandBase__ctor_System_Text_Json_Nodes_JsonNode_
+  commentId: M:Kouki.Mugura.Commands.CommandBase.#ctor(System.Text.Json.Nodes.JsonNode)
+  name.vb: New(JsonNode)
+  fullName: Kouki.Mugura.Commands.CommandBase.CommandBase(System.Text.Json.Nodes.JsonNode?)
+  fullName.vb: Kouki.Mugura.Commands.CommandBase.New(System.Text.Json.Nodes.JsonNode)
+  nameWithType: CommandBase.CommandBase(JsonNode?)
+  nameWithType.vb: CommandBase.New(JsonNode)
+- uid: Kouki.Mugura.Commands.CommandBase.#ctor*
+  name: CommandBase
+  href: api/Kouki.Mugura.Commands.CommandBase.html#Kouki_Mugura_Commands_CommandBase__ctor_
+  commentId: Overload:Kouki.Mugura.Commands.CommandBase.#ctor
+  isSpec: "True"
+  name.vb: New
+  fullName: Kouki.Mugura.Commands.CommandBase.CommandBase
+  fullName.vb: Kouki.Mugura.Commands.CommandBase.New
+  nameWithType: CommandBase.CommandBase
+  nameWithType.vb: CommandBase.New
+- uid: Kouki.Mugura.Commands.CommandBase.Argument
+  name: Argument
+  href: api/Kouki.Mugura.Commands.CommandBase.html#Kouki_Mugura_Commands_CommandBase_Argument
+  commentId: P:Kouki.Mugura.Commands.CommandBase.Argument
+  fullName: Kouki.Mugura.Commands.CommandBase.Argument
+  nameWithType: CommandBase.Argument
+- uid: Kouki.Mugura.Commands.CommandBase.Argument*
+  name: Argument
+  href: api/Kouki.Mugura.Commands.CommandBase.html#Kouki_Mugura_Commands_CommandBase_Argument_
+  commentId: Overload:Kouki.Mugura.Commands.CommandBase.Argument
+  isSpec: "True"
+  fullName: Kouki.Mugura.Commands.CommandBase.Argument
+  nameWithType: CommandBase.Argument
+- uid: Kouki.Mugura.Commands.CommandValidators
+  name: Kouki.Mugura.Commands.CommandValidators
+  href: api/Kouki.Mugura.Commands.CommandValidators.html
+  commentId: N:Kouki.Mugura.Commands.CommandValidators
+  fullName: Kouki.Mugura.Commands.CommandValidators
+  nameWithType: Kouki.Mugura.Commands.CommandValidators
+- uid: Kouki.Mugura.Commands.CommandValidators.ICommandValidator`1
+  name: ICommandValidator<TCommand>
+  href: api/Kouki.Mugura.Commands.CommandValidators.ICommandValidator-1.html
+  commentId: T:Kouki.Mugura.Commands.CommandValidators.ICommandValidator`1
+  name.vb: ICommandValidator(Of TCommand)
+  fullName: Kouki.Mugura.Commands.CommandValidators.ICommandValidator<TCommand>
+  fullName.vb: Kouki.Mugura.Commands.CommandValidators.ICommandValidator(Of TCommand)
+  nameWithType: ICommandValidator<TCommand>
+  nameWithType.vb: ICommandValidator(Of TCommand)
+- uid: Kouki.Mugura.Commands.CommandValidators.ICommandValidator`1.TryValidate(`0,System.String@)
+  name: TryValidate(TCommand, out string?)
+  href: api/Kouki.Mugura.Commands.CommandValidators.ICommandValidator-1.html#Kouki_Mugura_Commands_CommandValidators_ICommandValidator_1_TryValidate__0_System_String__
+  commentId: M:Kouki.Mugura.Commands.CommandValidators.ICommandValidator`1.TryValidate(`0,System.String@)
+  name.vb: TryValidate(TCommand, String)
+  fullName: Kouki.Mugura.Commands.CommandValidators.ICommandValidator<TCommand>.TryValidate(TCommand, out string?)
+  fullName.vb: Kouki.Mugura.Commands.CommandValidators.ICommandValidator(Of TCommand).TryValidate(TCommand, String)
+  nameWithType: ICommandValidator<TCommand>.TryValidate(TCommand, out string?)
+  nameWithType.vb: ICommandValidator(Of TCommand).TryValidate(TCommand, String)
+- uid: Kouki.Mugura.Commands.CommandValidators.ICommandValidator`1.TryValidate*
+  name: TryValidate
+  href: api/Kouki.Mugura.Commands.CommandValidators.ICommandValidator-1.html#Kouki_Mugura_Commands_CommandValidators_ICommandValidator_1_TryValidate_
+  commentId: Overload:Kouki.Mugura.Commands.CommandValidators.ICommandValidator`1.TryValidate
+  isSpec: "True"
+  fullName: Kouki.Mugura.Commands.CommandValidators.ICommandValidator<TCommand>.TryValidate
+  fullName.vb: Kouki.Mugura.Commands.CommandValidators.ICommandValidator(Of TCommand).TryValidate
+  nameWithType: ICommandValidator<TCommand>.TryValidate
+  nameWithType.vb: ICommandValidator(Of TCommand).TryValidate
+- uid: Kouki.Mugura.Commands.TestCommand
+  name: TestCommand
+  href: api/Kouki.Mugura.Commands.TestCommand.html
+  commentId: T:Kouki.Mugura.Commands.TestCommand
+  fullName: Kouki.Mugura.Commands.TestCommand
+  nameWithType: TestCommand
+- uid: Kouki.Mugura.Commands.TestCommand.#ctor(System.String)
+  name: TestCommand(string?)
+  href: api/Kouki.Mugura.Commands.TestCommand.html#Kouki_Mugura_Commands_TestCommand__ctor_System_String_
+  commentId: M:Kouki.Mugura.Commands.TestCommand.#ctor(System.String)
+  name.vb: New(String)
+  fullName: Kouki.Mugura.Commands.TestCommand.TestCommand(string?)
+  fullName.vb: Kouki.Mugura.Commands.TestCommand.New(String)
+  nameWithType: TestCommand.TestCommand(string?)
+  nameWithType.vb: TestCommand.New(String)
+- uid: Kouki.Mugura.Commands.TestCommand.#ctor*
+  name: TestCommand
+  href: api/Kouki.Mugura.Commands.TestCommand.html#Kouki_Mugura_Commands_TestCommand__ctor_
+  commentId: Overload:Kouki.Mugura.Commands.TestCommand.#ctor
+  isSpec: "True"
+  name.vb: New
+  fullName: Kouki.Mugura.Commands.TestCommand.TestCommand
+  fullName.vb: Kouki.Mugura.Commands.TestCommand.New
+  nameWithType: TestCommand.TestCommand
+  nameWithType.vb: TestCommand.New
+- uid: Kouki.Mugura.Commands.TestCommand.Value
+  name: Value
+  href: api/Kouki.Mugura.Commands.TestCommand.html#Kouki_Mugura_Commands_TestCommand_Value
+  commentId: P:Kouki.Mugura.Commands.TestCommand.Value
+  fullName: Kouki.Mugura.Commands.TestCommand.Value
+  nameWithType: TestCommand.Value
+- uid: Kouki.Mugura.Commands.TestCommand.Value*
+  name: Value
+  href: api/Kouki.Mugura.Commands.TestCommand.html#Kouki_Mugura_Commands_TestCommand_Value_
+  commentId: Overload:Kouki.Mugura.Commands.TestCommand.Value
+  isSpec: "True"
+  fullName: Kouki.Mugura.Commands.TestCommand.Value
+  nameWithType: TestCommand.Value
+- uid: Kouki.Mugura.DependencyInjection
+  name: Kouki.Mugura.DependencyInjection
+  href: api/Kouki.Mugura.DependencyInjection.html
+  commentId: N:Kouki.Mugura.DependencyInjection
+  fullName: Kouki.Mugura.DependencyInjection
+  nameWithType: Kouki.Mugura.DependencyInjection
+- uid: Kouki.Mugura.DependencyInjection.ServiceCollectionExtensions
+  name: ServiceCollectionExtensions
+  href: api/Kouki.Mugura.DependencyInjection.ServiceCollectionExtensions.html
+  commentId: T:Kouki.Mugura.DependencyInjection.ServiceCollectionExtensions
+  fullName: Kouki.Mugura.DependencyInjection.ServiceCollectionExtensions
+  nameWithType: ServiceCollectionExtensions
+- uid: Kouki.Mugura.DependencyInjection.ServiceCollectionExtensions.AddMugura(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.Reflection.Assembly[])
+  name: AddMugura(IServiceCollection, params Assembly[])
+  href: api/Kouki.Mugura.DependencyInjection.ServiceCollectionExtensions.html#Kouki_Mugura_DependencyInjection_ServiceCollectionExtensions_AddMugura_Microsoft_Extensions_DependencyInjection_IServiceCollection_System_Reflection_Assembly___
+  commentId: M:Kouki.Mugura.DependencyInjection.ServiceCollectionExtensions.AddMugura(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.Reflection.Assembly[])
+  name.vb: AddMugura(IServiceCollection, ParamArray Assembly())
+  fullName: Kouki.Mugura.DependencyInjection.ServiceCollectionExtensions.AddMugura(Microsoft.Extensions.DependencyInjection.IServiceCollection, params System.Reflection.Assembly[])
+  fullName.vb: Kouki.Mugura.DependencyInjection.ServiceCollectionExtensions.AddMugura(Microsoft.Extensions.DependencyInjection.IServiceCollection, ParamArray System.Reflection.Assembly())
+  nameWithType: ServiceCollectionExtensions.AddMugura(IServiceCollection, params Assembly[])
+  nameWithType.vb: ServiceCollectionExtensions.AddMugura(IServiceCollection, ParamArray Assembly())
+- uid: Kouki.Mugura.DependencyInjection.ServiceCollectionExtensions.AddMugura*
+  name: AddMugura
+  href: api/Kouki.Mugura.DependencyInjection.ServiceCollectionExtensions.html#Kouki_Mugura_DependencyInjection_ServiceCollectionExtensions_AddMugura_
+  commentId: Overload:Kouki.Mugura.DependencyInjection.ServiceCollectionExtensions.AddMugura
+  isSpec: "True"
+  fullName: Kouki.Mugura.DependencyInjection.ServiceCollectionExtensions.AddMugura
+  nameWithType: ServiceCollectionExtensions.AddMugura
+- uid: Kouki.Mugura.Dispatcher
+  name: Kouki.Mugura.Dispatcher
+  href: api/Kouki.Mugura.Dispatcher.html
+  commentId: N:Kouki.Mugura.Dispatcher
+  fullName: Kouki.Mugura.Dispatcher
+  nameWithType: Kouki.Mugura.Dispatcher
+- uid: Kouki.Mugura.Dispatcher.CommandDispatcher
+  name: CommandDispatcher
+  href: api/Kouki.Mugura.Dispatcher.CommandDispatcher.html
+  commentId: T:Kouki.Mugura.Dispatcher.CommandDispatcher
+  fullName: Kouki.Mugura.Dispatcher.CommandDispatcher
+  nameWithType: CommandDispatcher
+- uid: Kouki.Mugura.Dispatcher.CommandDispatcher.#ctor(Kouki.Mugura.Scope.IScopeManager)
+  name: CommandDispatcher(IScopeManager)
+  href: api/Kouki.Mugura.Dispatcher.CommandDispatcher.html#Kouki_Mugura_Dispatcher_CommandDispatcher__ctor_Kouki_Mugura_Scope_IScopeManager_
+  commentId: M:Kouki.Mugura.Dispatcher.CommandDispatcher.#ctor(Kouki.Mugura.Scope.IScopeManager)
+  name.vb: New(IScopeManager)
+  fullName: Kouki.Mugura.Dispatcher.CommandDispatcher.CommandDispatcher(Kouki.Mugura.Scope.IScopeManager)
+  fullName.vb: Kouki.Mugura.Dispatcher.CommandDispatcher.New(Kouki.Mugura.Scope.IScopeManager)
+  nameWithType: CommandDispatcher.CommandDispatcher(IScopeManager)
+  nameWithType.vb: CommandDispatcher.New(IScopeManager)
+- uid: Kouki.Mugura.Dispatcher.CommandDispatcher.#ctor*
+  name: CommandDispatcher
+  href: api/Kouki.Mugura.Dispatcher.CommandDispatcher.html#Kouki_Mugura_Dispatcher_CommandDispatcher__ctor_
+  commentId: Overload:Kouki.Mugura.Dispatcher.CommandDispatcher.#ctor
+  isSpec: "True"
+  name.vb: New
+  fullName: Kouki.Mugura.Dispatcher.CommandDispatcher.CommandDispatcher
+  fullName.vb: Kouki.Mugura.Dispatcher.CommandDispatcher.New
+  nameWithType: CommandDispatcher.CommandDispatcher
+  nameWithType.vb: CommandDispatcher.New
+- uid: Kouki.Mugura.Dispatcher.CommandDispatcher.SendAsync*
+  name: SendAsync
+  href: api/Kouki.Mugura.Dispatcher.CommandDispatcher.html#Kouki_Mugura_Dispatcher_CommandDispatcher_SendAsync_
+  commentId: Overload:Kouki.Mugura.Dispatcher.CommandDispatcher.SendAsync
+  isSpec: "True"
+  fullName: Kouki.Mugura.Dispatcher.CommandDispatcher.SendAsync
+  nameWithType: CommandDispatcher.SendAsync
+- uid: Kouki.Mugura.Dispatcher.CommandDispatcher.SendAsync``1(``0,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  name: SendAsync<TCommand>(TCommand, IExecutionContext, CancellationToken)
+  href: api/Kouki.Mugura.Dispatcher.CommandDispatcher.html#Kouki_Mugura_Dispatcher_CommandDispatcher_SendAsync__1___0_Shimi_Context_IExecutionContext_System_Threading_CancellationToken_
+  commentId: M:Kouki.Mugura.Dispatcher.CommandDispatcher.SendAsync``1(``0,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  name.vb: SendAsync(Of TCommand)(TCommand, IExecutionContext, CancellationToken)
+  fullName: Kouki.Mugura.Dispatcher.CommandDispatcher.SendAsync<TCommand>(TCommand, Shimi.Context.IExecutionContext, System.Threading.CancellationToken)
+  fullName.vb: Kouki.Mugura.Dispatcher.CommandDispatcher.SendAsync(Of TCommand)(TCommand, Shimi.Context.IExecutionContext, System.Threading.CancellationToken)
+  nameWithType: CommandDispatcher.SendAsync<TCommand>(TCommand, IExecutionContext, CancellationToken)
+  nameWithType.vb: CommandDispatcher.SendAsync(Of TCommand)(TCommand, IExecutionContext, CancellationToken)
+- uid: Kouki.Mugura.Dispatcher.DelegatingRouter
+  name: DelegatingRouter
+  href: api/Kouki.Mugura.Dispatcher.DelegatingRouter.html
+  commentId: T:Kouki.Mugura.Dispatcher.DelegatingRouter
+  fullName: Kouki.Mugura.Dispatcher.DelegatingRouter
+  nameWithType: DelegatingRouter
+- uid: Kouki.Mugura.Dispatcher.DelegatingRouter.#ctor(Kouki.Mugura.Dispatcher.IRouter)
+  name: DelegatingRouter(IRouter)
+  href: api/Kouki.Mugura.Dispatcher.DelegatingRouter.html#Kouki_Mugura_Dispatcher_DelegatingRouter__ctor_Kouki_Mugura_Dispatcher_IRouter_
+  commentId: M:Kouki.Mugura.Dispatcher.DelegatingRouter.#ctor(Kouki.Mugura.Dispatcher.IRouter)
+  name.vb: New(IRouter)
+  fullName: Kouki.Mugura.Dispatcher.DelegatingRouter.DelegatingRouter(Kouki.Mugura.Dispatcher.IRouter)
+  fullName.vb: Kouki.Mugura.Dispatcher.DelegatingRouter.New(Kouki.Mugura.Dispatcher.IRouter)
+  nameWithType: DelegatingRouter.DelegatingRouter(IRouter)
+  nameWithType.vb: DelegatingRouter.New(IRouter)
+- uid: Kouki.Mugura.Dispatcher.DelegatingRouter.#ctor*
+  name: DelegatingRouter
+  href: api/Kouki.Mugura.Dispatcher.DelegatingRouter.html#Kouki_Mugura_Dispatcher_DelegatingRouter__ctor_
+  commentId: Overload:Kouki.Mugura.Dispatcher.DelegatingRouter.#ctor
+  isSpec: "True"
+  name.vb: New
+  fullName: Kouki.Mugura.Dispatcher.DelegatingRouter.DelegatingRouter
+  fullName.vb: Kouki.Mugura.Dispatcher.DelegatingRouter.New
+  nameWithType: DelegatingRouter.DelegatingRouter
+  nameWithType.vb: DelegatingRouter.New
+- uid: Kouki.Mugura.Dispatcher.DelegatingRouter.InnerRouter
+  name: InnerRouter
+  href: api/Kouki.Mugura.Dispatcher.DelegatingRouter.html#Kouki_Mugura_Dispatcher_DelegatingRouter_InnerRouter
+  commentId: F:Kouki.Mugura.Dispatcher.DelegatingRouter.InnerRouter
+  fullName: Kouki.Mugura.Dispatcher.DelegatingRouter.InnerRouter
+  nameWithType: DelegatingRouter.InnerRouter
+- uid: Kouki.Mugura.Dispatcher.DelegatingRouter.RouteAsync(System.String,System.Text.Json.Nodes.JsonNode,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  name: RouteAsync(string, JsonNode?, IExecutionContext?, CancellationToken)
+  href: api/Kouki.Mugura.Dispatcher.DelegatingRouter.html#Kouki_Mugura_Dispatcher_DelegatingRouter_RouteAsync_System_String_System_Text_Json_Nodes_JsonNode_Shimi_Context_IExecutionContext_System_Threading_CancellationToken_
+  commentId: M:Kouki.Mugura.Dispatcher.DelegatingRouter.RouteAsync(System.String,System.Text.Json.Nodes.JsonNode,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  name.vb: RouteAsync(String, JsonNode, IExecutionContext, CancellationToken)
+  fullName: Kouki.Mugura.Dispatcher.DelegatingRouter.RouteAsync(string, System.Text.Json.Nodes.JsonNode?, Shimi.Context.IExecutionContext?, System.Threading.CancellationToken)
+  fullName.vb: Kouki.Mugura.Dispatcher.DelegatingRouter.RouteAsync(String, System.Text.Json.Nodes.JsonNode, Shimi.Context.IExecutionContext, System.Threading.CancellationToken)
+  nameWithType: DelegatingRouter.RouteAsync(string, JsonNode?, IExecutionContext?, CancellationToken)
+  nameWithType.vb: DelegatingRouter.RouteAsync(String, JsonNode, IExecutionContext, CancellationToken)
+- uid: Kouki.Mugura.Dispatcher.DelegatingRouter.RouteAsync*
+  name: RouteAsync
+  href: api/Kouki.Mugura.Dispatcher.DelegatingRouter.html#Kouki_Mugura_Dispatcher_DelegatingRouter_RouteAsync_
+  commentId: Overload:Kouki.Mugura.Dispatcher.DelegatingRouter.RouteAsync
+  isSpec: "True"
+  fullName: Kouki.Mugura.Dispatcher.DelegatingRouter.RouteAsync
+  nameWithType: DelegatingRouter.RouteAsync
+- uid: Kouki.Mugura.Dispatcher.ICommandDispatcher
+  name: ICommandDispatcher
+  href: api/Kouki.Mugura.Dispatcher.ICommandDispatcher.html
+  commentId: T:Kouki.Mugura.Dispatcher.ICommandDispatcher
+  fullName: Kouki.Mugura.Dispatcher.ICommandDispatcher
+  nameWithType: ICommandDispatcher
+- uid: Kouki.Mugura.Dispatcher.ICommandDispatcher.SendAsync*
+  name: SendAsync
+  href: api/Kouki.Mugura.Dispatcher.ICommandDispatcher.html#Kouki_Mugura_Dispatcher_ICommandDispatcher_SendAsync_
+  commentId: Overload:Kouki.Mugura.Dispatcher.ICommandDispatcher.SendAsync
+  isSpec: "True"
+  fullName: Kouki.Mugura.Dispatcher.ICommandDispatcher.SendAsync
+  nameWithType: ICommandDispatcher.SendAsync
+- uid: Kouki.Mugura.Dispatcher.ICommandDispatcher.SendAsync``1(``0,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  name: SendAsync<TCommand>(TCommand, IExecutionContext, CancellationToken)
+  href: api/Kouki.Mugura.Dispatcher.ICommandDispatcher.html#Kouki_Mugura_Dispatcher_ICommandDispatcher_SendAsync__1___0_Shimi_Context_IExecutionContext_System_Threading_CancellationToken_
+  commentId: M:Kouki.Mugura.Dispatcher.ICommandDispatcher.SendAsync``1(``0,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  name.vb: SendAsync(Of TCommand)(TCommand, IExecutionContext, CancellationToken)
+  fullName: Kouki.Mugura.Dispatcher.ICommandDispatcher.SendAsync<TCommand>(TCommand, Shimi.Context.IExecutionContext, System.Threading.CancellationToken)
+  fullName.vb: Kouki.Mugura.Dispatcher.ICommandDispatcher.SendAsync(Of TCommand)(TCommand, Shimi.Context.IExecutionContext, System.Threading.CancellationToken)
+  nameWithType: ICommandDispatcher.SendAsync<TCommand>(TCommand, IExecutionContext, CancellationToken)
+  nameWithType.vb: ICommandDispatcher.SendAsync(Of TCommand)(TCommand, IExecutionContext, CancellationToken)
+- uid: Kouki.Mugura.Dispatcher.IRouter
+  name: IRouter
+  href: api/Kouki.Mugura.Dispatcher.IRouter.html
+  commentId: T:Kouki.Mugura.Dispatcher.IRouter
+  fullName: Kouki.Mugura.Dispatcher.IRouter
+  nameWithType: IRouter
+- uid: Kouki.Mugura.Dispatcher.IRouter.RouteAsync(System.String,System.Text.Json.Nodes.JsonNode,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  name: RouteAsync(string, JsonNode?, IExecutionContext?, CancellationToken)
+  href: api/Kouki.Mugura.Dispatcher.IRouter.html#Kouki_Mugura_Dispatcher_IRouter_RouteAsync_System_String_System_Text_Json_Nodes_JsonNode_Shimi_Context_IExecutionContext_System_Threading_CancellationToken_
+  commentId: M:Kouki.Mugura.Dispatcher.IRouter.RouteAsync(System.String,System.Text.Json.Nodes.JsonNode,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  name.vb: RouteAsync(String, JsonNode, IExecutionContext, CancellationToken)
+  fullName: Kouki.Mugura.Dispatcher.IRouter.RouteAsync(string, System.Text.Json.Nodes.JsonNode?, Shimi.Context.IExecutionContext?, System.Threading.CancellationToken)
+  fullName.vb: Kouki.Mugura.Dispatcher.IRouter.RouteAsync(String, System.Text.Json.Nodes.JsonNode, Shimi.Context.IExecutionContext, System.Threading.CancellationToken)
+  nameWithType: IRouter.RouteAsync(string, JsonNode?, IExecutionContext?, CancellationToken)
+  nameWithType.vb: IRouter.RouteAsync(String, JsonNode, IExecutionContext, CancellationToken)
+- uid: Kouki.Mugura.Dispatcher.IRouter.RouteAsync*
+  name: RouteAsync
+  href: api/Kouki.Mugura.Dispatcher.IRouter.html#Kouki_Mugura_Dispatcher_IRouter_RouteAsync_
+  commentId: Overload:Kouki.Mugura.Dispatcher.IRouter.RouteAsync
+  isSpec: "True"
+  fullName: Kouki.Mugura.Dispatcher.IRouter.RouteAsync
+  nameWithType: IRouter.RouteAsync
+- uid: Kouki.Mugura.ExtensionEntrypointCommandSet
+  name: ExtensionEntrypointCommandSet
+  href: examples/kagedama/api/Kouki.Mugura.ExtensionEntrypointCommandSet.html
+  commentId: T:Kouki.Mugura.ExtensionEntrypointCommandSet
+  fullName: Kouki.Mugura.ExtensionEntrypointCommandSet
+  nameWithType: ExtensionEntrypointCommandSet
+- uid: Kouki.Mugura.ExtensionEntrypointCommandSet.#ctor(System.IServiceProvider)
+  name: ExtensionEntrypointCommandSet(IServiceProvider)
+  href: examples/kagedama/api/Kouki.Mugura.ExtensionEntrypointCommandSet.html#Kouki_Mugura_ExtensionEntrypointCommandSet__ctor_System_IServiceProvider_
+  commentId: M:Kouki.Mugura.ExtensionEntrypointCommandSet.#ctor(System.IServiceProvider)
+  name.vb: New(IServiceProvider)
+  fullName: Kouki.Mugura.ExtensionEntrypointCommandSet.ExtensionEntrypointCommandSet(System.IServiceProvider)
+  fullName.vb: Kouki.Mugura.ExtensionEntrypointCommandSet.New(System.IServiceProvider)
+  nameWithType: ExtensionEntrypointCommandSet.ExtensionEntrypointCommandSet(IServiceProvider)
+  nameWithType.vb: ExtensionEntrypointCommandSet.New(IServiceProvider)
+- uid: Kouki.Mugura.ExtensionEntrypointCommandSet.#ctor*
+  name: ExtensionEntrypointCommandSet
+  href: examples/kagedama/api/Kouki.Mugura.ExtensionEntrypointCommandSet.html#Kouki_Mugura_ExtensionEntrypointCommandSet__ctor_
+  commentId: Overload:Kouki.Mugura.ExtensionEntrypointCommandSet.#ctor
+  isSpec: "True"
+  name.vb: New
+  fullName: Kouki.Mugura.ExtensionEntrypointCommandSet.ExtensionEntrypointCommandSet
+  fullName.vb: Kouki.Mugura.ExtensionEntrypointCommandSet.New
+  nameWithType: ExtensionEntrypointCommandSet.ExtensionEntrypointCommandSet
+  nameWithType.vb: ExtensionEntrypointCommandSet.New
+- uid: Kouki.Mugura.ExtensionEntrypointCommandSet.InitializeCommandsAsync(Microsoft.VisualStudio.Extensibility.Commands.CommandSet)
+  name: InitializeCommandsAsync(CommandSet)
+  href: examples/kagedama/api/Kouki.Mugura.ExtensionEntrypointCommandSet.html#Kouki_Mugura_ExtensionEntrypointCommandSet_InitializeCommandsAsync_Microsoft_VisualStudio_Extensibility_Commands_CommandSet_
+  commentId: M:Kouki.Mugura.ExtensionEntrypointCommandSet.InitializeCommandsAsync(Microsoft.VisualStudio.Extensibility.Commands.CommandSet)
+  fullName: Kouki.Mugura.ExtensionEntrypointCommandSet.InitializeCommandsAsync(Microsoft.VisualStudio.Extensibility.Commands.CommandSet)
+  nameWithType: ExtensionEntrypointCommandSet.InitializeCommandsAsync(CommandSet)
+- uid: Kouki.Mugura.ExtensionEntrypointCommandSet.InitializeCommandsAsync*
+  name: InitializeCommandsAsync
+  href: examples/kagedama/api/Kouki.Mugura.ExtensionEntrypointCommandSet.html#Kouki_Mugura_ExtensionEntrypointCommandSet_InitializeCommandsAsync_
+  commentId: Overload:Kouki.Mugura.ExtensionEntrypointCommandSet.InitializeCommandsAsync
+  isSpec: "True"
+  fullName: Kouki.Mugura.ExtensionEntrypointCommandSet.InitializeCommandsAsync
+  nameWithType: ExtensionEntrypointCommandSet.InitializeCommandsAsync
+- uid: Kouki.Mugura.Factories
+  name: Kouki.Mugura.Factories
+  href: api/Kouki.Mugura.Factories.html
+  commentId: N:Kouki.Mugura.Factories
+  fullName: Kouki.Mugura.Factories
+  nameWithType: Kouki.Mugura.Factories
+- uid: Kouki.Mugura.Factories.CommandFactory
+  name: CommandFactory
+  href: api/Kouki.Mugura.Factories.CommandFactory.html
+  commentId: T:Kouki.Mugura.Factories.CommandFactory
+  fullName: Kouki.Mugura.Factories.CommandFactory
+  nameWithType: CommandFactory
+- uid: Kouki.Mugura.Factories.CommandFactory.Create(Kouki.Mugura.Registry.CommandEntry,System.Text.Json.Nodes.JsonNode)
+  name: Create(CommandEntry, JsonNode?)
+  href: api/Kouki.Mugura.Factories.CommandFactory.html#Kouki_Mugura_Factories_CommandFactory_Create_Kouki_Mugura_Registry_CommandEntry_System_Text_Json_Nodes_JsonNode_
+  commentId: M:Kouki.Mugura.Factories.CommandFactory.Create(Kouki.Mugura.Registry.CommandEntry,System.Text.Json.Nodes.JsonNode)
+  name.vb: Create(CommandEntry, JsonNode)
+  fullName: Kouki.Mugura.Factories.CommandFactory.Create(Kouki.Mugura.Registry.CommandEntry, System.Text.Json.Nodes.JsonNode?)
+  fullName.vb: Kouki.Mugura.Factories.CommandFactory.Create(Kouki.Mugura.Registry.CommandEntry, System.Text.Json.Nodes.JsonNode)
+  nameWithType: CommandFactory.Create(CommandEntry, JsonNode?)
+  nameWithType.vb: CommandFactory.Create(CommandEntry, JsonNode)
+- uid: Kouki.Mugura.Factories.CommandFactory.Create*
+  name: Create
+  href: api/Kouki.Mugura.Factories.CommandFactory.html#Kouki_Mugura_Factories_CommandFactory_Create_
+  commentId: Overload:Kouki.Mugura.Factories.CommandFactory.Create
+  isSpec: "True"
+  fullName: Kouki.Mugura.Factories.CommandFactory.Create
+  nameWithType: CommandFactory.Create
+- uid: Kouki.Mugura.Factories.ICommandFactory
+  name: ICommandFactory
+  href: api/Kouki.Mugura.Factories.ICommandFactory.html
+  commentId: T:Kouki.Mugura.Factories.ICommandFactory
+  fullName: Kouki.Mugura.Factories.ICommandFactory
+  nameWithType: ICommandFactory
+- uid: Kouki.Mugura.Factories.ICommandFactory.Create(Kouki.Mugura.Registry.CommandEntry,System.Text.Json.Nodes.JsonNode)
+  name: Create(CommandEntry, JsonNode?)
+  href: api/Kouki.Mugura.Factories.ICommandFactory.html#Kouki_Mugura_Factories_ICommandFactory_Create_Kouki_Mugura_Registry_CommandEntry_System_Text_Json_Nodes_JsonNode_
+  commentId: M:Kouki.Mugura.Factories.ICommandFactory.Create(Kouki.Mugura.Registry.CommandEntry,System.Text.Json.Nodes.JsonNode)
+  name.vb: Create(CommandEntry, JsonNode)
+  fullName: Kouki.Mugura.Factories.ICommandFactory.Create(Kouki.Mugura.Registry.CommandEntry, System.Text.Json.Nodes.JsonNode?)
+  fullName.vb: Kouki.Mugura.Factories.ICommandFactory.Create(Kouki.Mugura.Registry.CommandEntry, System.Text.Json.Nodes.JsonNode)
+  nameWithType: ICommandFactory.Create(CommandEntry, JsonNode?)
+  nameWithType.vb: ICommandFactory.Create(CommandEntry, JsonNode)
+- uid: Kouki.Mugura.Factories.ICommandFactory.Create*
+  name: Create
+  href: api/Kouki.Mugura.Factories.ICommandFactory.html#Kouki_Mugura_Factories_ICommandFactory_Create_
+  commentId: Overload:Kouki.Mugura.Factories.ICommandFactory.Create
+  isSpec: "True"
+  fullName: Kouki.Mugura.Factories.ICommandFactory.Create
+  nameWithType: ICommandFactory.Create
+- uid: Kouki.Mugura.Handlers
+  name: Kouki.Mugura.Handlers
+  href: api/Kouki.Mugura.Handlers.html
+  commentId: N:Kouki.Mugura.Handlers
+  fullName: Kouki.Mugura.Handlers
+  nameWithType: Kouki.Mugura.Handlers
+- uid: Kouki.Mugura.Handlers.ICommandHandler`1
+  name: ICommandHandler<TCommand>
+  href: api/Kouki.Mugura.Handlers.ICommandHandler-1.html
+  commentId: T:Kouki.Mugura.Handlers.ICommandHandler`1
+  name.vb: ICommandHandler(Of TCommand)
+  fullName: Kouki.Mugura.Handlers.ICommandHandler<TCommand>
+  fullName.vb: Kouki.Mugura.Handlers.ICommandHandler(Of TCommand)
+  nameWithType: ICommandHandler<TCommand>
+  nameWithType.vb: ICommandHandler(Of TCommand)
+- uid: Kouki.Mugura.Handlers.ICommandHandler`1.HandleAsync(`0,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  name: HandleAsync(TCommand, IExecutionContext?, CancellationToken)
+  href: api/Kouki.Mugura.Handlers.ICommandHandler-1.html#Kouki_Mugura_Handlers_ICommandHandler_1_HandleAsync__0_Shimi_Context_IExecutionContext_System_Threading_CancellationToken_
+  commentId: M:Kouki.Mugura.Handlers.ICommandHandler`1.HandleAsync(`0,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  name.vb: HandleAsync(TCommand, IExecutionContext, CancellationToken)
+  fullName: Kouki.Mugura.Handlers.ICommandHandler<TCommand>.HandleAsync(TCommand, Shimi.Context.IExecutionContext?, System.Threading.CancellationToken)
+  fullName.vb: Kouki.Mugura.Handlers.ICommandHandler(Of TCommand).HandleAsync(TCommand, Shimi.Context.IExecutionContext, System.Threading.CancellationToken)
+  nameWithType: ICommandHandler<TCommand>.HandleAsync(TCommand, IExecutionContext?, CancellationToken)
+  nameWithType.vb: ICommandHandler(Of TCommand).HandleAsync(TCommand, IExecutionContext, CancellationToken)
+- uid: Kouki.Mugura.Handlers.ICommandHandler`1.HandleAsync*
+  name: HandleAsync
+  href: api/Kouki.Mugura.Handlers.ICommandHandler-1.html#Kouki_Mugura_Handlers_ICommandHandler_1_HandleAsync_
+  commentId: Overload:Kouki.Mugura.Handlers.ICommandHandler`1.HandleAsync
+  isSpec: "True"
+  fullName: Kouki.Mugura.Handlers.ICommandHandler<TCommand>.HandleAsync
+  fullName.vb: Kouki.Mugura.Handlers.ICommandHandler(Of TCommand).HandleAsync
+  nameWithType: ICommandHandler<TCommand>.HandleAsync
+  nameWithType.vb: ICommandHandler(Of TCommand).HandleAsync
+- uid: Kouki.Mugura.Registry
+  name: Kouki.Mugura.Registry
+  href: api/Kouki.Mugura.Registry.html
+  commentId: N:Kouki.Mugura.Registry
+  fullName: Kouki.Mugura.Registry
+  nameWithType: Kouki.Mugura.Registry
+- uid: Kouki.Mugura.Registry.CommandEntry
+  name: CommandEntry
+  href: api/Kouki.Mugura.Registry.CommandEntry.html
+  commentId: T:Kouki.Mugura.Registry.CommandEntry
+  fullName: Kouki.Mugura.Registry.CommandEntry
+  nameWithType: CommandEntry
+- uid: Kouki.Mugura.Registry.CommandEntry.#ctor(System.Type,System.Type,System.String,System.String,System.Boolean,Kouki.Mugura.Attributes.CommandCategory,System.Collections.Generic.IReadOnlyList{Kouki.Mugura.Registry.ValidationRule},System.String)
+  name: CommandEntry(Type, Type, string, string?, bool, CommandCategory, IReadOnlyList<ValidationRule>, string?)
+  href: api/Kouki.Mugura.Registry.CommandEntry.html#Kouki_Mugura_Registry_CommandEntry__ctor_System_Type_System_Type_System_String_System_String_System_Boolean_Kouki_Mugura_Attributes_CommandCategory_System_Collections_Generic_IReadOnlyList_Kouki_Mugura_Registry_ValidationRule__System_String_
+  commentId: M:Kouki.Mugura.Registry.CommandEntry.#ctor(System.Type,System.Type,System.String,System.String,System.Boolean,Kouki.Mugura.Attributes.CommandCategory,System.Collections.Generic.IReadOnlyList{Kouki.Mugura.Registry.ValidationRule},System.String)
+  name.vb: New(Type, Type, String, String, Boolean, CommandCategory, IReadOnlyList(Of ValidationRule), String)
+  fullName: Kouki.Mugura.Registry.CommandEntry.CommandEntry(System.Type, System.Type, string, string?, bool, Kouki.Mugura.Attributes.CommandCategory, System.Collections.Generic.IReadOnlyList<Kouki.Mugura.Registry.ValidationRule>, string?)
+  fullName.vb: Kouki.Mugura.Registry.CommandEntry.New(System.Type, System.Type, String, String, Boolean, Kouki.Mugura.Attributes.CommandCategory, System.Collections.Generic.IReadOnlyList(Of Kouki.Mugura.Registry.ValidationRule), String)
+  nameWithType: CommandEntry.CommandEntry(Type, Type, string, string?, bool, CommandCategory, IReadOnlyList<ValidationRule>, string?)
+  nameWithType.vb: CommandEntry.New(Type, Type, String, String, Boolean, CommandCategory, IReadOnlyList(Of ValidationRule), String)
+- uid: Kouki.Mugura.Registry.CommandEntry.#ctor*
+  name: CommandEntry
+  href: api/Kouki.Mugura.Registry.CommandEntry.html#Kouki_Mugura_Registry_CommandEntry__ctor_
+  commentId: Overload:Kouki.Mugura.Registry.CommandEntry.#ctor
+  isSpec: "True"
+  name.vb: New
+  fullName: Kouki.Mugura.Registry.CommandEntry.CommandEntry
+  fullName.vb: Kouki.Mugura.Registry.CommandEntry.New
+  nameWithType: CommandEntry.CommandEntry
+  nameWithType.vb: CommandEntry.New
+- uid: Kouki.Mugura.Registry.CommandEntry.Category
+  name: Category
+  href: api/Kouki.Mugura.Registry.CommandEntry.html#Kouki_Mugura_Registry_CommandEntry_Category
+  commentId: P:Kouki.Mugura.Registry.CommandEntry.Category
+  fullName: Kouki.Mugura.Registry.CommandEntry.Category
+  nameWithType: CommandEntry.Category
+- uid: Kouki.Mugura.Registry.CommandEntry.Category*
+  name: Category
+  href: api/Kouki.Mugura.Registry.CommandEntry.html#Kouki_Mugura_Registry_CommandEntry_Category_
+  commentId: Overload:Kouki.Mugura.Registry.CommandEntry.Category
+  isSpec: "True"
+  fullName: Kouki.Mugura.Registry.CommandEntry.Category
+  nameWithType: CommandEntry.Category
+- uid: Kouki.Mugura.Registry.CommandEntry.CommandType
+  name: CommandType
+  href: api/Kouki.Mugura.Registry.CommandEntry.html#Kouki_Mugura_Registry_CommandEntry_CommandType
+  commentId: P:Kouki.Mugura.Registry.CommandEntry.CommandType
+  fullName: Kouki.Mugura.Registry.CommandEntry.CommandType
+  nameWithType: CommandEntry.CommandType
+- uid: Kouki.Mugura.Registry.CommandEntry.CommandType*
+  name: CommandType
+  href: api/Kouki.Mugura.Registry.CommandEntry.html#Kouki_Mugura_Registry_CommandEntry_CommandType_
+  commentId: Overload:Kouki.Mugura.Registry.CommandEntry.CommandType
+  isSpec: "True"
+  fullName: Kouki.Mugura.Registry.CommandEntry.CommandType
+  nameWithType: CommandEntry.CommandType
+- uid: Kouki.Mugura.Registry.CommandEntry.Description
+  name: Description
+  href: api/Kouki.Mugura.Registry.CommandEntry.html#Kouki_Mugura_Registry_CommandEntry_Description
+  commentId: P:Kouki.Mugura.Registry.CommandEntry.Description
+  fullName: Kouki.Mugura.Registry.CommandEntry.Description
+  nameWithType: CommandEntry.Description
+- uid: Kouki.Mugura.Registry.CommandEntry.Description*
+  name: Description
+  href: api/Kouki.Mugura.Registry.CommandEntry.html#Kouki_Mugura_Registry_CommandEntry_Description_
+  commentId: Overload:Kouki.Mugura.Registry.CommandEntry.Description
+  isSpec: "True"
+  fullName: Kouki.Mugura.Registry.CommandEntry.Description
+  nameWithType: CommandEntry.Description
+- uid: Kouki.Mugura.Registry.CommandEntry.Example
+  name: Example
+  href: api/Kouki.Mugura.Registry.CommandEntry.html#Kouki_Mugura_Registry_CommandEntry_Example
+  commentId: P:Kouki.Mugura.Registry.CommandEntry.Example
+  fullName: Kouki.Mugura.Registry.CommandEntry.Example
+  nameWithType: CommandEntry.Example
+- uid: Kouki.Mugura.Registry.CommandEntry.Example*
+  name: Example
+  href: api/Kouki.Mugura.Registry.CommandEntry.html#Kouki_Mugura_Registry_CommandEntry_Example_
+  commentId: Overload:Kouki.Mugura.Registry.CommandEntry.Example
+  isSpec: "True"
+  fullName: Kouki.Mugura.Registry.CommandEntry.Example
+  nameWithType: CommandEntry.Example
+- uid: Kouki.Mugura.Registry.CommandEntry.HandlerType
+  name: HandlerType
+  href: api/Kouki.Mugura.Registry.CommandEntry.html#Kouki_Mugura_Registry_CommandEntry_HandlerType
+  commentId: P:Kouki.Mugura.Registry.CommandEntry.HandlerType
+  fullName: Kouki.Mugura.Registry.CommandEntry.HandlerType
+  nameWithType: CommandEntry.HandlerType
+- uid: Kouki.Mugura.Registry.CommandEntry.HandlerType*
+  name: HandlerType
+  href: api/Kouki.Mugura.Registry.CommandEntry.html#Kouki_Mugura_Registry_CommandEntry_HandlerType_
+  commentId: Overload:Kouki.Mugura.Registry.CommandEntry.HandlerType
+  isSpec: "True"
+  fullName: Kouki.Mugura.Registry.CommandEntry.HandlerType
+  nameWithType: CommandEntry.HandlerType
+- uid: Kouki.Mugura.Registry.CommandEntry.Name
+  name: Name
+  href: api/Kouki.Mugura.Registry.CommandEntry.html#Kouki_Mugura_Registry_CommandEntry_Name
+  commentId: P:Kouki.Mugura.Registry.CommandEntry.Name
+  fullName: Kouki.Mugura.Registry.CommandEntry.Name
+  nameWithType: CommandEntry.Name
+- uid: Kouki.Mugura.Registry.CommandEntry.Name*
+  name: Name
+  href: api/Kouki.Mugura.Registry.CommandEntry.html#Kouki_Mugura_Registry_CommandEntry_Name_
+  commentId: Overload:Kouki.Mugura.Registry.CommandEntry.Name
+  isSpec: "True"
+  fullName: Kouki.Mugura.Registry.CommandEntry.Name
+  nameWithType: CommandEntry.Name
+- uid: Kouki.Mugura.Registry.CommandEntry.RequiresConfirmation
+  name: RequiresConfirmation
+  href: api/Kouki.Mugura.Registry.CommandEntry.html#Kouki_Mugura_Registry_CommandEntry_RequiresConfirmation
+  commentId: P:Kouki.Mugura.Registry.CommandEntry.RequiresConfirmation
+  fullName: Kouki.Mugura.Registry.CommandEntry.RequiresConfirmation
+  nameWithType: CommandEntry.RequiresConfirmation
+- uid: Kouki.Mugura.Registry.CommandEntry.RequiresConfirmation*
+  name: RequiresConfirmation
+  href: api/Kouki.Mugura.Registry.CommandEntry.html#Kouki_Mugura_Registry_CommandEntry_RequiresConfirmation_
+  commentId: Overload:Kouki.Mugura.Registry.CommandEntry.RequiresConfirmation
+  isSpec: "True"
+  fullName: Kouki.Mugura.Registry.CommandEntry.RequiresConfirmation
+  nameWithType: CommandEntry.RequiresConfirmation
+- uid: Kouki.Mugura.Registry.CommandEntry.ValidationRules
+  name: ValidationRules
+  href: api/Kouki.Mugura.Registry.CommandEntry.html#Kouki_Mugura_Registry_CommandEntry_ValidationRules
+  commentId: P:Kouki.Mugura.Registry.CommandEntry.ValidationRules
+  fullName: Kouki.Mugura.Registry.CommandEntry.ValidationRules
+  nameWithType: CommandEntry.ValidationRules
+- uid: Kouki.Mugura.Registry.CommandEntry.ValidationRules*
+  name: ValidationRules
+  href: api/Kouki.Mugura.Registry.CommandEntry.html#Kouki_Mugura_Registry_CommandEntry_ValidationRules_
+  commentId: Overload:Kouki.Mugura.Registry.CommandEntry.ValidationRules
+  isSpec: "True"
+  fullName: Kouki.Mugura.Registry.CommandEntry.ValidationRules
+  nameWithType: CommandEntry.ValidationRules
+- uid: Kouki.Mugura.Registry.CommandRegistry
+  name: CommandRegistry
+  href: api/Kouki.Mugura.Registry.CommandRegistry.html
+  commentId: T:Kouki.Mugura.Registry.CommandRegistry
+  fullName: Kouki.Mugura.Registry.CommandRegistry
+  nameWithType: CommandRegistry
+- uid: Kouki.Mugura.Registry.CommandRegistry.#ctor(System.Collections.Generic.IEnumerable{System.Reflection.Assembly})
+  name: CommandRegistry(IEnumerable<Assembly>)
+  href: api/Kouki.Mugura.Registry.CommandRegistry.html#Kouki_Mugura_Registry_CommandRegistry__ctor_System_Collections_Generic_IEnumerable_System_Reflection_Assembly__
+  commentId: M:Kouki.Mugura.Registry.CommandRegistry.#ctor(System.Collections.Generic.IEnumerable{System.Reflection.Assembly})
+  name.vb: New(IEnumerable(Of Assembly))
+  fullName: Kouki.Mugura.Registry.CommandRegistry.CommandRegistry(System.Collections.Generic.IEnumerable<System.Reflection.Assembly>)
+  fullName.vb: Kouki.Mugura.Registry.CommandRegistry.New(System.Collections.Generic.IEnumerable(Of System.Reflection.Assembly))
+  nameWithType: CommandRegistry.CommandRegistry(IEnumerable<Assembly>)
+  nameWithType.vb: CommandRegistry.New(IEnumerable(Of Assembly))
+- uid: Kouki.Mugura.Registry.CommandRegistry.#ctor*
+  name: CommandRegistry
+  href: api/Kouki.Mugura.Registry.CommandRegistry.html#Kouki_Mugura_Registry_CommandRegistry__ctor_
+  commentId: Overload:Kouki.Mugura.Registry.CommandRegistry.#ctor
+  isSpec: "True"
+  name.vb: New
+  fullName: Kouki.Mugura.Registry.CommandRegistry.CommandRegistry
+  fullName.vb: Kouki.Mugura.Registry.CommandRegistry.New
+  nameWithType: CommandRegistry.CommandRegistry
+  nameWithType.vb: CommandRegistry.New
+- uid: Kouki.Mugura.Registry.CommandRegistry.GetEntry(System.String)
+  name: GetEntry(string)
+  href: api/Kouki.Mugura.Registry.CommandRegistry.html#Kouki_Mugura_Registry_CommandRegistry_GetEntry_System_String_
+  commentId: M:Kouki.Mugura.Registry.CommandRegistry.GetEntry(System.String)
+  name.vb: GetEntry(String)
+  fullName: Kouki.Mugura.Registry.CommandRegistry.GetEntry(string)
+  fullName.vb: Kouki.Mugura.Registry.CommandRegistry.GetEntry(String)
+  nameWithType: CommandRegistry.GetEntry(string)
+  nameWithType.vb: CommandRegistry.GetEntry(String)
+- uid: Kouki.Mugura.Registry.CommandRegistry.GetEntry*
+  name: GetEntry
+  href: api/Kouki.Mugura.Registry.CommandRegistry.html#Kouki_Mugura_Registry_CommandRegistry_GetEntry_
+  commentId: Overload:Kouki.Mugura.Registry.CommandRegistry.GetEntry
+  isSpec: "True"
+  fullName: Kouki.Mugura.Registry.CommandRegistry.GetEntry
+  nameWithType: CommandRegistry.GetEntry
+- uid: Kouki.Mugura.Registry.CommandRegistry.GetEntryByCommandType(System.Type)
+  name: GetEntryByCommandType(Type)
+  href: api/Kouki.Mugura.Registry.CommandRegistry.html#Kouki_Mugura_Registry_CommandRegistry_GetEntryByCommandType_System_Type_
+  commentId: M:Kouki.Mugura.Registry.CommandRegistry.GetEntryByCommandType(System.Type)
+  fullName: Kouki.Mugura.Registry.CommandRegistry.GetEntryByCommandType(System.Type)
+  nameWithType: CommandRegistry.GetEntryByCommandType(Type)
+- uid: Kouki.Mugura.Registry.CommandRegistry.GetEntryByCommandType*
+  name: GetEntryByCommandType
+  href: api/Kouki.Mugura.Registry.CommandRegistry.html#Kouki_Mugura_Registry_CommandRegistry_GetEntryByCommandType_
+  commentId: Overload:Kouki.Mugura.Registry.CommandRegistry.GetEntryByCommandType
+  isSpec: "True"
+  fullName: Kouki.Mugura.Registry.CommandRegistry.GetEntryByCommandType
+  nameWithType: CommandRegistry.GetEntryByCommandType
+- uid: Kouki.Mugura.Registry.CommandRegistry.Names
+  name: Names
+  href: api/Kouki.Mugura.Registry.CommandRegistry.html#Kouki_Mugura_Registry_CommandRegistry_Names
+  commentId: P:Kouki.Mugura.Registry.CommandRegistry.Names
+  fullName: Kouki.Mugura.Registry.CommandRegistry.Names
+  nameWithType: CommandRegistry.Names
+- uid: Kouki.Mugura.Registry.CommandRegistry.Names*
+  name: Names
+  href: api/Kouki.Mugura.Registry.CommandRegistry.html#Kouki_Mugura_Registry_CommandRegistry_Names_
+  commentId: Overload:Kouki.Mugura.Registry.CommandRegistry.Names
+  isSpec: "True"
+  fullName: Kouki.Mugura.Registry.CommandRegistry.Names
+  nameWithType: CommandRegistry.Names
+- uid: Kouki.Mugura.Registry.ValidationRule
+  name: ValidationRule
+  href: api/Kouki.Mugura.Registry.ValidationRule.html
+  commentId: T:Kouki.Mugura.Registry.ValidationRule
+  fullName: Kouki.Mugura.Registry.ValidationRule
+  nameWithType: ValidationRule
+- uid: Kouki.Mugura.Registry.ValidationRule.#ctor(System.String,System.ComponentModel.DataAnnotations.ValidationAttribute)
+  name: ValidationRule(string, ValidationAttribute)
+  href: api/Kouki.Mugura.Registry.ValidationRule.html#Kouki_Mugura_Registry_ValidationRule__ctor_System_String_System_ComponentModel_DataAnnotations_ValidationAttribute_
+  commentId: M:Kouki.Mugura.Registry.ValidationRule.#ctor(System.String,System.ComponentModel.DataAnnotations.ValidationAttribute)
+  name.vb: New(String, ValidationAttribute)
+  fullName: Kouki.Mugura.Registry.ValidationRule.ValidationRule(string, System.ComponentModel.DataAnnotations.ValidationAttribute)
+  fullName.vb: Kouki.Mugura.Registry.ValidationRule.New(String, System.ComponentModel.DataAnnotations.ValidationAttribute)
+  nameWithType: ValidationRule.ValidationRule(string, ValidationAttribute)
+  nameWithType.vb: ValidationRule.New(String, ValidationAttribute)
+- uid: Kouki.Mugura.Registry.ValidationRule.#ctor*
+  name: ValidationRule
+  href: api/Kouki.Mugura.Registry.ValidationRule.html#Kouki_Mugura_Registry_ValidationRule__ctor_
+  commentId: Overload:Kouki.Mugura.Registry.ValidationRule.#ctor
+  isSpec: "True"
+  name.vb: New
+  fullName: Kouki.Mugura.Registry.ValidationRule.ValidationRule
+  fullName.vb: Kouki.Mugura.Registry.ValidationRule.New
+  nameWithType: ValidationRule.ValidationRule
+  nameWithType.vb: ValidationRule.New
+- uid: Kouki.Mugura.Registry.ValidationRule.Attribute
+  name: Attribute
+  href: api/Kouki.Mugura.Registry.ValidationRule.html#Kouki_Mugura_Registry_ValidationRule_Attribute
+  commentId: P:Kouki.Mugura.Registry.ValidationRule.Attribute
+  fullName: Kouki.Mugura.Registry.ValidationRule.Attribute
+  nameWithType: ValidationRule.Attribute
+- uid: Kouki.Mugura.Registry.ValidationRule.Attribute*
+  name: Attribute
+  href: api/Kouki.Mugura.Registry.ValidationRule.html#Kouki_Mugura_Registry_ValidationRule_Attribute_
+  commentId: Overload:Kouki.Mugura.Registry.ValidationRule.Attribute
+  isSpec: "True"
+  fullName: Kouki.Mugura.Registry.ValidationRule.Attribute
+  nameWithType: ValidationRule.Attribute
+- uid: Kouki.Mugura.Registry.ValidationRule.PropertyName
+  name: PropertyName
+  href: api/Kouki.Mugura.Registry.ValidationRule.html#Kouki_Mugura_Registry_ValidationRule_PropertyName
+  commentId: P:Kouki.Mugura.Registry.ValidationRule.PropertyName
+  fullName: Kouki.Mugura.Registry.ValidationRule.PropertyName
+  nameWithType: ValidationRule.PropertyName
+- uid: Kouki.Mugura.Registry.ValidationRule.PropertyName*
+  name: PropertyName
+  href: api/Kouki.Mugura.Registry.ValidationRule.html#Kouki_Mugura_Registry_ValidationRule_PropertyName_
+  commentId: Overload:Kouki.Mugura.Registry.ValidationRule.PropertyName
+  isSpec: "True"
+  fullName: Kouki.Mugura.Registry.ValidationRule.PropertyName
+  nameWithType: ValidationRule.PropertyName
+- uid: Kouki.Mugura.Scope
+  name: Kouki.Mugura.Scope
+  href: api/Kouki.Mugura.Scope.html
+  commentId: N:Kouki.Mugura.Scope
+  fullName: Kouki.Mugura.Scope
+  nameWithType: Kouki.Mugura.Scope
+- uid: Kouki.Mugura.Scope.IScopeManager
+  name: IScopeManager
+  href: api/Kouki.Mugura.Scope.IScopeManager.html
+  commentId: T:Kouki.Mugura.Scope.IScopeManager
+  fullName: Kouki.Mugura.Scope.IScopeManager
+  nameWithType: IScopeManager
+- uid: Kouki.Mugura.Scope.IScopeManager.RunInScopeAsync*
+  name: RunInScopeAsync
+  href: api/Kouki.Mugura.Scope.IScopeManager.html#Kouki_Mugura_Scope_IScopeManager_RunInScopeAsync_
+  commentId: Overload:Kouki.Mugura.Scope.IScopeManager.RunInScopeAsync
+  isSpec: "True"
+  fullName: Kouki.Mugura.Scope.IScopeManager.RunInScopeAsync
+  nameWithType: IScopeManager.RunInScopeAsync
+- uid: Kouki.Mugura.Scope.IScopeManager.RunInScopeAsync``1(System.Func{System.IServiceProvider,System.Threading.Tasks.Task{``0}})
+  name: RunInScopeAsync<T>(Func<IServiceProvider, Task<T>>)
+  href: api/Kouki.Mugura.Scope.IScopeManager.html#Kouki_Mugura_Scope_IScopeManager_RunInScopeAsync__1_System_Func_System_IServiceProvider_System_Threading_Tasks_Task___0___
+  commentId: M:Kouki.Mugura.Scope.IScopeManager.RunInScopeAsync``1(System.Func{System.IServiceProvider,System.Threading.Tasks.Task{``0}})
+  name.vb: RunInScopeAsync(Of T)(Func(Of IServiceProvider, Task(Of T)))
+  fullName: Kouki.Mugura.Scope.IScopeManager.RunInScopeAsync<T>(System.Func<System.IServiceProvider, System.Threading.Tasks.Task<T>>)
+  fullName.vb: Kouki.Mugura.Scope.IScopeManager.RunInScopeAsync(Of T)(System.Func(Of System.IServiceProvider, System.Threading.Tasks.Task(Of T)))
+  nameWithType: IScopeManager.RunInScopeAsync<T>(Func<IServiceProvider, Task<T>>)
+  nameWithType.vb: IScopeManager.RunInScopeAsync(Of T)(Func(Of IServiceProvider, Task(Of T)))
+- uid: Kouki.Mugura.Scope.ScopeManager
+  name: ScopeManager
+  href: api/Kouki.Mugura.Scope.ScopeManager.html
+  commentId: T:Kouki.Mugura.Scope.ScopeManager
+  fullName: Kouki.Mugura.Scope.ScopeManager
+  nameWithType: ScopeManager
+- uid: Kouki.Mugura.Scope.ScopeManager.#ctor(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory)
+  name: ScopeManager(IServiceScopeFactory)
+  href: api/Kouki.Mugura.Scope.ScopeManager.html#Kouki_Mugura_Scope_ScopeManager__ctor_Microsoft_Extensions_DependencyInjection_IServiceScopeFactory_
+  commentId: M:Kouki.Mugura.Scope.ScopeManager.#ctor(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory)
+  name.vb: New(IServiceScopeFactory)
+  fullName: Kouki.Mugura.Scope.ScopeManager.ScopeManager(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory)
+  fullName.vb: Kouki.Mugura.Scope.ScopeManager.New(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory)
+  nameWithType: ScopeManager.ScopeManager(IServiceScopeFactory)
+  nameWithType.vb: ScopeManager.New(IServiceScopeFactory)
+- uid: Kouki.Mugura.Scope.ScopeManager.#ctor*
+  name: ScopeManager
+  href: api/Kouki.Mugura.Scope.ScopeManager.html#Kouki_Mugura_Scope_ScopeManager__ctor_
+  commentId: Overload:Kouki.Mugura.Scope.ScopeManager.#ctor
+  isSpec: "True"
+  name.vb: New
+  fullName: Kouki.Mugura.Scope.ScopeManager.ScopeManager
+  fullName.vb: Kouki.Mugura.Scope.ScopeManager.New
+  nameWithType: ScopeManager.ScopeManager
+  nameWithType.vb: ScopeManager.New
+- uid: Kouki.Mugura.Scope.ScopeManager.RunInScopeAsync*
+  name: RunInScopeAsync
+  href: api/Kouki.Mugura.Scope.ScopeManager.html#Kouki_Mugura_Scope_ScopeManager_RunInScopeAsync_
+  commentId: Overload:Kouki.Mugura.Scope.ScopeManager.RunInScopeAsync
+  isSpec: "True"
+  fullName: Kouki.Mugura.Scope.ScopeManager.RunInScopeAsync
+  nameWithType: ScopeManager.RunInScopeAsync
+- uid: Kouki.Mugura.Scope.ScopeManager.RunInScopeAsync``1(System.Func{System.IServiceProvider,System.Threading.Tasks.Task{``0}})
+  name: RunInScopeAsync<T>(Func<IServiceProvider, Task<T>>)
+  href: api/Kouki.Mugura.Scope.ScopeManager.html#Kouki_Mugura_Scope_ScopeManager_RunInScopeAsync__1_System_Func_System_IServiceProvider_System_Threading_Tasks_Task___0___
+  commentId: M:Kouki.Mugura.Scope.ScopeManager.RunInScopeAsync``1(System.Func{System.IServiceProvider,System.Threading.Tasks.Task{``0}})
+  name.vb: RunInScopeAsync(Of T)(Func(Of IServiceProvider, Task(Of T)))
+  fullName: Kouki.Mugura.Scope.ScopeManager.RunInScopeAsync<T>(System.Func<System.IServiceProvider, System.Threading.Tasks.Task<T>>)
+  fullName.vb: Kouki.Mugura.Scope.ScopeManager.RunInScopeAsync(Of T)(System.Func(Of System.IServiceProvider, System.Threading.Tasks.Task(Of T)))
+  nameWithType: ScopeManager.RunInScopeAsync<T>(Func<IServiceProvider, Task<T>>)
+  nameWithType.vb: ScopeManager.RunInScopeAsync(Of T)(Func(Of IServiceProvider, Task(Of T)))
+- uid: Kouki.Mugura.Validators
+  name: Kouki.Mugura.Validators
+  href: api/Kouki.Mugura.Validators.html
+  commentId: N:Kouki.Mugura.Validators
+  fullName: Kouki.Mugura.Validators
+  nameWithType: Kouki.Mugura.Validators
+- uid: Kouki.Mugura.Validators.DataAnnotationsValidator`1
+  name: DataAnnotationsValidator<TCommand>
+  href: api/Kouki.Mugura.Validators.DataAnnotationsValidator-1.html
+  commentId: T:Kouki.Mugura.Validators.DataAnnotationsValidator`1
+  name.vb: DataAnnotationsValidator(Of TCommand)
+  fullName: Kouki.Mugura.Validators.DataAnnotationsValidator<TCommand>
+  fullName.vb: Kouki.Mugura.Validators.DataAnnotationsValidator(Of TCommand)
+  nameWithType: DataAnnotationsValidator<TCommand>
+  nameWithType.vb: DataAnnotationsValidator(Of TCommand)
+- uid: Kouki.Mugura.Validators.DataAnnotationsValidator`1.#ctor(Kouki.Mugura.Registry.CommandRegistry)
+  name: DataAnnotationsValidator(CommandRegistry)
+  href: api/Kouki.Mugura.Validators.DataAnnotationsValidator-1.html#Kouki_Mugura_Validators_DataAnnotationsValidator_1__ctor_Kouki_Mugura_Registry_CommandRegistry_
+  commentId: M:Kouki.Mugura.Validators.DataAnnotationsValidator`1.#ctor(Kouki.Mugura.Registry.CommandRegistry)
+  name.vb: New(CommandRegistry)
+  fullName: Kouki.Mugura.Validators.DataAnnotationsValidator<TCommand>.DataAnnotationsValidator(Kouki.Mugura.Registry.CommandRegistry)
+  fullName.vb: Kouki.Mugura.Validators.DataAnnotationsValidator(Of TCommand).New(Kouki.Mugura.Registry.CommandRegistry)
+  nameWithType: DataAnnotationsValidator<TCommand>.DataAnnotationsValidator(CommandRegistry)
+  nameWithType.vb: DataAnnotationsValidator(Of TCommand).New(CommandRegistry)
+- uid: Kouki.Mugura.Validators.DataAnnotationsValidator`1.#ctor*
+  name: DataAnnotationsValidator
+  href: api/Kouki.Mugura.Validators.DataAnnotationsValidator-1.html#Kouki_Mugura_Validators_DataAnnotationsValidator_1__ctor_
+  commentId: Overload:Kouki.Mugura.Validators.DataAnnotationsValidator`1.#ctor
+  isSpec: "True"
+  name.vb: New
+  fullName: Kouki.Mugura.Validators.DataAnnotationsValidator<TCommand>.DataAnnotationsValidator
+  fullName.vb: Kouki.Mugura.Validators.DataAnnotationsValidator(Of TCommand).New
+  nameWithType: DataAnnotationsValidator<TCommand>.DataAnnotationsValidator
+  nameWithType.vb: DataAnnotationsValidator(Of TCommand).New
+- uid: Kouki.Mugura.Validators.DataAnnotationsValidator`1.TryValidate(`0,System.String@)
+  name: TryValidate(TCommand, out string?)
+  href: api/Kouki.Mugura.Validators.DataAnnotationsValidator-1.html#Kouki_Mugura_Validators_DataAnnotationsValidator_1_TryValidate__0_System_String__
+  commentId: M:Kouki.Mugura.Validators.DataAnnotationsValidator`1.TryValidate(`0,System.String@)
+  name.vb: TryValidate(TCommand, String)
+  fullName: Kouki.Mugura.Validators.DataAnnotationsValidator<TCommand>.TryValidate(TCommand, out string?)
+  fullName.vb: Kouki.Mugura.Validators.DataAnnotationsValidator(Of TCommand).TryValidate(TCommand, String)
+  nameWithType: DataAnnotationsValidator<TCommand>.TryValidate(TCommand, out string?)
+  nameWithType.vb: DataAnnotationsValidator(Of TCommand).TryValidate(TCommand, String)
+- uid: Kouki.Mugura.Validators.DataAnnotationsValidator`1.TryValidate*
+  name: TryValidate
+  href: api/Kouki.Mugura.Validators.DataAnnotationsValidator-1.html#Kouki_Mugura_Validators_DataAnnotationsValidator_1_TryValidate_
+  commentId: Overload:Kouki.Mugura.Validators.DataAnnotationsValidator`1.TryValidate
+  isSpec: "True"
+  fullName: Kouki.Mugura.Validators.DataAnnotationsValidator<TCommand>.TryValidate
+  fullName.vb: Kouki.Mugura.Validators.DataAnnotationsValidator(Of TCommand).TryValidate
+  nameWithType: DataAnnotationsValidator<TCommand>.TryValidate
+  nameWithType.vb: DataAnnotationsValidator(Of TCommand).TryValidate
+- uid: Kouki.Mugura.Validators.ICommandValidator`1
+  name: ICommandValidator<TCommand>
+  href: api/Kouki.Mugura.Validators.ICommandValidator-1.html
+  commentId: T:Kouki.Mugura.Validators.ICommandValidator`1
+  name.vb: ICommandValidator(Of TCommand)
+  fullName: Kouki.Mugura.Validators.ICommandValidator<TCommand>
+  fullName.vb: Kouki.Mugura.Validators.ICommandValidator(Of TCommand)
+  nameWithType: ICommandValidator<TCommand>
+  nameWithType.vb: ICommandValidator(Of TCommand)
+- uid: Kouki.Mugura.Validators.ICommandValidator`1.TryValidate(`0,System.String@)
+  name: TryValidate(TCommand, out string?)
+  href: api/Kouki.Mugura.Validators.ICommandValidator-1.html#Kouki_Mugura_Validators_ICommandValidator_1_TryValidate__0_System_String__
+  commentId: M:Kouki.Mugura.Validators.ICommandValidator`1.TryValidate(`0,System.String@)
+  name.vb: TryValidate(TCommand, String)
+  fullName: Kouki.Mugura.Validators.ICommandValidator<TCommand>.TryValidate(TCommand, out string?)
+  fullName.vb: Kouki.Mugura.Validators.ICommandValidator(Of TCommand).TryValidate(TCommand, String)
+  nameWithType: ICommandValidator<TCommand>.TryValidate(TCommand, out string?)
+  nameWithType.vb: ICommandValidator(Of TCommand).TryValidate(TCommand, String)
+- uid: Kouki.Mugura.Validators.ICommandValidator`1.TryValidate*
+  name: TryValidate
+  href: api/Kouki.Mugura.Validators.ICommandValidator-1.html#Kouki_Mugura_Validators_ICommandValidator_1_TryValidate_
+  commentId: Overload:Kouki.Mugura.Validators.ICommandValidator`1.TryValidate
+  isSpec: "True"
+  fullName: Kouki.Mugura.Validators.ICommandValidator<TCommand>.TryValidate
+  fullName.vb: Kouki.Mugura.Validators.ICommandValidator(Of TCommand).TryValidate
+  nameWithType: ICommandValidator<TCommand>.TryValidate
+  nameWithType.vb: ICommandValidator(Of TCommand).TryValidate
+- uid: Shimi
+  name: Shimi
+  href: api/Shimi.html
+  commentId: N:Shimi
+  fullName: Shimi
+  nameWithType: Shimi
+- uid: Shimi.Abstractions
+  name: Shimi.Abstractions
+  href: api/Shimi.Abstractions.html
+  commentId: N:Shimi.Abstractions
+  fullName: Shimi.Abstractions
+  nameWithType: Shimi.Abstractions
+- uid: Shimi.Abstractions.ITelemetryLogger
+  name: ITelemetryLogger
+  href: api/Shimi.Abstractions.ITelemetryLogger.html
+  commentId: T:Shimi.Abstractions.ITelemetryLogger
+  fullName: Shimi.Abstractions.ITelemetryLogger
+  nameWithType: ITelemetryLogger
+- uid: Shimi.Abstractions.ITelemetryLogger.LogError(System.String,System.Exception)
+  name: LogError(string, Exception?)
+  href: api/Shimi.Abstractions.ITelemetryLogger.html#Shimi_Abstractions_ITelemetryLogger_LogError_System_String_System_Exception_
+  commentId: M:Shimi.Abstractions.ITelemetryLogger.LogError(System.String,System.Exception)
+  name.vb: LogError(String, Exception)
+  fullName: Shimi.Abstractions.ITelemetryLogger.LogError(string, System.Exception?)
+  fullName.vb: Shimi.Abstractions.ITelemetryLogger.LogError(String, System.Exception)
+  nameWithType: ITelemetryLogger.LogError(string, Exception?)
+  nameWithType.vb: ITelemetryLogger.LogError(String, Exception)
+- uid: Shimi.Abstractions.ITelemetryLogger.LogError*
+  name: LogError
+  href: api/Shimi.Abstractions.ITelemetryLogger.html#Shimi_Abstractions_ITelemetryLogger_LogError_
+  commentId: Overload:Shimi.Abstractions.ITelemetryLogger.LogError
+  isSpec: "True"
+  fullName: Shimi.Abstractions.ITelemetryLogger.LogError
+  nameWithType: ITelemetryLogger.LogError
+- uid: Shimi.Abstractions.ITelemetryLogger.LogEvent(System.String,System.Object)
+  name: LogEvent(string, object?)
+  href: api/Shimi.Abstractions.ITelemetryLogger.html#Shimi_Abstractions_ITelemetryLogger_LogEvent_System_String_System_Object_
+  commentId: M:Shimi.Abstractions.ITelemetryLogger.LogEvent(System.String,System.Object)
+  name.vb: LogEvent(String, Object)
+  fullName: Shimi.Abstractions.ITelemetryLogger.LogEvent(string, object?)
+  fullName.vb: Shimi.Abstractions.ITelemetryLogger.LogEvent(String, Object)
+  nameWithType: ITelemetryLogger.LogEvent(string, object?)
+  nameWithType.vb: ITelemetryLogger.LogEvent(String, Object)
+- uid: Shimi.Abstractions.ITelemetryLogger.LogEvent*
+  name: LogEvent
+  href: api/Shimi.Abstractions.ITelemetryLogger.html#Shimi_Abstractions_ITelemetryLogger_LogEvent_
+  commentId: Overload:Shimi.Abstractions.ITelemetryLogger.LogEvent
+  isSpec: "True"
+  fullName: Shimi.Abstractions.ITelemetryLogger.LogEvent
+  nameWithType: ITelemetryLogger.LogEvent
+- uid: Shimi.Class1
+  name: Class1
+  href: api/Shimi.Class1.html
+  commentId: T:Shimi.Class1
+  fullName: Shimi.Class1
+  nameWithType: Class1
+- uid: Shimi.Context
+  name: Shimi.Context
+  href: api/Shimi.Context.html
+  commentId: N:Shimi.Context
+  fullName: Shimi.Context
+  nameWithType: Shimi.Context
+- uid: Shimi.Context.BaseExecutionContext
+  name: BaseExecutionContext
+  href: api/Shimi.Context.BaseExecutionContext.html
+  commentId: T:Shimi.Context.BaseExecutionContext
+  fullName: Shimi.Context.BaseExecutionContext
+  nameWithType: BaseExecutionContext
+- uid: Shimi.Context.BaseExecutionContext.#ctor(System.String,Shimi.ServiceAbstractions.IFileSystem,Shimi.ServiceAbstractions.ITerminal,Shimi.ServiceAbstractions.IStateStore)
+  name: BaseExecutionContext(string, IFileSystem, ITerminal, IStateStore)
+  href: api/Shimi.Context.BaseExecutionContext.html#Shimi_Context_BaseExecutionContext__ctor_System_String_Shimi_ServiceAbstractions_IFileSystem_Shimi_ServiceAbstractions_ITerminal_Shimi_ServiceAbstractions_IStateStore_
+  commentId: M:Shimi.Context.BaseExecutionContext.#ctor(System.String,Shimi.ServiceAbstractions.IFileSystem,Shimi.ServiceAbstractions.ITerminal,Shimi.ServiceAbstractions.IStateStore)
+  name.vb: New(String, IFileSystem, ITerminal, IStateStore)
+  fullName: Shimi.Context.BaseExecutionContext.BaseExecutionContext(string, Shimi.ServiceAbstractions.IFileSystem, Shimi.ServiceAbstractions.ITerminal, Shimi.ServiceAbstractions.IStateStore)
+  fullName.vb: Shimi.Context.BaseExecutionContext.New(String, Shimi.ServiceAbstractions.IFileSystem, Shimi.ServiceAbstractions.ITerminal, Shimi.ServiceAbstractions.IStateStore)
+  nameWithType: BaseExecutionContext.BaseExecutionContext(string, IFileSystem, ITerminal, IStateStore)
+  nameWithType.vb: BaseExecutionContext.New(String, IFileSystem, ITerminal, IStateStore)
+- uid: Shimi.Context.BaseExecutionContext.#ctor*
+  name: BaseExecutionContext
+  href: api/Shimi.Context.BaseExecutionContext.html#Shimi_Context_BaseExecutionContext__ctor_
+  commentId: Overload:Shimi.Context.BaseExecutionContext.#ctor
+  isSpec: "True"
+  name.vb: New
+  fullName: Shimi.Context.BaseExecutionContext.BaseExecutionContext
+  fullName.vb: Shimi.Context.BaseExecutionContext.New
+  nameWithType: BaseExecutionContext.BaseExecutionContext
+  nameWithType.vb: BaseExecutionContext.New
+- uid: Shimi.Context.BaseExecutionContext.FileSystem
+  name: FileSystem
+  href: api/Shimi.Context.BaseExecutionContext.html#Shimi_Context_BaseExecutionContext_FileSystem
+  commentId: P:Shimi.Context.BaseExecutionContext.FileSystem
+  fullName: Shimi.Context.BaseExecutionContext.FileSystem
+  nameWithType: BaseExecutionContext.FileSystem
+- uid: Shimi.Context.BaseExecutionContext.FileSystem*
+  name: FileSystem
+  href: api/Shimi.Context.BaseExecutionContext.html#Shimi_Context_BaseExecutionContext_FileSystem_
+  commentId: Overload:Shimi.Context.BaseExecutionContext.FileSystem
+  isSpec: "True"
+  fullName: Shimi.Context.BaseExecutionContext.FileSystem
+  nameWithType: BaseExecutionContext.FileSystem
+- uid: Shimi.Context.BaseExecutionContext.GetService*
+  name: GetService
+  href: api/Shimi.Context.BaseExecutionContext.html#Shimi_Context_BaseExecutionContext_GetService_
+  commentId: Overload:Shimi.Context.BaseExecutionContext.GetService
+  isSpec: "True"
+  fullName: Shimi.Context.BaseExecutionContext.GetService
+  nameWithType: BaseExecutionContext.GetService
+- uid: Shimi.Context.BaseExecutionContext.GetService``1
+  name: GetService<T>()
+  href: api/Shimi.Context.BaseExecutionContext.html#Shimi_Context_BaseExecutionContext_GetService__1
+  commentId: M:Shimi.Context.BaseExecutionContext.GetService``1
+  name.vb: GetService(Of T)()
+  fullName: Shimi.Context.BaseExecutionContext.GetService<T>()
+  fullName.vb: Shimi.Context.BaseExecutionContext.GetService(Of T)()
+  nameWithType: BaseExecutionContext.GetService<T>()
+  nameWithType.vb: BaseExecutionContext.GetService(Of T)()
+- uid: Shimi.Context.BaseExecutionContext.Name
+  name: Name
+  href: api/Shimi.Context.BaseExecutionContext.html#Shimi_Context_BaseExecutionContext_Name
+  commentId: P:Shimi.Context.BaseExecutionContext.Name
+  fullName: Shimi.Context.BaseExecutionContext.Name
+  nameWithType: BaseExecutionContext.Name
+- uid: Shimi.Context.BaseExecutionContext.Name*
+  name: Name
+  href: api/Shimi.Context.BaseExecutionContext.html#Shimi_Context_BaseExecutionContext_Name_
+  commentId: Overload:Shimi.Context.BaseExecutionContext.Name
+  isSpec: "True"
+  fullName: Shimi.Context.BaseExecutionContext.Name
+  nameWithType: BaseExecutionContext.Name
+- uid: Shimi.Context.BaseExecutionContext.StateStore
+  name: StateStore
+  href: api/Shimi.Context.BaseExecutionContext.html#Shimi_Context_BaseExecutionContext_StateStore
+  commentId: P:Shimi.Context.BaseExecutionContext.StateStore
+  fullName: Shimi.Context.BaseExecutionContext.StateStore
+  nameWithType: BaseExecutionContext.StateStore
+- uid: Shimi.Context.BaseExecutionContext.StateStore*
+  name: StateStore
+  href: api/Shimi.Context.BaseExecutionContext.html#Shimi_Context_BaseExecutionContext_StateStore_
+  commentId: Overload:Shimi.Context.BaseExecutionContext.StateStore
+  isSpec: "True"
+  fullName: Shimi.Context.BaseExecutionContext.StateStore
+  nameWithType: BaseExecutionContext.StateStore
+- uid: Shimi.Context.BaseExecutionContext.Terminal
+  name: Terminal
+  href: api/Shimi.Context.BaseExecutionContext.html#Shimi_Context_BaseExecutionContext_Terminal
+  commentId: P:Shimi.Context.BaseExecutionContext.Terminal
+  fullName: Shimi.Context.BaseExecutionContext.Terminal
+  nameWithType: BaseExecutionContext.Terminal
+- uid: Shimi.Context.BaseExecutionContext.Terminal*
+  name: Terminal
+  href: api/Shimi.Context.BaseExecutionContext.html#Shimi_Context_BaseExecutionContext_Terminal_
+  commentId: Overload:Shimi.Context.BaseExecutionContext.Terminal
+  isSpec: "True"
+  fullName: Shimi.Context.BaseExecutionContext.Terminal
+  nameWithType: BaseExecutionContext.Terminal
+- uid: Shimi.Context.ContextRegistry
+  name: ContextRegistry
+  href: api/Shimi.Context.ContextRegistry.html
+  commentId: T:Shimi.Context.ContextRegistry
+  fullName: Shimi.Context.ContextRegistry
+  nameWithType: ContextRegistry
+- uid: Shimi.Context.ContextRegistry.#ctor
+  name: ContextRegistry()
+  href: api/Shimi.Context.ContextRegistry.html#Shimi_Context_ContextRegistry__ctor
+  commentId: M:Shimi.Context.ContextRegistry.#ctor
+  name.vb: New()
+  fullName: Shimi.Context.ContextRegistry.ContextRegistry()
+  fullName.vb: Shimi.Context.ContextRegistry.New()
+  nameWithType: ContextRegistry.ContextRegistry()
+  nameWithType.vb: ContextRegistry.New()
+- uid: Shimi.Context.ContextRegistry.#ctor*
+  name: ContextRegistry
+  href: api/Shimi.Context.ContextRegistry.html#Shimi_Context_ContextRegistry__ctor_
+  commentId: Overload:Shimi.Context.ContextRegistry.#ctor
+  isSpec: "True"
+  name.vb: New
+  fullName: Shimi.Context.ContextRegistry.ContextRegistry
+  fullName.vb: Shimi.Context.ContextRegistry.New
+  nameWithType: ContextRegistry.ContextRegistry
+  nameWithType.vb: ContextRegistry.New
+- uid: Shimi.Context.ContextRegistry.GetContext(System.String)
+  name: GetContext(string)
+  href: api/Shimi.Context.ContextRegistry.html#Shimi_Context_ContextRegistry_GetContext_System_String_
+  commentId: M:Shimi.Context.ContextRegistry.GetContext(System.String)
+  name.vb: GetContext(String)
+  fullName: Shimi.Context.ContextRegistry.GetContext(string)
+  fullName.vb: Shimi.Context.ContextRegistry.GetContext(String)
+  nameWithType: ContextRegistry.GetContext(string)
+  nameWithType.vb: ContextRegistry.GetContext(String)
+- uid: Shimi.Context.ContextRegistry.GetContext*
+  name: GetContext
+  href: api/Shimi.Context.ContextRegistry.html#Shimi_Context_ContextRegistry_GetContext_
+  commentId: Overload:Shimi.Context.ContextRegistry.GetContext
+  isSpec: "True"
+  fullName: Shimi.Context.ContextRegistry.GetContext
+  nameWithType: ContextRegistry.GetContext
+- uid: Shimi.Context.ContextRegistry.GetDefaultContext
+  name: GetDefaultContext()
+  href: api/Shimi.Context.ContextRegistry.html#Shimi_Context_ContextRegistry_GetDefaultContext
+  commentId: M:Shimi.Context.ContextRegistry.GetDefaultContext
+  fullName: Shimi.Context.ContextRegistry.GetDefaultContext()
+  nameWithType: ContextRegistry.GetDefaultContext()
+- uid: Shimi.Context.ContextRegistry.GetDefaultContext*
+  name: GetDefaultContext
+  href: api/Shimi.Context.ContextRegistry.html#Shimi_Context_ContextRegistry_GetDefaultContext_
+  commentId: Overload:Shimi.Context.ContextRegistry.GetDefaultContext
+  isSpec: "True"
+  fullName: Shimi.Context.ContextRegistry.GetDefaultContext
+  nameWithType: ContextRegistry.GetDefaultContext
+- uid: Shimi.Context.ContextRegistry.RegisterContext(System.String,Shimi.Context.IExecutionContext)
+  name: RegisterContext(string, IExecutionContext)
+  href: api/Shimi.Context.ContextRegistry.html#Shimi_Context_ContextRegistry_RegisterContext_System_String_Shimi_Context_IExecutionContext_
+  commentId: M:Shimi.Context.ContextRegistry.RegisterContext(System.String,Shimi.Context.IExecutionContext)
+  name.vb: RegisterContext(String, IExecutionContext)
+  fullName: Shimi.Context.ContextRegistry.RegisterContext(string, Shimi.Context.IExecutionContext)
+  fullName.vb: Shimi.Context.ContextRegistry.RegisterContext(String, Shimi.Context.IExecutionContext)
+  nameWithType: ContextRegistry.RegisterContext(string, IExecutionContext)
+  nameWithType.vb: ContextRegistry.RegisterContext(String, IExecutionContext)
+- uid: Shimi.Context.ContextRegistry.RegisterContext*
+  name: RegisterContext
+  href: api/Shimi.Context.ContextRegistry.html#Shimi_Context_ContextRegistry_RegisterContext_
+  commentId: Overload:Shimi.Context.ContextRegistry.RegisterContext
+  isSpec: "True"
+  fullName: Shimi.Context.ContextRegistry.RegisterContext
+  nameWithType: ContextRegistry.RegisterContext
+- uid: Shimi.Context.ContextRegistry.SetDefaultContext(Shimi.Context.IExecutionContext)
+  name: SetDefaultContext(IExecutionContext)
+  href: api/Shimi.Context.ContextRegistry.html#Shimi_Context_ContextRegistry_SetDefaultContext_Shimi_Context_IExecutionContext_
+  commentId: M:Shimi.Context.ContextRegistry.SetDefaultContext(Shimi.Context.IExecutionContext)
+  fullName: Shimi.Context.ContextRegistry.SetDefaultContext(Shimi.Context.IExecutionContext)
+  nameWithType: ContextRegistry.SetDefaultContext(IExecutionContext)
+- uid: Shimi.Context.ContextRegistry.SetDefaultContext(System.String)
+  name: SetDefaultContext(string)
+  href: api/Shimi.Context.ContextRegistry.html#Shimi_Context_ContextRegistry_SetDefaultContext_System_String_
+  commentId: M:Shimi.Context.ContextRegistry.SetDefaultContext(System.String)
+  name.vb: SetDefaultContext(String)
+  fullName: Shimi.Context.ContextRegistry.SetDefaultContext(string)
+  fullName.vb: Shimi.Context.ContextRegistry.SetDefaultContext(String)
+  nameWithType: ContextRegistry.SetDefaultContext(string)
+  nameWithType.vb: ContextRegistry.SetDefaultContext(String)
+- uid: Shimi.Context.ContextRegistry.SetDefaultContext*
+  name: SetDefaultContext
+  href: api/Shimi.Context.ContextRegistry.html#Shimi_Context_ContextRegistry_SetDefaultContext_
+  commentId: Overload:Shimi.Context.ContextRegistry.SetDefaultContext
+  isSpec: "True"
+  fullName: Shimi.Context.ContextRegistry.SetDefaultContext
+  nameWithType: ContextRegistry.SetDefaultContext
+- uid: Shimi.Context.DependencyInjection
+  name: Shimi.Context.DependencyInjection
+  href: api/Shimi.Context.DependencyInjection.html
+  commentId: N:Shimi.Context.DependencyInjection
+  fullName: Shimi.Context.DependencyInjection
+  nameWithType: Shimi.Context.DependencyInjection
+- uid: Shimi.Context.DependencyInjection.ServiceCollectionExtensions
+  name: ServiceCollectionExtensions
+  href: api/Shimi.Context.DependencyInjection.ServiceCollectionExtensions.html
+  commentId: T:Shimi.Context.DependencyInjection.ServiceCollectionExtensions
+  fullName: Shimi.Context.DependencyInjection.ServiceCollectionExtensions
+  nameWithType: ServiceCollectionExtensions
+- uid: Shimi.Context.DependencyInjection.ServiceCollectionExtensions.AddShimiContext(Microsoft.Extensions.DependencyInjection.IServiceCollection)
+  name: AddShimiContext(IServiceCollection)
+  href: api/Shimi.Context.DependencyInjection.ServiceCollectionExtensions.html#Shimi_Context_DependencyInjection_ServiceCollectionExtensions_AddShimiContext_Microsoft_Extensions_DependencyInjection_IServiceCollection_
+  commentId: M:Shimi.Context.DependencyInjection.ServiceCollectionExtensions.AddShimiContext(Microsoft.Extensions.DependencyInjection.IServiceCollection)
+  fullName: Shimi.Context.DependencyInjection.ServiceCollectionExtensions.AddShimiContext(Microsoft.Extensions.DependencyInjection.IServiceCollection)
+  nameWithType: ServiceCollectionExtensions.AddShimiContext(IServiceCollection)
+- uid: Shimi.Context.DependencyInjection.ServiceCollectionExtensions.AddShimiContext*
+  name: AddShimiContext
+  href: api/Shimi.Context.DependencyInjection.ServiceCollectionExtensions.html#Shimi_Context_DependencyInjection_ServiceCollectionExtensions_AddShimiContext_
+  commentId: Overload:Shimi.Context.DependencyInjection.ServiceCollectionExtensions.AddShimiContext
+  isSpec: "True"
+  fullName: Shimi.Context.DependencyInjection.ServiceCollectionExtensions.AddShimiContext
+  nameWithType: ServiceCollectionExtensions.AddShimiContext
+- uid: Shimi.Context.IExecutionContext
+  name: IExecutionContext
+  href: api/Shimi.Context.IExecutionContext.html
+  commentId: T:Shimi.Context.IExecutionContext
+  fullName: Shimi.Context.IExecutionContext
+  nameWithType: IExecutionContext
+- uid: Shimi.Context.IExecutionContext.FileSystem
+  name: FileSystem
+  href: api/Shimi.Context.IExecutionContext.html#Shimi_Context_IExecutionContext_FileSystem
+  commentId: P:Shimi.Context.IExecutionContext.FileSystem
+  fullName: Shimi.Context.IExecutionContext.FileSystem
+  nameWithType: IExecutionContext.FileSystem
+- uid: Shimi.Context.IExecutionContext.FileSystem*
+  name: FileSystem
+  href: api/Shimi.Context.IExecutionContext.html#Shimi_Context_IExecutionContext_FileSystem_
+  commentId: Overload:Shimi.Context.IExecutionContext.FileSystem
+  isSpec: "True"
+  fullName: Shimi.Context.IExecutionContext.FileSystem
+  nameWithType: IExecutionContext.FileSystem
+- uid: Shimi.Context.IExecutionContext.GetService*
+  name: GetService
+  href: api/Shimi.Context.IExecutionContext.html#Shimi_Context_IExecutionContext_GetService_
+  commentId: Overload:Shimi.Context.IExecutionContext.GetService
+  isSpec: "True"
+  fullName: Shimi.Context.IExecutionContext.GetService
+  nameWithType: IExecutionContext.GetService
+- uid: Shimi.Context.IExecutionContext.GetService``1
+  name: GetService<T>()
+  href: api/Shimi.Context.IExecutionContext.html#Shimi_Context_IExecutionContext_GetService__1
+  commentId: M:Shimi.Context.IExecutionContext.GetService``1
+  name.vb: GetService(Of T)()
+  fullName: Shimi.Context.IExecutionContext.GetService<T>()
+  fullName.vb: Shimi.Context.IExecutionContext.GetService(Of T)()
+  nameWithType: IExecutionContext.GetService<T>()
+  nameWithType.vb: IExecutionContext.GetService(Of T)()
+- uid: Shimi.Context.IExecutionContext.Name
+  name: Name
+  href: api/Shimi.Context.IExecutionContext.html#Shimi_Context_IExecutionContext_Name
+  commentId: P:Shimi.Context.IExecutionContext.Name
+  fullName: Shimi.Context.IExecutionContext.Name
+  nameWithType: IExecutionContext.Name
+- uid: Shimi.Context.IExecutionContext.Name*
+  name: Name
+  href: api/Shimi.Context.IExecutionContext.html#Shimi_Context_IExecutionContext_Name_
+  commentId: Overload:Shimi.Context.IExecutionContext.Name
+  isSpec: "True"
+  fullName: Shimi.Context.IExecutionContext.Name
+  nameWithType: IExecutionContext.Name
+- uid: Shimi.Context.IExecutionContext.StateStore
+  name: StateStore
+  href: api/Shimi.Context.IExecutionContext.html#Shimi_Context_IExecutionContext_StateStore
+  commentId: P:Shimi.Context.IExecutionContext.StateStore
+  fullName: Shimi.Context.IExecutionContext.StateStore
+  nameWithType: IExecutionContext.StateStore
+- uid: Shimi.Context.IExecutionContext.StateStore*
+  name: StateStore
+  href: api/Shimi.Context.IExecutionContext.html#Shimi_Context_IExecutionContext_StateStore_
+  commentId: Overload:Shimi.Context.IExecutionContext.StateStore
+  isSpec: "True"
+  fullName: Shimi.Context.IExecutionContext.StateStore
+  nameWithType: IExecutionContext.StateStore
+- uid: Shimi.Context.IExecutionContext.Terminal
+  name: Terminal
+  href: api/Shimi.Context.IExecutionContext.html#Shimi_Context_IExecutionContext_Terminal
+  commentId: P:Shimi.Context.IExecutionContext.Terminal
+  fullName: Shimi.Context.IExecutionContext.Terminal
+  nameWithType: IExecutionContext.Terminal
+- uid: Shimi.Context.IExecutionContext.Terminal*
+  name: Terminal
+  href: api/Shimi.Context.IExecutionContext.html#Shimi_Context_IExecutionContext_Terminal_
+  commentId: Overload:Shimi.Context.IExecutionContext.Terminal
+  isSpec: "True"
+  fullName: Shimi.Context.IExecutionContext.Terminal
+  nameWithType: IExecutionContext.Terminal
+- uid: Shimi.Context.InMemoryStateStore
+  name: InMemoryStateStore
+  href: api/Shimi.Context.InMemoryStateStore.html
+  commentId: T:Shimi.Context.InMemoryStateStore
+  fullName: Shimi.Context.InMemoryStateStore
+  nameWithType: InMemoryStateStore
+- uid: Shimi.Context.InMemoryStateStore.GetAsync*
+  name: GetAsync
+  href: api/Shimi.Context.InMemoryStateStore.html#Shimi_Context_InMemoryStateStore_GetAsync_
+  commentId: Overload:Shimi.Context.InMemoryStateStore.GetAsync
+  isSpec: "True"
+  fullName: Shimi.Context.InMemoryStateStore.GetAsync
+  nameWithType: InMemoryStateStore.GetAsync
+- uid: Shimi.Context.InMemoryStateStore.GetAsync``1(System.String,System.Threading.CancellationToken)
+  name: GetAsync<T>(string, CancellationToken)
+  href: api/Shimi.Context.InMemoryStateStore.html#Shimi_Context_InMemoryStateStore_GetAsync__1_System_String_System_Threading_CancellationToken_
+  commentId: M:Shimi.Context.InMemoryStateStore.GetAsync``1(System.String,System.Threading.CancellationToken)
+  name.vb: GetAsync(Of T)(String, CancellationToken)
+  fullName: Shimi.Context.InMemoryStateStore.GetAsync<T>(string, System.Threading.CancellationToken)
+  fullName.vb: Shimi.Context.InMemoryStateStore.GetAsync(Of T)(String, System.Threading.CancellationToken)
+  nameWithType: InMemoryStateStore.GetAsync<T>(string, CancellationToken)
+  nameWithType.vb: InMemoryStateStore.GetAsync(Of T)(String, CancellationToken)
+- uid: Shimi.Context.InMemoryStateStore.RemoveAsync(System.String,System.Threading.CancellationToken)
+  name: RemoveAsync(string, CancellationToken)
+  href: api/Shimi.Context.InMemoryStateStore.html#Shimi_Context_InMemoryStateStore_RemoveAsync_System_String_System_Threading_CancellationToken_
+  commentId: M:Shimi.Context.InMemoryStateStore.RemoveAsync(System.String,System.Threading.CancellationToken)
+  name.vb: RemoveAsync(String, CancellationToken)
+  fullName: Shimi.Context.InMemoryStateStore.RemoveAsync(string, System.Threading.CancellationToken)
+  fullName.vb: Shimi.Context.InMemoryStateStore.RemoveAsync(String, System.Threading.CancellationToken)
+  nameWithType: InMemoryStateStore.RemoveAsync(string, CancellationToken)
+  nameWithType.vb: InMemoryStateStore.RemoveAsync(String, CancellationToken)
+- uid: Shimi.Context.InMemoryStateStore.RemoveAsync*
+  name: RemoveAsync
+  href: api/Shimi.Context.InMemoryStateStore.html#Shimi_Context_InMemoryStateStore_RemoveAsync_
+  commentId: Overload:Shimi.Context.InMemoryStateStore.RemoveAsync
+  isSpec: "True"
+  fullName: Shimi.Context.InMemoryStateStore.RemoveAsync
+  nameWithType: InMemoryStateStore.RemoveAsync
+- uid: Shimi.Context.InMemoryStateStore.SetAsync*
+  name: SetAsync
+  href: api/Shimi.Context.InMemoryStateStore.html#Shimi_Context_InMemoryStateStore_SetAsync_
+  commentId: Overload:Shimi.Context.InMemoryStateStore.SetAsync
+  isSpec: "True"
+  fullName: Shimi.Context.InMemoryStateStore.SetAsync
+  nameWithType: InMemoryStateStore.SetAsync
+- uid: Shimi.Context.InMemoryStateStore.SetAsync``1(System.String,``0,System.Threading.CancellationToken)
+  name: SetAsync<T>(string, T, CancellationToken)
+  href: api/Shimi.Context.InMemoryStateStore.html#Shimi_Context_InMemoryStateStore_SetAsync__1_System_String___0_System_Threading_CancellationToken_
+  commentId: M:Shimi.Context.InMemoryStateStore.SetAsync``1(System.String,``0,System.Threading.CancellationToken)
+  name.vb: SetAsync(Of T)(String, T, CancellationToken)
+  fullName: Shimi.Context.InMemoryStateStore.SetAsync<T>(string, T, System.Threading.CancellationToken)
+  fullName.vb: Shimi.Context.InMemoryStateStore.SetAsync(Of T)(String, T, System.Threading.CancellationToken)
+  nameWithType: InMemoryStateStore.SetAsync<T>(string, T, CancellationToken)
+  nameWithType.vb: InMemoryStateStore.SetAsync(Of T)(String, T, CancellationToken)
+- uid: Shimi.ServiceAbstractions
+  name: Shimi.ServiceAbstractions
+  href: api/Shimi.ServiceAbstractions.html
+  commentId: N:Shimi.ServiceAbstractions
+  fullName: Shimi.ServiceAbstractions
+  nameWithType: Shimi.ServiceAbstractions
+- uid: Shimi.ServiceAbstractions.IFileSystem
+  name: IFileSystem
+  href: api/Shimi.ServiceAbstractions.IFileSystem.html
+  commentId: T:Shimi.ServiceAbstractions.IFileSystem
+  fullName: Shimi.ServiceAbstractions.IFileSystem
+  nameWithType: IFileSystem
+- uid: Shimi.ServiceAbstractions.IFileSystem.ExistsAsync(System.String,System.Threading.CancellationToken)
+  name: ExistsAsync(string, CancellationToken)
+  href: api/Shimi.ServiceAbstractions.IFileSystem.html#Shimi_ServiceAbstractions_IFileSystem_ExistsAsync_System_String_System_Threading_CancellationToken_
+  commentId: M:Shimi.ServiceAbstractions.IFileSystem.ExistsAsync(System.String,System.Threading.CancellationToken)
+  name.vb: ExistsAsync(String, CancellationToken)
+  fullName: Shimi.ServiceAbstractions.IFileSystem.ExistsAsync(string, System.Threading.CancellationToken)
+  fullName.vb: Shimi.ServiceAbstractions.IFileSystem.ExistsAsync(String, System.Threading.CancellationToken)
+  nameWithType: IFileSystem.ExistsAsync(string, CancellationToken)
+  nameWithType.vb: IFileSystem.ExistsAsync(String, CancellationToken)
+- uid: Shimi.ServiceAbstractions.IFileSystem.ExistsAsync*
+  name: ExistsAsync
+  href: api/Shimi.ServiceAbstractions.IFileSystem.html#Shimi_ServiceAbstractions_IFileSystem_ExistsAsync_
+  commentId: Overload:Shimi.ServiceAbstractions.IFileSystem.ExistsAsync
+  isSpec: "True"
+  fullName: Shimi.ServiceAbstractions.IFileSystem.ExistsAsync
+  nameWithType: IFileSystem.ExistsAsync
+- uid: Shimi.ServiceAbstractions.IFileSystem.GetTreeAsync(System.String,System.Boolean,System.Threading.CancellationToken)
+  name: GetTreeAsync(string, bool, CancellationToken)
+  href: api/Shimi.ServiceAbstractions.IFileSystem.html#Shimi_ServiceAbstractions_IFileSystem_GetTreeAsync_System_String_System_Boolean_System_Threading_CancellationToken_
+  commentId: M:Shimi.ServiceAbstractions.IFileSystem.GetTreeAsync(System.String,System.Boolean,System.Threading.CancellationToken)
+  name.vb: GetTreeAsync(String, Boolean, CancellationToken)
+  fullName: Shimi.ServiceAbstractions.IFileSystem.GetTreeAsync(string, bool, System.Threading.CancellationToken)
+  fullName.vb: Shimi.ServiceAbstractions.IFileSystem.GetTreeAsync(String, Boolean, System.Threading.CancellationToken)
+  nameWithType: IFileSystem.GetTreeAsync(string, bool, CancellationToken)
+  nameWithType.vb: IFileSystem.GetTreeAsync(String, Boolean, CancellationToken)
+- uid: Shimi.ServiceAbstractions.IFileSystem.GetTreeAsync*
+  name: GetTreeAsync
+  href: api/Shimi.ServiceAbstractions.IFileSystem.html#Shimi_ServiceAbstractions_IFileSystem_GetTreeAsync_
+  commentId: Overload:Shimi.ServiceAbstractions.IFileSystem.GetTreeAsync
+  isSpec: "True"
+  fullName: Shimi.ServiceAbstractions.IFileSystem.GetTreeAsync
+  nameWithType: IFileSystem.GetTreeAsync
+- uid: Shimi.ServiceAbstractions.IFileSystem.ReadBytesAsync(System.String,System.Threading.CancellationToken)
+  name: ReadBytesAsync(string, CancellationToken)
+  href: api/Shimi.ServiceAbstractions.IFileSystem.html#Shimi_ServiceAbstractions_IFileSystem_ReadBytesAsync_System_String_System_Threading_CancellationToken_
+  commentId: M:Shimi.ServiceAbstractions.IFileSystem.ReadBytesAsync(System.String,System.Threading.CancellationToken)
+  name.vb: ReadBytesAsync(String, CancellationToken)
+  fullName: Shimi.ServiceAbstractions.IFileSystem.ReadBytesAsync(string, System.Threading.CancellationToken)
+  fullName.vb: Shimi.ServiceAbstractions.IFileSystem.ReadBytesAsync(String, System.Threading.CancellationToken)
+  nameWithType: IFileSystem.ReadBytesAsync(string, CancellationToken)
+  nameWithType.vb: IFileSystem.ReadBytesAsync(String, CancellationToken)
+- uid: Shimi.ServiceAbstractions.IFileSystem.ReadBytesAsync*
+  name: ReadBytesAsync
+  href: api/Shimi.ServiceAbstractions.IFileSystem.html#Shimi_ServiceAbstractions_IFileSystem_ReadBytesAsync_
+  commentId: Overload:Shimi.ServiceAbstractions.IFileSystem.ReadBytesAsync
+  isSpec: "True"
+  fullName: Shimi.ServiceAbstractions.IFileSystem.ReadBytesAsync
+  nameWithType: IFileSystem.ReadBytesAsync
+- uid: Shimi.ServiceAbstractions.IFileSystem.WriteBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)
+  name: WriteBytesAsync(string, byte[], CancellationToken)
+  href: api/Shimi.ServiceAbstractions.IFileSystem.html#Shimi_ServiceAbstractions_IFileSystem_WriteBytesAsync_System_String_System_Byte___System_Threading_CancellationToken_
+  commentId: M:Shimi.ServiceAbstractions.IFileSystem.WriteBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)
+  name.vb: WriteBytesAsync(String, Byte(), CancellationToken)
+  fullName: Shimi.ServiceAbstractions.IFileSystem.WriteBytesAsync(string, byte[], System.Threading.CancellationToken)
+  fullName.vb: Shimi.ServiceAbstractions.IFileSystem.WriteBytesAsync(String, Byte(), System.Threading.CancellationToken)
+  nameWithType: IFileSystem.WriteBytesAsync(string, byte[], CancellationToken)
+  nameWithType.vb: IFileSystem.WriteBytesAsync(String, Byte(), CancellationToken)
+- uid: Shimi.ServiceAbstractions.IFileSystem.WriteBytesAsync*
+  name: WriteBytesAsync
+  href: api/Shimi.ServiceAbstractions.IFileSystem.html#Shimi_ServiceAbstractions_IFileSystem_WriteBytesAsync_
+  commentId: Overload:Shimi.ServiceAbstractions.IFileSystem.WriteBytesAsync
+  isSpec: "True"
+  fullName: Shimi.ServiceAbstractions.IFileSystem.WriteBytesAsync
+  nameWithType: IFileSystem.WriteBytesAsync
+- uid: Shimi.ServiceAbstractions.IJsonFileSystem
+  name: IJsonFileSystem
+  href: api/Shimi.ServiceAbstractions.IJsonFileSystem.html
+  commentId: T:Shimi.ServiceAbstractions.IJsonFileSystem
+  fullName: Shimi.ServiceAbstractions.IJsonFileSystem
+  nameWithType: IJsonFileSystem
+- uid: Shimi.ServiceAbstractions.IJsonFileSystem.ReadJsonAsync*
+  name: ReadJsonAsync
+  href: api/Shimi.ServiceAbstractions.IJsonFileSystem.html#Shimi_ServiceAbstractions_IJsonFileSystem_ReadJsonAsync_
+  commentId: Overload:Shimi.ServiceAbstractions.IJsonFileSystem.ReadJsonAsync
+  isSpec: "True"
+  fullName: Shimi.ServiceAbstractions.IJsonFileSystem.ReadJsonAsync
+  nameWithType: IJsonFileSystem.ReadJsonAsync
+- uid: Shimi.ServiceAbstractions.IJsonFileSystem.ReadJsonAsync``1(System.String,System.Text.Json.JsonSerializerOptions,System.Threading.CancellationToken)
+  name: ReadJsonAsync<T>(string, JsonSerializerOptions?, CancellationToken)
+  href: api/Shimi.ServiceAbstractions.IJsonFileSystem.html#Shimi_ServiceAbstractions_IJsonFileSystem_ReadJsonAsync__1_System_String_System_Text_Json_JsonSerializerOptions_System_Threading_CancellationToken_
+  commentId: M:Shimi.ServiceAbstractions.IJsonFileSystem.ReadJsonAsync``1(System.String,System.Text.Json.JsonSerializerOptions,System.Threading.CancellationToken)
+  name.vb: ReadJsonAsync(Of T)(String, JsonSerializerOptions, CancellationToken)
+  fullName: Shimi.ServiceAbstractions.IJsonFileSystem.ReadJsonAsync<T>(string, System.Text.Json.JsonSerializerOptions?, System.Threading.CancellationToken)
+  fullName.vb: Shimi.ServiceAbstractions.IJsonFileSystem.ReadJsonAsync(Of T)(String, System.Text.Json.JsonSerializerOptions, System.Threading.CancellationToken)
+  nameWithType: IJsonFileSystem.ReadJsonAsync<T>(string, JsonSerializerOptions?, CancellationToken)
+  nameWithType.vb: IJsonFileSystem.ReadJsonAsync(Of T)(String, JsonSerializerOptions, CancellationToken)
+- uid: Shimi.ServiceAbstractions.IJsonFileSystem.WriteJsonAsync*
+  name: WriteJsonAsync
+  href: api/Shimi.ServiceAbstractions.IJsonFileSystem.html#Shimi_ServiceAbstractions_IJsonFileSystem_WriteJsonAsync_
+  commentId: Overload:Shimi.ServiceAbstractions.IJsonFileSystem.WriteJsonAsync
+  isSpec: "True"
+  fullName: Shimi.ServiceAbstractions.IJsonFileSystem.WriteJsonAsync
+  nameWithType: IJsonFileSystem.WriteJsonAsync
+- uid: Shimi.ServiceAbstractions.IJsonFileSystem.WriteJsonAsync``1(System.String,``0,System.Text.Json.JsonSerializerOptions,System.Threading.CancellationToken)
+  name: WriteJsonAsync<T>(string, T, JsonSerializerOptions?, CancellationToken)
+  href: api/Shimi.ServiceAbstractions.IJsonFileSystem.html#Shimi_ServiceAbstractions_IJsonFileSystem_WriteJsonAsync__1_System_String___0_System_Text_Json_JsonSerializerOptions_System_Threading_CancellationToken_
+  commentId: M:Shimi.ServiceAbstractions.IJsonFileSystem.WriteJsonAsync``1(System.String,``0,System.Text.Json.JsonSerializerOptions,System.Threading.CancellationToken)
+  name.vb: WriteJsonAsync(Of T)(String, T, JsonSerializerOptions, CancellationToken)
+  fullName: Shimi.ServiceAbstractions.IJsonFileSystem.WriteJsonAsync<T>(string, T, System.Text.Json.JsonSerializerOptions?, System.Threading.CancellationToken)
+  fullName.vb: Shimi.ServiceAbstractions.IJsonFileSystem.WriteJsonAsync(Of T)(String, T, System.Text.Json.JsonSerializerOptions, System.Threading.CancellationToken)
+  nameWithType: IJsonFileSystem.WriteJsonAsync<T>(string, T, JsonSerializerOptions?, CancellationToken)
+  nameWithType.vb: IJsonFileSystem.WriteJsonAsync(Of T)(String, T, JsonSerializerOptions, CancellationToken)
+- uid: Shimi.ServiceAbstractions.IStateStore
+  name: IStateStore
+  href: api/Shimi.ServiceAbstractions.IStateStore.html
+  commentId: T:Shimi.ServiceAbstractions.IStateStore
+  fullName: Shimi.ServiceAbstractions.IStateStore
+  nameWithType: IStateStore
+- uid: Shimi.ServiceAbstractions.IStateStore.GetAsync*
+  name: GetAsync
+  href: api/Shimi.ServiceAbstractions.IStateStore.html#Shimi_ServiceAbstractions_IStateStore_GetAsync_
+  commentId: Overload:Shimi.ServiceAbstractions.IStateStore.GetAsync
+  isSpec: "True"
+  fullName: Shimi.ServiceAbstractions.IStateStore.GetAsync
+  nameWithType: IStateStore.GetAsync
+- uid: Shimi.ServiceAbstractions.IStateStore.GetAsync``1(System.String,System.Threading.CancellationToken)
+  name: GetAsync<T>(string, CancellationToken)
+  href: api/Shimi.ServiceAbstractions.IStateStore.html#Shimi_ServiceAbstractions_IStateStore_GetAsync__1_System_String_System_Threading_CancellationToken_
+  commentId: M:Shimi.ServiceAbstractions.IStateStore.GetAsync``1(System.String,System.Threading.CancellationToken)
+  name.vb: GetAsync(Of T)(String, CancellationToken)
+  fullName: Shimi.ServiceAbstractions.IStateStore.GetAsync<T>(string, System.Threading.CancellationToken)
+  fullName.vb: Shimi.ServiceAbstractions.IStateStore.GetAsync(Of T)(String, System.Threading.CancellationToken)
+  nameWithType: IStateStore.GetAsync<T>(string, CancellationToken)
+  nameWithType.vb: IStateStore.GetAsync(Of T)(String, CancellationToken)
+- uid: Shimi.ServiceAbstractions.IStateStore.RemoveAsync(System.String,System.Threading.CancellationToken)
+  name: RemoveAsync(string, CancellationToken)
+  href: api/Shimi.ServiceAbstractions.IStateStore.html#Shimi_ServiceAbstractions_IStateStore_RemoveAsync_System_String_System_Threading_CancellationToken_
+  commentId: M:Shimi.ServiceAbstractions.IStateStore.RemoveAsync(System.String,System.Threading.CancellationToken)
+  name.vb: RemoveAsync(String, CancellationToken)
+  fullName: Shimi.ServiceAbstractions.IStateStore.RemoveAsync(string, System.Threading.CancellationToken)
+  fullName.vb: Shimi.ServiceAbstractions.IStateStore.RemoveAsync(String, System.Threading.CancellationToken)
+  nameWithType: IStateStore.RemoveAsync(string, CancellationToken)
+  nameWithType.vb: IStateStore.RemoveAsync(String, CancellationToken)
+- uid: Shimi.ServiceAbstractions.IStateStore.RemoveAsync*
+  name: RemoveAsync
+  href: api/Shimi.ServiceAbstractions.IStateStore.html#Shimi_ServiceAbstractions_IStateStore_RemoveAsync_
+  commentId: Overload:Shimi.ServiceAbstractions.IStateStore.RemoveAsync
+  isSpec: "True"
+  fullName: Shimi.ServiceAbstractions.IStateStore.RemoveAsync
+  nameWithType: IStateStore.RemoveAsync
+- uid: Shimi.ServiceAbstractions.IStateStore.SetAsync*
+  name: SetAsync
+  href: api/Shimi.ServiceAbstractions.IStateStore.html#Shimi_ServiceAbstractions_IStateStore_SetAsync_
+  commentId: Overload:Shimi.ServiceAbstractions.IStateStore.SetAsync
+  isSpec: "True"
+  fullName: Shimi.ServiceAbstractions.IStateStore.SetAsync
+  nameWithType: IStateStore.SetAsync
+- uid: Shimi.ServiceAbstractions.IStateStore.SetAsync``1(System.String,``0,System.Threading.CancellationToken)
+  name: SetAsync<T>(string, T, CancellationToken)
+  href: api/Shimi.ServiceAbstractions.IStateStore.html#Shimi_ServiceAbstractions_IStateStore_SetAsync__1_System_String___0_System_Threading_CancellationToken_
+  commentId: M:Shimi.ServiceAbstractions.IStateStore.SetAsync``1(System.String,``0,System.Threading.CancellationToken)
+  name.vb: SetAsync(Of T)(String, T, CancellationToken)
+  fullName: Shimi.ServiceAbstractions.IStateStore.SetAsync<T>(string, T, System.Threading.CancellationToken)
+  fullName.vb: Shimi.ServiceAbstractions.IStateStore.SetAsync(Of T)(String, T, System.Threading.CancellationToken)
+  nameWithType: IStateStore.SetAsync<T>(string, T, CancellationToken)
+  nameWithType.vb: IStateStore.SetAsync(Of T)(String, T, CancellationToken)
+- uid: Shimi.ServiceAbstractions.ITelemetryLogger
+  name: ITelemetryLogger
+  href: api/Shimi.ServiceAbstractions.ITelemetryLogger.html
+  commentId: T:Shimi.ServiceAbstractions.ITelemetryLogger
+  fullName: Shimi.ServiceAbstractions.ITelemetryLogger
+  nameWithType: ITelemetryLogger
+- uid: Shimi.ServiceAbstractions.ITelemetryLogger.LogError(System.String,System.Exception)
+  name: LogError(string, Exception?)
+  href: api/Shimi.ServiceAbstractions.ITelemetryLogger.html#Shimi_ServiceAbstractions_ITelemetryLogger_LogError_System_String_System_Exception_
+  commentId: M:Shimi.ServiceAbstractions.ITelemetryLogger.LogError(System.String,System.Exception)
+  name.vb: LogError(String, Exception)
+  fullName: Shimi.ServiceAbstractions.ITelemetryLogger.LogError(string, System.Exception?)
+  fullName.vb: Shimi.ServiceAbstractions.ITelemetryLogger.LogError(String, System.Exception)
+  nameWithType: ITelemetryLogger.LogError(string, Exception?)
+  nameWithType.vb: ITelemetryLogger.LogError(String, Exception)
+- uid: Shimi.ServiceAbstractions.ITelemetryLogger.LogError*
+  name: LogError
+  href: api/Shimi.ServiceAbstractions.ITelemetryLogger.html#Shimi_ServiceAbstractions_ITelemetryLogger_LogError_
+  commentId: Overload:Shimi.ServiceAbstractions.ITelemetryLogger.LogError
+  isSpec: "True"
+  fullName: Shimi.ServiceAbstractions.ITelemetryLogger.LogError
+  nameWithType: ITelemetryLogger.LogError
+- uid: Shimi.ServiceAbstractions.ITelemetryLogger.LogEvent(System.String,System.Object)
+  name: LogEvent(string, object?)
+  href: api/Shimi.ServiceAbstractions.ITelemetryLogger.html#Shimi_ServiceAbstractions_ITelemetryLogger_LogEvent_System_String_System_Object_
+  commentId: M:Shimi.ServiceAbstractions.ITelemetryLogger.LogEvent(System.String,System.Object)
+  name.vb: LogEvent(String, Object)
+  fullName: Shimi.ServiceAbstractions.ITelemetryLogger.LogEvent(string, object?)
+  fullName.vb: Shimi.ServiceAbstractions.ITelemetryLogger.LogEvent(String, Object)
+  nameWithType: ITelemetryLogger.LogEvent(string, object?)
+  nameWithType.vb: ITelemetryLogger.LogEvent(String, Object)
+- uid: Shimi.ServiceAbstractions.ITelemetryLogger.LogEvent*
+  name: LogEvent
+  href: api/Shimi.ServiceAbstractions.ITelemetryLogger.html#Shimi_ServiceAbstractions_ITelemetryLogger_LogEvent_
+  commentId: Overload:Shimi.ServiceAbstractions.ITelemetryLogger.LogEvent
+  isSpec: "True"
+  fullName: Shimi.ServiceAbstractions.ITelemetryLogger.LogEvent
+  nameWithType: ITelemetryLogger.LogEvent
+- uid: Shimi.ServiceAbstractions.ITerminal
+  name: ITerminal
+  href: api/Shimi.ServiceAbstractions.ITerminal.html
+  commentId: T:Shimi.ServiceAbstractions.ITerminal
+  fullName: Shimi.ServiceAbstractions.ITerminal
+  nameWithType: ITerminal
+- uid: Shimi.ServiceAbstractions.ITerminal.RunCommandAsync(System.String,System.String,System.Threading.CancellationToken)
+  name: RunCommandAsync(string, string?, CancellationToken)
+  href: api/Shimi.ServiceAbstractions.ITerminal.html#Shimi_ServiceAbstractions_ITerminal_RunCommandAsync_System_String_System_String_System_Threading_CancellationToken_
+  commentId: M:Shimi.ServiceAbstractions.ITerminal.RunCommandAsync(System.String,System.String,System.Threading.CancellationToken)
+  name.vb: RunCommandAsync(String, String, CancellationToken)
+  fullName: Shimi.ServiceAbstractions.ITerminal.RunCommandAsync(string, string?, System.Threading.CancellationToken)
+  fullName.vb: Shimi.ServiceAbstractions.ITerminal.RunCommandAsync(String, String, System.Threading.CancellationToken)
+  nameWithType: ITerminal.RunCommandAsync(string, string?, CancellationToken)
+  nameWithType.vb: ITerminal.RunCommandAsync(String, String, CancellationToken)
+- uid: Shimi.ServiceAbstractions.ITerminal.RunCommandAsync*
+  name: RunCommandAsync
+  href: api/Shimi.ServiceAbstractions.ITerminal.html#Shimi_ServiceAbstractions_ITerminal_RunCommandAsync_
+  commentId: Overload:Shimi.ServiceAbstractions.ITerminal.RunCommandAsync
+  isSpec: "True"
+  fullName: Shimi.ServiceAbstractions.ITerminal.RunCommandAsync
+  nameWithType: ITerminal.RunCommandAsync
+- uid: Shimi.ServiceAbstractions.ITextFileSystem
+  name: ITextFileSystem
+  href: api/Shimi.ServiceAbstractions.ITextFileSystem.html
+  commentId: T:Shimi.ServiceAbstractions.ITextFileSystem
+  fullName: Shimi.ServiceAbstractions.ITextFileSystem
+  nameWithType: ITextFileSystem
+- uid: Shimi.ServiceAbstractions.ITextFileSystem.AppendTextAsync(System.String,System.String,System.Text.Encoding,System.Threading.CancellationToken)
+  name: AppendTextAsync(string, string, Encoding?, CancellationToken)
+  href: api/Shimi.ServiceAbstractions.ITextFileSystem.html#Shimi_ServiceAbstractions_ITextFileSystem_AppendTextAsync_System_String_System_String_System_Text_Encoding_System_Threading_CancellationToken_
+  commentId: M:Shimi.ServiceAbstractions.ITextFileSystem.AppendTextAsync(System.String,System.String,System.Text.Encoding,System.Threading.CancellationToken)
+  name.vb: AppendTextAsync(String, String, Encoding, CancellationToken)
+  fullName: Shimi.ServiceAbstractions.ITextFileSystem.AppendTextAsync(string, string, System.Text.Encoding?, System.Threading.CancellationToken)
+  fullName.vb: Shimi.ServiceAbstractions.ITextFileSystem.AppendTextAsync(String, String, System.Text.Encoding, System.Threading.CancellationToken)
+  nameWithType: ITextFileSystem.AppendTextAsync(string, string, Encoding?, CancellationToken)
+  nameWithType.vb: ITextFileSystem.AppendTextAsync(String, String, Encoding, CancellationToken)
+- uid: Shimi.ServiceAbstractions.ITextFileSystem.AppendTextAsync*
+  name: AppendTextAsync
+  href: api/Shimi.ServiceAbstractions.ITextFileSystem.html#Shimi_ServiceAbstractions_ITextFileSystem_AppendTextAsync_
+  commentId: Overload:Shimi.ServiceAbstractions.ITextFileSystem.AppendTextAsync
+  isSpec: "True"
+  fullName: Shimi.ServiceAbstractions.ITextFileSystem.AppendTextAsync
+  nameWithType: ITextFileSystem.AppendTextAsync
+- uid: Shimi.ServiceAbstractions.ITextFileSystem.ReadTextAsync(System.String,System.Text.Encoding,System.Threading.CancellationToken)
+  name: ReadTextAsync(string, Encoding?, CancellationToken)
+  href: api/Shimi.ServiceAbstractions.ITextFileSystem.html#Shimi_ServiceAbstractions_ITextFileSystem_ReadTextAsync_System_String_System_Text_Encoding_System_Threading_CancellationToken_
+  commentId: M:Shimi.ServiceAbstractions.ITextFileSystem.ReadTextAsync(System.String,System.Text.Encoding,System.Threading.CancellationToken)
+  name.vb: ReadTextAsync(String, Encoding, CancellationToken)
+  fullName: Shimi.ServiceAbstractions.ITextFileSystem.ReadTextAsync(string, System.Text.Encoding?, System.Threading.CancellationToken)
+  fullName.vb: Shimi.ServiceAbstractions.ITextFileSystem.ReadTextAsync(String, System.Text.Encoding, System.Threading.CancellationToken)
+  nameWithType: ITextFileSystem.ReadTextAsync(string, Encoding?, CancellationToken)
+  nameWithType.vb: ITextFileSystem.ReadTextAsync(String, Encoding, CancellationToken)
+- uid: Shimi.ServiceAbstractions.ITextFileSystem.ReadTextAsync*
+  name: ReadTextAsync
+  href: api/Shimi.ServiceAbstractions.ITextFileSystem.html#Shimi_ServiceAbstractions_ITextFileSystem_ReadTextAsync_
+  commentId: Overload:Shimi.ServiceAbstractions.ITextFileSystem.ReadTextAsync
+  isSpec: "True"
+  fullName: Shimi.ServiceAbstractions.ITextFileSystem.ReadTextAsync
+  nameWithType: ITextFileSystem.ReadTextAsync
+- uid: Shimi.ServiceAbstractions.ITextFileSystem.WriteTextAsync(System.String,System.String,System.Text.Encoding,System.Threading.CancellationToken)
+  name: WriteTextAsync(string, string, Encoding?, CancellationToken)
+  href: api/Shimi.ServiceAbstractions.ITextFileSystem.html#Shimi_ServiceAbstractions_ITextFileSystem_WriteTextAsync_System_String_System_String_System_Text_Encoding_System_Threading_CancellationToken_
+  commentId: M:Shimi.ServiceAbstractions.ITextFileSystem.WriteTextAsync(System.String,System.String,System.Text.Encoding,System.Threading.CancellationToken)
+  name.vb: WriteTextAsync(String, String, Encoding, CancellationToken)
+  fullName: Shimi.ServiceAbstractions.ITextFileSystem.WriteTextAsync(string, string, System.Text.Encoding?, System.Threading.CancellationToken)
+  fullName.vb: Shimi.ServiceAbstractions.ITextFileSystem.WriteTextAsync(String, String, System.Text.Encoding, System.Threading.CancellationToken)
+  nameWithType: ITextFileSystem.WriteTextAsync(string, string, Encoding?, CancellationToken)
+  nameWithType.vb: ITextFileSystem.WriteTextAsync(String, String, Encoding, CancellationToken)
+- uid: Shimi.ServiceAbstractions.ITextFileSystem.WriteTextAsync*
+  name: WriteTextAsync
+  href: api/Shimi.ServiceAbstractions.ITextFileSystem.html#Shimi_ServiceAbstractions_ITextFileSystem_WriteTextAsync_
+  commentId: Overload:Shimi.ServiceAbstractions.ITextFileSystem.WriteTextAsync
+  isSpec: "True"
+  fullName: Shimi.ServiceAbstractions.ITextFileSystem.WriteTextAsync
+  nameWithType: ITextFileSystem.WriteTextAsync
+- uid: Shimi.SystemAbstractions
+  name: Shimi.SystemAbstractions
+  href: api/Shimi.SystemAbstractions.html
+  commentId: N:Shimi.SystemAbstractions
+  fullName: Shimi.SystemAbstractions
+  nameWithType: Shimi.SystemAbstractions
+- uid: Shimi.SystemAbstractions.IFileSystem
+  name: IFileSystem
+  href: api/Shimi.SystemAbstractions.IFileSystem.html
+  commentId: T:Shimi.SystemAbstractions.IFileSystem
+  fullName: Shimi.SystemAbstractions.IFileSystem
+  nameWithType: IFileSystem
+- uid: Shimi.SystemAbstractions.IFileSystem.ExistsAsync(System.String,System.Threading.CancellationToken)
+  name: ExistsAsync(string, CancellationToken)
+  href: api/Shimi.SystemAbstractions.IFileSystem.html#Shimi_SystemAbstractions_IFileSystem_ExistsAsync_System_String_System_Threading_CancellationToken_
+  commentId: M:Shimi.SystemAbstractions.IFileSystem.ExistsAsync(System.String,System.Threading.CancellationToken)
+  name.vb: ExistsAsync(String, CancellationToken)
+  fullName: Shimi.SystemAbstractions.IFileSystem.ExistsAsync(string, System.Threading.CancellationToken)
+  fullName.vb: Shimi.SystemAbstractions.IFileSystem.ExistsAsync(String, System.Threading.CancellationToken)
+  nameWithType: IFileSystem.ExistsAsync(string, CancellationToken)
+  nameWithType.vb: IFileSystem.ExistsAsync(String, CancellationToken)
+- uid: Shimi.SystemAbstractions.IFileSystem.ExistsAsync*
+  name: ExistsAsync
+  href: api/Shimi.SystemAbstractions.IFileSystem.html#Shimi_SystemAbstractions_IFileSystem_ExistsAsync_
+  commentId: Overload:Shimi.SystemAbstractions.IFileSystem.ExistsAsync
+  isSpec: "True"
+  fullName: Shimi.SystemAbstractions.IFileSystem.ExistsAsync
+  nameWithType: IFileSystem.ExistsAsync
+- uid: Shimi.SystemAbstractions.IFileSystem.GetTreeAsync(System.String,System.Boolean,System.Threading.CancellationToken)
+  name: GetTreeAsync(string, bool, CancellationToken)
+  href: api/Shimi.SystemAbstractions.IFileSystem.html#Shimi_SystemAbstractions_IFileSystem_GetTreeAsync_System_String_System_Boolean_System_Threading_CancellationToken_
+  commentId: M:Shimi.SystemAbstractions.IFileSystem.GetTreeAsync(System.String,System.Boolean,System.Threading.CancellationToken)
+  name.vb: GetTreeAsync(String, Boolean, CancellationToken)
+  fullName: Shimi.SystemAbstractions.IFileSystem.GetTreeAsync(string, bool, System.Threading.CancellationToken)
+  fullName.vb: Shimi.SystemAbstractions.IFileSystem.GetTreeAsync(String, Boolean, System.Threading.CancellationToken)
+  nameWithType: IFileSystem.GetTreeAsync(string, bool, CancellationToken)
+  nameWithType.vb: IFileSystem.GetTreeAsync(String, Boolean, CancellationToken)
+- uid: Shimi.SystemAbstractions.IFileSystem.GetTreeAsync*
+  name: GetTreeAsync
+  href: api/Shimi.SystemAbstractions.IFileSystem.html#Shimi_SystemAbstractions_IFileSystem_GetTreeAsync_
+  commentId: Overload:Shimi.SystemAbstractions.IFileSystem.GetTreeAsync
+  isSpec: "True"
+  fullName: Shimi.SystemAbstractions.IFileSystem.GetTreeAsync
+  nameWithType: IFileSystem.GetTreeAsync
+- uid: Shimi.SystemAbstractions.IFileSystem.ReadBytesAsync(System.String,System.Threading.CancellationToken)
+  name: ReadBytesAsync(string, CancellationToken)
+  href: api/Shimi.SystemAbstractions.IFileSystem.html#Shimi_SystemAbstractions_IFileSystem_ReadBytesAsync_System_String_System_Threading_CancellationToken_
+  commentId: M:Shimi.SystemAbstractions.IFileSystem.ReadBytesAsync(System.String,System.Threading.CancellationToken)
+  name.vb: ReadBytesAsync(String, CancellationToken)
+  fullName: Shimi.SystemAbstractions.IFileSystem.ReadBytesAsync(string, System.Threading.CancellationToken)
+  fullName.vb: Shimi.SystemAbstractions.IFileSystem.ReadBytesAsync(String, System.Threading.CancellationToken)
+  nameWithType: IFileSystem.ReadBytesAsync(string, CancellationToken)
+  nameWithType.vb: IFileSystem.ReadBytesAsync(String, CancellationToken)
+- uid: Shimi.SystemAbstractions.IFileSystem.ReadBytesAsync*
+  name: ReadBytesAsync
+  href: api/Shimi.SystemAbstractions.IFileSystem.html#Shimi_SystemAbstractions_IFileSystem_ReadBytesAsync_
+  commentId: Overload:Shimi.SystemAbstractions.IFileSystem.ReadBytesAsync
+  isSpec: "True"
+  fullName: Shimi.SystemAbstractions.IFileSystem.ReadBytesAsync
+  nameWithType: IFileSystem.ReadBytesAsync
+- uid: Shimi.SystemAbstractions.IFileSystem.WriteBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)
+  name: WriteBytesAsync(string, byte[], CancellationToken)
+  href: api/Shimi.SystemAbstractions.IFileSystem.html#Shimi_SystemAbstractions_IFileSystem_WriteBytesAsync_System_String_System_Byte___System_Threading_CancellationToken_
+  commentId: M:Shimi.SystemAbstractions.IFileSystem.WriteBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)
+  name.vb: WriteBytesAsync(String, Byte(), CancellationToken)
+  fullName: Shimi.SystemAbstractions.IFileSystem.WriteBytesAsync(string, byte[], System.Threading.CancellationToken)
+  fullName.vb: Shimi.SystemAbstractions.IFileSystem.WriteBytesAsync(String, Byte(), System.Threading.CancellationToken)
+  nameWithType: IFileSystem.WriteBytesAsync(string, byte[], CancellationToken)
+  nameWithType.vb: IFileSystem.WriteBytesAsync(String, Byte(), CancellationToken)
+- uid: Shimi.SystemAbstractions.IFileSystem.WriteBytesAsync*
+  name: WriteBytesAsync
+  href: api/Shimi.SystemAbstractions.IFileSystem.html#Shimi_SystemAbstractions_IFileSystem_WriteBytesAsync_
+  commentId: Overload:Shimi.SystemAbstractions.IFileSystem.WriteBytesAsync
+  isSpec: "True"
+  fullName: Shimi.SystemAbstractions.IFileSystem.WriteBytesAsync
+  nameWithType: IFileSystem.WriteBytesAsync
+- uid: Shimi.SystemAbstractions.IJsonFileSystem
+  name: IJsonFileSystem
+  href: api/Shimi.SystemAbstractions.IJsonFileSystem.html
+  commentId: T:Shimi.SystemAbstractions.IJsonFileSystem
+  fullName: Shimi.SystemAbstractions.IJsonFileSystem
+  nameWithType: IJsonFileSystem
+- uid: Shimi.SystemAbstractions.IJsonFileSystem.ReadJsonAsync*
+  name: ReadJsonAsync
+  href: api/Shimi.SystemAbstractions.IJsonFileSystem.html#Shimi_SystemAbstractions_IJsonFileSystem_ReadJsonAsync_
+  commentId: Overload:Shimi.SystemAbstractions.IJsonFileSystem.ReadJsonAsync
+  isSpec: "True"
+  fullName: Shimi.SystemAbstractions.IJsonFileSystem.ReadJsonAsync
+  nameWithType: IJsonFileSystem.ReadJsonAsync
+- uid: Shimi.SystemAbstractions.IJsonFileSystem.ReadJsonAsync``1(System.String,System.Text.Json.JsonSerializerOptions,System.Threading.CancellationToken)
+  name: ReadJsonAsync<T>(string, JsonSerializerOptions?, CancellationToken)
+  href: api/Shimi.SystemAbstractions.IJsonFileSystem.html#Shimi_SystemAbstractions_IJsonFileSystem_ReadJsonAsync__1_System_String_System_Text_Json_JsonSerializerOptions_System_Threading_CancellationToken_
+  commentId: M:Shimi.SystemAbstractions.IJsonFileSystem.ReadJsonAsync``1(System.String,System.Text.Json.JsonSerializerOptions,System.Threading.CancellationToken)
+  name.vb: ReadJsonAsync(Of T)(String, JsonSerializerOptions, CancellationToken)
+  fullName: Shimi.SystemAbstractions.IJsonFileSystem.ReadJsonAsync<T>(string, System.Text.Json.JsonSerializerOptions?, System.Threading.CancellationToken)
+  fullName.vb: Shimi.SystemAbstractions.IJsonFileSystem.ReadJsonAsync(Of T)(String, System.Text.Json.JsonSerializerOptions, System.Threading.CancellationToken)
+  nameWithType: IJsonFileSystem.ReadJsonAsync<T>(string, JsonSerializerOptions?, CancellationToken)
+  nameWithType.vb: IJsonFileSystem.ReadJsonAsync(Of T)(String, JsonSerializerOptions, CancellationToken)
+- uid: Shimi.SystemAbstractions.IJsonFileSystem.WriteJsonAsync*
+  name: WriteJsonAsync
+  href: api/Shimi.SystemAbstractions.IJsonFileSystem.html#Shimi_SystemAbstractions_IJsonFileSystem_WriteJsonAsync_
+  commentId: Overload:Shimi.SystemAbstractions.IJsonFileSystem.WriteJsonAsync
+  isSpec: "True"
+  fullName: Shimi.SystemAbstractions.IJsonFileSystem.WriteJsonAsync
+  nameWithType: IJsonFileSystem.WriteJsonAsync
+- uid: Shimi.SystemAbstractions.IJsonFileSystem.WriteJsonAsync``1(System.String,``0,System.Text.Json.JsonSerializerOptions,System.Threading.CancellationToken)
+  name: WriteJsonAsync<T>(string, T, JsonSerializerOptions?, CancellationToken)
+  href: api/Shimi.SystemAbstractions.IJsonFileSystem.html#Shimi_SystemAbstractions_IJsonFileSystem_WriteJsonAsync__1_System_String___0_System_Text_Json_JsonSerializerOptions_System_Threading_CancellationToken_
+  commentId: M:Shimi.SystemAbstractions.IJsonFileSystem.WriteJsonAsync``1(System.String,``0,System.Text.Json.JsonSerializerOptions,System.Threading.CancellationToken)
+  name.vb: WriteJsonAsync(Of T)(String, T, JsonSerializerOptions, CancellationToken)
+  fullName: Shimi.SystemAbstractions.IJsonFileSystem.WriteJsonAsync<T>(string, T, System.Text.Json.JsonSerializerOptions?, System.Threading.CancellationToken)
+  fullName.vb: Shimi.SystemAbstractions.IJsonFileSystem.WriteJsonAsync(Of T)(String, T, System.Text.Json.JsonSerializerOptions, System.Threading.CancellationToken)
+  nameWithType: IJsonFileSystem.WriteJsonAsync<T>(string, T, JsonSerializerOptions?, CancellationToken)
+  nameWithType.vb: IJsonFileSystem.WriteJsonAsync(Of T)(String, T, JsonSerializerOptions, CancellationToken)
+- uid: Shimi.SystemAbstractions.IStateStore
+  name: IStateStore
+  href: api/Shimi.SystemAbstractions.IStateStore.html
+  commentId: T:Shimi.SystemAbstractions.IStateStore
+  fullName: Shimi.SystemAbstractions.IStateStore
+  nameWithType: IStateStore
+- uid: Shimi.SystemAbstractions.IStateStore.GetAsync*
+  name: GetAsync
+  href: api/Shimi.SystemAbstractions.IStateStore.html#Shimi_SystemAbstractions_IStateStore_GetAsync_
+  commentId: Overload:Shimi.SystemAbstractions.IStateStore.GetAsync
+  isSpec: "True"
+  fullName: Shimi.SystemAbstractions.IStateStore.GetAsync
+  nameWithType: IStateStore.GetAsync
+- uid: Shimi.SystemAbstractions.IStateStore.GetAsync``1(System.String,System.Threading.CancellationToken)
+  name: GetAsync<T>(string, CancellationToken)
+  href: api/Shimi.SystemAbstractions.IStateStore.html#Shimi_SystemAbstractions_IStateStore_GetAsync__1_System_String_System_Threading_CancellationToken_
+  commentId: M:Shimi.SystemAbstractions.IStateStore.GetAsync``1(System.String,System.Threading.CancellationToken)
+  name.vb: GetAsync(Of T)(String, CancellationToken)
+  fullName: Shimi.SystemAbstractions.IStateStore.GetAsync<T>(string, System.Threading.CancellationToken)
+  fullName.vb: Shimi.SystemAbstractions.IStateStore.GetAsync(Of T)(String, System.Threading.CancellationToken)
+  nameWithType: IStateStore.GetAsync<T>(string, CancellationToken)
+  nameWithType.vb: IStateStore.GetAsync(Of T)(String, CancellationToken)
+- uid: Shimi.SystemAbstractions.IStateStore.RemoveAsync(System.String,System.Threading.CancellationToken)
+  name: RemoveAsync(string, CancellationToken)
+  href: api/Shimi.SystemAbstractions.IStateStore.html#Shimi_SystemAbstractions_IStateStore_RemoveAsync_System_String_System_Threading_CancellationToken_
+  commentId: M:Shimi.SystemAbstractions.IStateStore.RemoveAsync(System.String,System.Threading.CancellationToken)
+  name.vb: RemoveAsync(String, CancellationToken)
+  fullName: Shimi.SystemAbstractions.IStateStore.RemoveAsync(string, System.Threading.CancellationToken)
+  fullName.vb: Shimi.SystemAbstractions.IStateStore.RemoveAsync(String, System.Threading.CancellationToken)
+  nameWithType: IStateStore.RemoveAsync(string, CancellationToken)
+  nameWithType.vb: IStateStore.RemoveAsync(String, CancellationToken)
+- uid: Shimi.SystemAbstractions.IStateStore.RemoveAsync*
+  name: RemoveAsync
+  href: api/Shimi.SystemAbstractions.IStateStore.html#Shimi_SystemAbstractions_IStateStore_RemoveAsync_
+  commentId: Overload:Shimi.SystemAbstractions.IStateStore.RemoveAsync
+  isSpec: "True"
+  fullName: Shimi.SystemAbstractions.IStateStore.RemoveAsync
+  nameWithType: IStateStore.RemoveAsync
+- uid: Shimi.SystemAbstractions.IStateStore.SetAsync*
+  name: SetAsync
+  href: api/Shimi.SystemAbstractions.IStateStore.html#Shimi_SystemAbstractions_IStateStore_SetAsync_
+  commentId: Overload:Shimi.SystemAbstractions.IStateStore.SetAsync
+  isSpec: "True"
+  fullName: Shimi.SystemAbstractions.IStateStore.SetAsync
+  nameWithType: IStateStore.SetAsync
+- uid: Shimi.SystemAbstractions.IStateStore.SetAsync``1(System.String,``0,System.Threading.CancellationToken)
+  name: SetAsync<T>(string, T, CancellationToken)
+  href: api/Shimi.SystemAbstractions.IStateStore.html#Shimi_SystemAbstractions_IStateStore_SetAsync__1_System_String___0_System_Threading_CancellationToken_
+  commentId: M:Shimi.SystemAbstractions.IStateStore.SetAsync``1(System.String,``0,System.Threading.CancellationToken)
+  name.vb: SetAsync(Of T)(String, T, CancellationToken)
+  fullName: Shimi.SystemAbstractions.IStateStore.SetAsync<T>(string, T, System.Threading.CancellationToken)
+  fullName.vb: Shimi.SystemAbstractions.IStateStore.SetAsync(Of T)(String, T, System.Threading.CancellationToken)
+  nameWithType: IStateStore.SetAsync<T>(string, T, CancellationToken)
+  nameWithType.vb: IStateStore.SetAsync(Of T)(String, T, CancellationToken)
+- uid: Shimi.SystemAbstractions.ITelemetryLogger
+  name: ITelemetryLogger
+  href: api/Shimi.SystemAbstractions.ITelemetryLogger.html
+  commentId: T:Shimi.SystemAbstractions.ITelemetryLogger
+  fullName: Shimi.SystemAbstractions.ITelemetryLogger
+  nameWithType: ITelemetryLogger
+- uid: Shimi.SystemAbstractions.ITelemetryLogger.LogError(System.String,System.Exception)
+  name: LogError(string, Exception?)
+  href: api/Shimi.SystemAbstractions.ITelemetryLogger.html#Shimi_SystemAbstractions_ITelemetryLogger_LogError_System_String_System_Exception_
+  commentId: M:Shimi.SystemAbstractions.ITelemetryLogger.LogError(System.String,System.Exception)
+  name.vb: LogError(String, Exception)
+  fullName: Shimi.SystemAbstractions.ITelemetryLogger.LogError(string, System.Exception?)
+  fullName.vb: Shimi.SystemAbstractions.ITelemetryLogger.LogError(String, System.Exception)
+  nameWithType: ITelemetryLogger.LogError(string, Exception?)
+  nameWithType.vb: ITelemetryLogger.LogError(String, Exception)
+- uid: Shimi.SystemAbstractions.ITelemetryLogger.LogError*
+  name: LogError
+  href: api/Shimi.SystemAbstractions.ITelemetryLogger.html#Shimi_SystemAbstractions_ITelemetryLogger_LogError_
+  commentId: Overload:Shimi.SystemAbstractions.ITelemetryLogger.LogError
+  isSpec: "True"
+  fullName: Shimi.SystemAbstractions.ITelemetryLogger.LogError
+  nameWithType: ITelemetryLogger.LogError
+- uid: Shimi.SystemAbstractions.ITelemetryLogger.LogEvent(System.String,System.Object)
+  name: LogEvent(string, object?)
+  href: api/Shimi.SystemAbstractions.ITelemetryLogger.html#Shimi_SystemAbstractions_ITelemetryLogger_LogEvent_System_String_System_Object_
+  commentId: M:Shimi.SystemAbstractions.ITelemetryLogger.LogEvent(System.String,System.Object)
+  name.vb: LogEvent(String, Object)
+  fullName: Shimi.SystemAbstractions.ITelemetryLogger.LogEvent(string, object?)
+  fullName.vb: Shimi.SystemAbstractions.ITelemetryLogger.LogEvent(String, Object)
+  nameWithType: ITelemetryLogger.LogEvent(string, object?)
+  nameWithType.vb: ITelemetryLogger.LogEvent(String, Object)
+- uid: Shimi.SystemAbstractions.ITelemetryLogger.LogEvent*
+  name: LogEvent
+  href: api/Shimi.SystemAbstractions.ITelemetryLogger.html#Shimi_SystemAbstractions_ITelemetryLogger_LogEvent_
+  commentId: Overload:Shimi.SystemAbstractions.ITelemetryLogger.LogEvent
+  isSpec: "True"
+  fullName: Shimi.SystemAbstractions.ITelemetryLogger.LogEvent
+  nameWithType: ITelemetryLogger.LogEvent
+- uid: Shimi.SystemAbstractions.ITerminal
+  name: ITerminal
+  href: api/Shimi.SystemAbstractions.ITerminal.html
+  commentId: T:Shimi.SystemAbstractions.ITerminal
+  fullName: Shimi.SystemAbstractions.ITerminal
+  nameWithType: ITerminal
+- uid: Shimi.SystemAbstractions.ITerminal.RunCommandAsync(System.String,System.String,System.Threading.CancellationToken)
+  name: RunCommandAsync(string, string?, CancellationToken)
+  href: api/Shimi.SystemAbstractions.ITerminal.html#Shimi_SystemAbstractions_ITerminal_RunCommandAsync_System_String_System_String_System_Threading_CancellationToken_
+  commentId: M:Shimi.SystemAbstractions.ITerminal.RunCommandAsync(System.String,System.String,System.Threading.CancellationToken)
+  name.vb: RunCommandAsync(String, String, CancellationToken)
+  fullName: Shimi.SystemAbstractions.ITerminal.RunCommandAsync(string, string?, System.Threading.CancellationToken)
+  fullName.vb: Shimi.SystemAbstractions.ITerminal.RunCommandAsync(String, String, System.Threading.CancellationToken)
+  nameWithType: ITerminal.RunCommandAsync(string, string?, CancellationToken)
+  nameWithType.vb: ITerminal.RunCommandAsync(String, String, CancellationToken)
+- uid: Shimi.SystemAbstractions.ITerminal.RunCommandAsync*
+  name: RunCommandAsync
+  href: api/Shimi.SystemAbstractions.ITerminal.html#Shimi_SystemAbstractions_ITerminal_RunCommandAsync_
+  commentId: Overload:Shimi.SystemAbstractions.ITerminal.RunCommandAsync
+  isSpec: "True"
+  fullName: Shimi.SystemAbstractions.ITerminal.RunCommandAsync
+  nameWithType: ITerminal.RunCommandAsync
+- uid: Shimi.SystemAbstractions.ITextFileSystem
+  name: ITextFileSystem
+  href: api/Shimi.SystemAbstractions.ITextFileSystem.html
+  commentId: T:Shimi.SystemAbstractions.ITextFileSystem
+  fullName: Shimi.SystemAbstractions.ITextFileSystem
+  nameWithType: ITextFileSystem
+- uid: Shimi.SystemAbstractions.ITextFileSystem.AppendTextAsync(System.String,System.String,System.Text.Encoding,System.Threading.CancellationToken)
+  name: AppendTextAsync(string, string, Encoding?, CancellationToken)
+  href: api/Shimi.SystemAbstractions.ITextFileSystem.html#Shimi_SystemAbstractions_ITextFileSystem_AppendTextAsync_System_String_System_String_System_Text_Encoding_System_Threading_CancellationToken_
+  commentId: M:Shimi.SystemAbstractions.ITextFileSystem.AppendTextAsync(System.String,System.String,System.Text.Encoding,System.Threading.CancellationToken)
+  name.vb: AppendTextAsync(String, String, Encoding, CancellationToken)
+  fullName: Shimi.SystemAbstractions.ITextFileSystem.AppendTextAsync(string, string, System.Text.Encoding?, System.Threading.CancellationToken)
+  fullName.vb: Shimi.SystemAbstractions.ITextFileSystem.AppendTextAsync(String, String, System.Text.Encoding, System.Threading.CancellationToken)
+  nameWithType: ITextFileSystem.AppendTextAsync(string, string, Encoding?, CancellationToken)
+  nameWithType.vb: ITextFileSystem.AppendTextAsync(String, String, Encoding, CancellationToken)
+- uid: Shimi.SystemAbstractions.ITextFileSystem.AppendTextAsync*
+  name: AppendTextAsync
+  href: api/Shimi.SystemAbstractions.ITextFileSystem.html#Shimi_SystemAbstractions_ITextFileSystem_AppendTextAsync_
+  commentId: Overload:Shimi.SystemAbstractions.ITextFileSystem.AppendTextAsync
+  isSpec: "True"
+  fullName: Shimi.SystemAbstractions.ITextFileSystem.AppendTextAsync
+  nameWithType: ITextFileSystem.AppendTextAsync
+- uid: Shimi.SystemAbstractions.ITextFileSystem.ReadTextAsync(System.String,System.Text.Encoding,System.Threading.CancellationToken)
+  name: ReadTextAsync(string, Encoding?, CancellationToken)
+  href: api/Shimi.SystemAbstractions.ITextFileSystem.html#Shimi_SystemAbstractions_ITextFileSystem_ReadTextAsync_System_String_System_Text_Encoding_System_Threading_CancellationToken_
+  commentId: M:Shimi.SystemAbstractions.ITextFileSystem.ReadTextAsync(System.String,System.Text.Encoding,System.Threading.CancellationToken)
+  name.vb: ReadTextAsync(String, Encoding, CancellationToken)
+  fullName: Shimi.SystemAbstractions.ITextFileSystem.ReadTextAsync(string, System.Text.Encoding?, System.Threading.CancellationToken)
+  fullName.vb: Shimi.SystemAbstractions.ITextFileSystem.ReadTextAsync(String, System.Text.Encoding, System.Threading.CancellationToken)
+  nameWithType: ITextFileSystem.ReadTextAsync(string, Encoding?, CancellationToken)
+  nameWithType.vb: ITextFileSystem.ReadTextAsync(String, Encoding, CancellationToken)
+- uid: Shimi.SystemAbstractions.ITextFileSystem.ReadTextAsync*
+  name: ReadTextAsync
+  href: api/Shimi.SystemAbstractions.ITextFileSystem.html#Shimi_SystemAbstractions_ITextFileSystem_ReadTextAsync_
+  commentId: Overload:Shimi.SystemAbstractions.ITextFileSystem.ReadTextAsync
+  isSpec: "True"
+  fullName: Shimi.SystemAbstractions.ITextFileSystem.ReadTextAsync
+  nameWithType: ITextFileSystem.ReadTextAsync
+- uid: Shimi.SystemAbstractions.ITextFileSystem.WriteTextAsync(System.String,System.String,System.Text.Encoding,System.Threading.CancellationToken)
+  name: WriteTextAsync(string, string, Encoding?, CancellationToken)
+  href: api/Shimi.SystemAbstractions.ITextFileSystem.html#Shimi_SystemAbstractions_ITextFileSystem_WriteTextAsync_System_String_System_String_System_Text_Encoding_System_Threading_CancellationToken_
+  commentId: M:Shimi.SystemAbstractions.ITextFileSystem.WriteTextAsync(System.String,System.String,System.Text.Encoding,System.Threading.CancellationToken)
+  name.vb: WriteTextAsync(String, String, Encoding, CancellationToken)
+  fullName: Shimi.SystemAbstractions.ITextFileSystem.WriteTextAsync(string, string, System.Text.Encoding?, System.Threading.CancellationToken)
+  fullName.vb: Shimi.SystemAbstractions.ITextFileSystem.WriteTextAsync(String, String, System.Text.Encoding, System.Threading.CancellationToken)
+  nameWithType: ITextFileSystem.WriteTextAsync(string, string, Encoding?, CancellationToken)
+  nameWithType.vb: ITextFileSystem.WriteTextAsync(String, String, Encoding, CancellationToken)
+- uid: Shimi.SystemAbstractions.ITextFileSystem.WriteTextAsync*
+  name: WriteTextAsync
+  href: api/Shimi.SystemAbstractions.ITextFileSystem.html#Shimi_SystemAbstractions_ITextFileSystem_WriteTextAsync_
+  commentId: Overload:Shimi.SystemAbstractions.ITextFileSystem.WriteTextAsync
+  isSpec: "True"
+  fullName: Shimi.SystemAbstractions.ITextFileSystem.WriteTextAsync
+  nameWithType: ITextFileSystem.WriteTextAsync

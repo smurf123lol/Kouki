@@ -1,0 +1,83 @@
+### YamlMime:ManagedReference
+items:
+- uid: Shimi.SystemAbstractions
+  commentId: N:Shimi.SystemAbstractions
+  id: Shimi.SystemAbstractions
+  children:
+  - Shimi.SystemAbstractions.IFileSystem
+  - Shimi.SystemAbstractions.IJsonFileSystem
+  - Shimi.SystemAbstractions.IStateStore
+  - Shimi.SystemAbstractions.ITelemetryLogger
+  - Shimi.SystemAbstractions.ITerminal
+  - Shimi.SystemAbstractions.ITextFileSystem
+  langs:
+  - csharp
+  - vb
+  name: Shimi.SystemAbstractions
+  nameWithType: Shimi.SystemAbstractions
+  fullName: Shimi.SystemAbstractions
+  type: Namespace
+  assemblies:
+  - Shimi
+references:
+- uid: Shimi.SystemAbstractions.IFileSystem
+  commentId: T:Shimi.SystemAbstractions.IFileSystem
+  parent: Shimi.SystemAbstractions
+  href: Shimi.SystemAbstractions.IFileSystem.html
+  name: IFileSystem
+  nameWithType: IFileSystem
+  fullName: Shimi.SystemAbstractions.IFileSystem
+- uid: Shimi.SystemAbstractions.IJsonFileSystem
+  commentId: T:Shimi.SystemAbstractions.IJsonFileSystem
+  href: Shimi.SystemAbstractions.IJsonFileSystem.html
+  name: IJsonFileSystem
+  nameWithType: IJsonFileSystem
+  fullName: Shimi.SystemAbstractions.IJsonFileSystem
+- uid: Shimi.SystemAbstractions.IStateStore
+  commentId: T:Shimi.SystemAbstractions.IStateStore
+  parent: Shimi.SystemAbstractions
+  href: Shimi.SystemAbstractions.IStateStore.html
+  name: IStateStore
+  nameWithType: IStateStore
+  fullName: Shimi.SystemAbstractions.IStateStore
+- uid: Shimi.SystemAbstractions.ITelemetryLogger
+  commentId: T:Shimi.SystemAbstractions.ITelemetryLogger
+  href: Shimi.SystemAbstractions.ITelemetryLogger.html
+  name: ITelemetryLogger
+  nameWithType: ITelemetryLogger
+  fullName: Shimi.SystemAbstractions.ITelemetryLogger
+- uid: Shimi.SystemAbstractions.ITerminal
+  commentId: T:Shimi.SystemAbstractions.ITerminal
+  parent: Shimi.SystemAbstractions
+  href: Shimi.SystemAbstractions.ITerminal.html
+  name: ITerminal
+  nameWithType: ITerminal
+  fullName: Shimi.SystemAbstractions.ITerminal
+- uid: Shimi.SystemAbstractions.ITextFileSystem
+  commentId: T:Shimi.SystemAbstractions.ITextFileSystem
+  href: Shimi.SystemAbstractions.ITextFileSystem.html
+  name: ITextFileSystem
+  nameWithType: ITextFileSystem
+  fullName: Shimi.SystemAbstractions.ITextFileSystem
+- uid: Shimi.SystemAbstractions
+  commentId: N:Shimi.SystemAbstractions
+  href: Shimi.html
+  name: Shimi.SystemAbstractions
+  nameWithType: Shimi.SystemAbstractions
+  fullName: Shimi.SystemAbstractions
+  spec.csharp:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.SystemAbstractions
+    name: SystemAbstractions
+    href: Shimi.SystemAbstractions.html
+  spec.vb:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.SystemAbstractions
+    name: SystemAbstractions
+    href: Shimi.SystemAbstractions.html

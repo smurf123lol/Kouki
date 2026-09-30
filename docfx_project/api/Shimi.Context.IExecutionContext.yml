@@ -1,0 +1,296 @@
+### YamlMime:ManagedReference
+items:
+- uid: Shimi.Context.IExecutionContext
+  commentId: T:Shimi.Context.IExecutionContext
+  id: IExecutionContext
+  parent: Shimi.Context
+  children:
+  - Shimi.Context.IExecutionContext.FileSystem
+  - Shimi.Context.IExecutionContext.GetService``1
+  - Shimi.Context.IExecutionContext.Name
+  - Shimi.Context.IExecutionContext.StateStore
+  - Shimi.Context.IExecutionContext.Terminal
+  langs:
+  - csharp
+  - vb
+  name: IExecutionContext
+  nameWithType: IExecutionContext
+  fullName: Shimi.Context.IExecutionContext
+  type: Interface
+  source:
+    id: IExecutionContext
+    path: F:\Projects\Kouki\Shimi\Context\IExecutionContext.cs
+    startLine: 7
+  assemblies:
+  - Shimi
+  namespace: Shimi.Context
+  summary: Контекст выполнения, содержащий специфичные для окружения реализации сервисов.
+  example: []
+  syntax:
+    content: public interface IExecutionContext
+    content.vb: Public Interface IExecutionContext
+  derivedClasses:
+  - Shimi.Context.BaseExecutionContext
+- uid: Shimi.Context.IExecutionContext.Name
+  commentId: P:Shimi.Context.IExecutionContext.Name
+  id: Name
+  parent: Shimi.Context.IExecutionContext
+  langs:
+  - csharp
+  - vb
+  name: Name
+  nameWithType: IExecutionContext.Name
+  fullName: Shimi.Context.IExecutionContext.Name
+  type: Property
+  source:
+    id: Name
+    path: F:\Projects\Kouki\Shimi\Context\IExecutionContext.cs
+    startLine: 10
+  assemblies:
+  - Shimi
+  namespace: Shimi.Context
+  summary: Имя контекста (для идентификации).
+  example: []
+  syntax:
+    content: string Name { get; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: ReadOnly Property Name As String
+  overload: Shimi.Context.IExecutionContext.Name*
+- uid: Shimi.Context.IExecutionContext.FileSystem
+  commentId: P:Shimi.Context.IExecutionContext.FileSystem
+  id: FileSystem
+  parent: Shimi.Context.IExecutionContext
+  langs:
+  - csharp
+  - vb
+  name: FileSystem
+  nameWithType: IExecutionContext.FileSystem
+  fullName: Shimi.Context.IExecutionContext.FileSystem
+  type: Property
+  source:
+    id: FileSystem
+    path: F:\Projects\Kouki\Shimi\Context\IExecutionContext.cs
+    startLine: 13
+  assemblies:
+  - Shimi
+  namespace: Shimi.Context
+  summary: Файловая система, специфичная для этого контекста.
+  example: []
+  syntax:
+    content: IFileSystem FileSystem { get; }
+    parameters: []
+    return:
+      type: Shimi.ServiceAbstractions.IFileSystem
+    content.vb: ReadOnly Property FileSystem As IFileSystem
+  overload: Shimi.Context.IExecutionContext.FileSystem*
+- uid: Shimi.Context.IExecutionContext.Terminal
+  commentId: P:Shimi.Context.IExecutionContext.Terminal
+  id: Terminal
+  parent: Shimi.Context.IExecutionContext
+  langs:
+  - csharp
+  - vb
+  name: Terminal
+  nameWithType: IExecutionContext.Terminal
+  fullName: Shimi.Context.IExecutionContext.Terminal
+  type: Property
+  source:
+    id: Terminal
+    path: F:\Projects\Kouki\Shimi\Context\IExecutionContext.cs
+    startLine: 16
+  assemblies:
+  - Shimi
+  namespace: Shimi.Context
+  summary: Терминал, специфичный для этого контекста.
+  example: []
+  syntax:
+    content: ITerminal Terminal { get; }
+    parameters: []
+    return:
+      type: Shimi.ServiceAbstractions.ITerminal
+    content.vb: ReadOnly Property Terminal As ITerminal
+  overload: Shimi.Context.IExecutionContext.Terminal*
+- uid: Shimi.Context.IExecutionContext.StateStore
+  commentId: P:Shimi.Context.IExecutionContext.StateStore
+  id: StateStore
+  parent: Shimi.Context.IExecutionContext
+  langs:
+  - csharp
+  - vb
+  name: StateStore
+  nameWithType: IExecutionContext.StateStore
+  fullName: Shimi.Context.IExecutionContext.StateStore
+  type: Property
+  source:
+    id: StateStore
+    path: F:\Projects\Kouki\Shimi\Context\IExecutionContext.cs
+    startLine: 19
+  assemblies:
+  - Shimi
+  namespace: Shimi.Context
+  summary: Хранилище состояния, специфичное для этого контекста.
+  example: []
+  syntax:
+    content: IStateStore StateStore { get; }
+    parameters: []
+    return:
+      type: Shimi.ServiceAbstractions.IStateStore
+    content.vb: ReadOnly Property StateStore As IStateStore
+  overload: Shimi.Context.IExecutionContext.StateStore*
+- uid: Shimi.Context.IExecutionContext.GetService``1
+  commentId: M:Shimi.Context.IExecutionContext.GetService``1
+  id: GetService``1
+  parent: Shimi.Context.IExecutionContext
+  langs:
+  - csharp
+  - vb
+  name: GetService<T>()
+  nameWithType: IExecutionContext.GetService<T>()
+  fullName: Shimi.Context.IExecutionContext.GetService<T>()
+  type: Method
+  source:
+    id: GetService
+    path: F:\Projects\Kouki\Shimi\Context\IExecutionContext.cs
+    startLine: 22
+  assemblies:
+  - Shimi
+  namespace: Shimi.Context
+  summary: Дополнительные сервисы можно получать по типу (опционально).
+  example: []
+  syntax:
+    content: 'T? GetService<T>() where T : class'
+    typeParameters:
+    - id: T
+    return:
+      type: '{T}'
+    content.vb: Function GetService(Of T As Class)() As T
+  overload: Shimi.Context.IExecutionContext.GetService*
+  nameWithType.vb: IExecutionContext.GetService(Of T)()
+  fullName.vb: Shimi.Context.IExecutionContext.GetService(Of T)()
+  name.vb: GetService(Of T)()
+references:
+- uid: Shimi.Context
+  commentId: N:Shimi.Context
+  href: Shimi.html
+  name: Shimi.Context
+  nameWithType: Shimi.Context
+  fullName: Shimi.Context
+  spec.csharp:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.Context
+    name: Context
+    href: Shimi.Context.html
+  spec.vb:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.Context
+    name: Context
+    href: Shimi.Context.html
+- uid: Shimi.Context.IExecutionContext.Name*
+  commentId: Overload:Shimi.Context.IExecutionContext.Name
+  href: Shimi.Context.IExecutionContext.html#Shimi_Context_IExecutionContext_Name
+  name: Name
+  nameWithType: IExecutionContext.Name
+  fullName: Shimi.Context.IExecutionContext.Name
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Shimi.Context.IExecutionContext.FileSystem*
+  commentId: Overload:Shimi.Context.IExecutionContext.FileSystem
+  href: Shimi.Context.IExecutionContext.html#Shimi_Context_IExecutionContext_FileSystem
+  name: FileSystem
+  nameWithType: IExecutionContext.FileSystem
+  fullName: Shimi.Context.IExecutionContext.FileSystem
+- uid: Shimi.ServiceAbstractions.IFileSystem
+  commentId: T:Shimi.ServiceAbstractions.IFileSystem
+  parent: Shimi.ServiceAbstractions
+  href: Shimi.ServiceAbstractions.IFileSystem.html
+  name: IFileSystem
+  nameWithType: IFileSystem
+  fullName: Shimi.ServiceAbstractions.IFileSystem
+- uid: Shimi.ServiceAbstractions
+  commentId: N:Shimi.ServiceAbstractions
+  href: Shimi.html
+  name: Shimi.ServiceAbstractions
+  nameWithType: Shimi.ServiceAbstractions
+  fullName: Shimi.ServiceAbstractions
+  spec.csharp:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.ServiceAbstractions
+    name: ServiceAbstractions
+    href: Shimi.ServiceAbstractions.html
+  spec.vb:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.ServiceAbstractions
+    name: ServiceAbstractions
+    href: Shimi.ServiceAbstractions.html
+- uid: Shimi.Context.IExecutionContext.Terminal*
+  commentId: Overload:Shimi.Context.IExecutionContext.Terminal
+  href: Shimi.Context.IExecutionContext.html#Shimi_Context_IExecutionContext_Terminal
+  name: Terminal
+  nameWithType: IExecutionContext.Terminal
+  fullName: Shimi.Context.IExecutionContext.Terminal
+- uid: Shimi.ServiceAbstractions.ITerminal
+  commentId: T:Shimi.ServiceAbstractions.ITerminal
+  parent: Shimi.ServiceAbstractions
+  href: Shimi.ServiceAbstractions.ITerminal.html
+  name: ITerminal
+  nameWithType: ITerminal
+  fullName: Shimi.ServiceAbstractions.ITerminal
+- uid: Shimi.Context.IExecutionContext.StateStore*
+  commentId: Overload:Shimi.Context.IExecutionContext.StateStore
+  href: Shimi.Context.IExecutionContext.html#Shimi_Context_IExecutionContext_StateStore
+  name: StateStore
+  nameWithType: IExecutionContext.StateStore
+  fullName: Shimi.Context.IExecutionContext.StateStore
+- uid: Shimi.ServiceAbstractions.IStateStore
+  commentId: T:Shimi.ServiceAbstractions.IStateStore
+  parent: Shimi.ServiceAbstractions
+  href: Shimi.ServiceAbstractions.IStateStore.html
+  name: IStateStore
+  nameWithType: IStateStore
+  fullName: Shimi.ServiceAbstractions.IStateStore
+- uid: Shimi.Context.IExecutionContext.GetService*
+  commentId: Overload:Shimi.Context.IExecutionContext.GetService
+  href: Shimi.Context.IExecutionContext.html#Shimi_Context_IExecutionContext_GetService__1
+  name: GetService
+  nameWithType: IExecutionContext.GetService
+  fullName: Shimi.Context.IExecutionContext.GetService
+- uid: '{T}'
+  commentId: '!:T'
+  definition: T
+  name: T
+  nameWithType: T
+  fullName: T
+- uid: T
+  name: T
+  nameWithType: T
+  fullName: T

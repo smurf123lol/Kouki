@@ -1,0 +1,138 @@
+### YamlMime:TableOfContent
+items:
+- uid: Kouki.Mugura.Attributes
+  name: Kouki.Mugura.Attributes
+  type: Namespace
+  items:
+  - uid: Kouki.Mugura.Attributes.CommandAttribute
+    name: CommandAttribute
+    type: Class
+  - uid: Kouki.Mugura.Attributes.CommandCategory
+    name: CommandCategory
+    type: Enum
+- uid: Kouki.Mugura.Commands
+  name: Kouki.Mugura.Commands
+  type: Namespace
+  items:
+  - uid: Kouki.Mugura.Commands.TestCommand
+    name: TestCommand
+    type: Class
+- uid: Kouki.Mugura.DependencyInjection
+  name: Kouki.Mugura.DependencyInjection
+  type: Namespace
+  items:
+  - uid: Kouki.Mugura.DependencyInjection.ServiceCollectionExtensions
+    name: ServiceCollectionExtensions
+    type: Class
+- uid: Kouki.Mugura.Dispatcher
+  name: Kouki.Mugura.Dispatcher
+  type: Namespace
+  items:
+  - uid: Kouki.Mugura.Dispatcher.CommandDispatcher
+    name: CommandDispatcher
+    type: Class
+  - uid: Kouki.Mugura.Dispatcher.DelegatingRouter
+    name: DelegatingRouter
+    type: Class
+  - uid: Kouki.Mugura.Dispatcher.ICommandDispatcher
+    name: ICommandDispatcher
+    type: Interface
+  - uid: Kouki.Mugura.Dispatcher.IRouter
+    name: IRouter
+    type: Interface
+- uid: Kouki.Mugura.Factories
+  name: Kouki.Mugura.Factories
+  type: Namespace
+  items:
+  - uid: Kouki.Mugura.Factories.CommandFactory
+    name: CommandFactory
+    type: Class
+  - uid: Kouki.Mugura.Factories.ICommandFactory
+    name: ICommandFactory
+    type: Interface
+- uid: Kouki.Mugura.Handlers
+  name: Kouki.Mugura.Handlers
+  type: Namespace
+  items:
+  - uid: Kouki.Mugura.Handlers.ICommandHandler`1
+    name: ICommandHandler<TCommand>
+    type: Interface
+- uid: Kouki.Mugura.Registry
+  name: Kouki.Mugura.Registry
+  type: Namespace
+  items:
+  - uid: Kouki.Mugura.Registry.CommandEntry
+    name: CommandEntry
+    type: Class
+  - uid: Kouki.Mugura.Registry.CommandRegistry
+    name: CommandRegistry
+    type: Class
+  - uid: Kouki.Mugura.Registry.ValidationRule
+    name: ValidationRule
+    type: Class
+- uid: Kouki.Mugura.Scope
+  name: Kouki.Mugura.Scope
+  type: Namespace
+  items:
+  - uid: Kouki.Mugura.Scope.IScopeManager
+    name: IScopeManager
+    type: Interface
+  - uid: Kouki.Mugura.Scope.ScopeManager
+    name: ScopeManager
+    type: Class
+- uid: Kouki.Mugura.Validators
+  name: Kouki.Mugura.Validators
+  type: Namespace
+  items:
+  - uid: Kouki.Mugura.Validators.DataAnnotationsValidator`1
+    name: DataAnnotationsValidator<TCommand>
+    type: Class
+  - uid: Kouki.Mugura.Validators.ICommandValidator`1
+    name: ICommandValidator<TCommand>
+    type: Interface
+- uid: Shimi.Context
+  name: Shimi.Context
+  type: Namespace
+  items:
+  - uid: Shimi.Context.BaseExecutionContext
+    name: BaseExecutionContext
+    type: Class
+  - uid: Shimi.Context.ContextRegistry
+    name: ContextRegistry
+    type: Class
+  - uid: Shimi.Context.IExecutionContext
+    name: IExecutionContext
+    type: Interface
+  - uid: Shimi.Context.InMemoryStateStore
+    name: InMemoryStateStore
+    type: Class
+- uid: Shimi.Context.DependencyInjection
+  name: Shimi.Context.DependencyInjection
+  type: Namespace
+  items:
+  - uid: Shimi.Context.DependencyInjection.ServiceCollectionExtensions
+    name: ServiceCollectionExtensions
+    type: Class
+- uid: Shimi.ServiceAbstractions
+  name: Shimi.ServiceAbstractions
+  type: Namespace
+  items:
+  - uid: Shimi.ServiceAbstractions.IFileSystem
+    name: IFileSystem
+    type: Interface
+  - uid: Shimi.ServiceAbstractions.IJsonFileSystem
+    name: IJsonFileSystem
+    type: Interface
+  - uid: Shimi.ServiceAbstractions.IStateStore
+    name: IStateStore
+    type: Interface
+  - uid: Shimi.ServiceAbstractions.ITelemetryLogger
+    name: ITelemetryLogger
+    type: Interface
+  - uid: Shimi.ServiceAbstractions.ITerminal
+    name: ITerminal
+    type: Interface
+  - uid: Shimi.ServiceAbstractions.ITextFileSystem
+    name: ITextFileSystem
+    type: Interface
+memberLayout: SamePage

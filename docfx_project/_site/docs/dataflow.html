@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title> </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content=" ">
+      
+      
+      <link rel="icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../public/docfx.min.css">
+      <link rel="stylesheet" href="../public/main.css">
+      <meta name="docfx:navrel" content="../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      
+      
+      
+      
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../index.html">
+            <img id="logo" class="svg" src="../logo.svg" alt="">
+            
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+
+<ol>
+<li>Базовые типы и форматы
+ICommand — маркерный интерфейс для DTO команд. Сам по себе не содержит свойств, служит для идентификации.</li>
+</ol>
+<p>JsonNode — универсальный тип из System.Text.Json.Nodes, представляющий структурированные данные (объект, массив, строка, число, null). Используется для:</p>
+<p>Входных аргументов команд (передаётся в IRouter.RouteAsync).</p>
+<p>Выходных результатов хендлеров.</p>
+<p>DTO команд — это record-классы, реализующие ICommand. Они содержат типизированные свойства (например, string Path, bool Recursive). Входной JsonNode десериализуется фабрикой в конкретный DTO.</p>
+<p>IExecutionContext — контейнер для сервисов окружения (IFileSystem, ITerminal, IStateStore и опциональных). Имеет имя (Name) и может предоставлять дополнительные сервисы через GetService<t>().</t></p>
+<p>IContextRegistry — реестр, хранящий предопределённые контексты по строковому ключу. Позволяет устанавливать и получать контекст по умолчанию.</p>
+<ol start="2">
+<li>Регистрация команд
+CommandAttribute — применяется к классу хендлера. Содержит:</li>
+</ol>
+<p>Name (обязательно)</p>
+<p>Description (опционально)</p>
+<p>Category (битовые флаги, например, FileSystem, Terminal, VoiceUI, Internal)</p>
+<p>RequiresConfirmation</p>
+<p>Example</p>
+<p>CommandRegistry — сканирует сборки, находит все классы с атрибутом, определяет реализуемый ими интерфейс ICommandHandler<tcommand>, извлекает TCommand (тип DTO), собирает правила валидации из атрибутов свойств DTO (ValidationAttribute). Хранит записи CommandEntry в словарях по имени и по типу DTO.</tcommand></p>
+<p>CommandEntry — record с полями:</p>
+<p>CommandType, HandlerType, Name, Description, RequiresConfirmation, Category (флаги), ValidationRules, Example.</p>
+<ol start="3">
+<li>Создание команды (фабрика)
+ICommandFactory — интерфейс с методом ICommand? Create(CommandEntry entry, JsonNode? argument, out string? error).</li>
+</ol>
+<p>Реализация CommandFactory:</p>
+<p>Содержит generic-метод CreateCommand<tcommand>, который десериализует JsonNode в TCommand через JsonSerializer.Deserialize.</tcommand></p>
+<p>Метод Create вызывает этот generic-метод через рефлексию (или кешированный делегат) для типа entry.CommandType.</p>
+<p>Если аргумент null, передаётся пустой объект new JsonObject().</p>
+<p>Возвращает созданный DTO или null с сообщением об ошибке.</p>
+<p>Фабрика не использует внутреннего кеша — кеширование вызовов возложено на роутер.</p>
+<ol start="4">
+<li>Валидация команд
+ICommandValidator<tcommand> — интерфейс с методом bool TryValidate(TCommand command, out string? error).</tcommand></li>
+</ol>
+<p>DataAnnotationsValidator<tcommand> — реализация по умолчанию:</tcommand></p>
+<p>В конструкторе получает CommandRegistry и извлекает ValidationRules для TCommand.</p>
+<p>В TryValidate проверяет каждое свойство DTO на соответствие атрибутам ValidationAttribute.</p>
+<p>Возвращает false и сообщение об ошибке, если хотя бы одно правило нарушено.</p>
+<p>Валидатор регистрируется в DI как открытый generic (ICommandValidator&lt;&gt; → DataAnnotationsValidator&lt;&gt;).</p>
+<p>При необходимости для конкретной команды можно зарегистрировать собственную реализацию ICommandValidator<tcommand>.</tcommand></p>
+<ol start="5">
+<li>Управление скоупами
+IScopeManager — метод Task<t> RunInScopeAsync<t>(Func&lt;IServiceProvider, Task<t>&gt; action).</t></t></t></li>
+</ol>
+<p>ScopeManager — реализация, зависящая от IServiceScopeFactory. Создаёт AsyncServiceScope, выполняет action и уничтожает scope.</p>
+<ol start="6">
+<li>Диспетчер команд
+ICommandDispatcher — метод Task<jsonnode> SendAsync<tcommand>(TCommand command, IExecutionContext? context = null, CancellationToken cancellationToken = default), где TCommand : ICommand.</tcommand></jsonnode></li>
+</ol>
+<p>CommandDispatcher:</p>
+<p>Зависит от IScopeManager.</p>
+<p>Внутри вызывает _scopeManager.RunInScopeAsync, где получает ICommandHandler<tcommand> из IServiceProvider и вызывает HandleAsync, передавая ему контекст (если он был передан).</tcommand></p>
+<ol start="7">
+<li>Хендлер команд
+ICommandHandler<in tcommand> — метод Task<jsonnode> HandleAsync(TCommand command, IExecutionContext? context = null, CancellationToken cancellationToken = default).</jsonnode></in></li>
+</ol>
+<p>Конкретные хендлеры:</p>
+<p>Помечены атрибутом [Command].</p>
+<p>Реализуют ICommandHandler<tcommand>.</tcommand></p>
+<p>В конструкторе получают глобальные зависимости (например, ILogger), но сервисы окружения получают через контекст (передаваемый параметром).</p>
+<p>Используют context.FileSystem, context.Terminal, context.StateStore и т.д. для выполнения бизнес-логики.</p>
+<ol start="8">
+<li>Роутинг (статический и делегирующий)
+IRouter — метод Task<jsonnode> RouteAsync(string commandName, JsonNode? argument, IExecutionContext? context = null, CancellationToken cancellationToken = default).</jsonnode></li>
+</ol>
+<p>StaticRouter:</p>
+<p>Зависит от CommandRegistry, ICommandFactory, ICommandDispatcher, IContextRegistry.</p>
+<p>Алгоритм:</p>
+<p>Получает CommandEntry по имени.
+Если контекст не передан, получает дефолтный контекст из IContextRegistry.
+Создаёт DTO через фабрику.
+Получает валидатор (через DI и кеширование делегатов) и вызывает TryValidate.
+Вызывает диспетчер SendAsync, передавая контекст и команду.
+Кеширует делегаты для вызова валидатора и диспетчера по типу команды.</p>
+<p>DelegatingRouter — абстрактный базовый класс для роутеров-обёрток:</p>
+<p>Принимает IRouter innerRouter и IContextRegistry в конструкторе.</p>
+<p>Реализует RouteAsync, делегируя вызов внутреннему роутеру (с подстановкой дефолтного контекста, если не передан).</p>
+<p>Наследники могут переопределить RouteAsync для добавления своей логики (например, IntentRouter классифицирует фразу, а затем вызывает base.RouteAsync).</p>
+<p>MushiRouter — композитный роутер, принимает список IRouter и последовательно вызывает их до первого успеха.</p>
+<p>RemoteRouter — отправляет команды по сети, если не удаётся — делегирует внутреннему роутеру.</p>
+<ol start="9">
+<li>Контексты и реестр
+IContextRegistry — синглтон, хранит словарь контекстов. Методы:</li>
+</ol>
+<p>IExecutionContext GetContext(string name) — возвращает контекст по имени, если не найден — дефолтный.</p>
+<p>void RegisterContext(string name, IExecutionContext context).</p>
+<p>void SetDefaultContext(IExecutionContext context) и void SetDefaultContext(string contextName) — устанавливают дефолтный контекст (по экземпляру или по имени).</p>
+<p>IExecutionContext GetDefaultContext() — возвращает дефолтный контекст.</p>
+<p>Реализация ContextRegistry выбрасывает исключение, если дефолтный контекст не установлен.</p>
+<p>BaseExecutionContext — абстрактный базовый класс, хранит имя и словарь дополнительных сервисов. Конкретные контексты переопределяют свойства FileSystem, Terminal, StateStore.</p>
+<ol start="10">
+<li>Взаимодействие с Shimi (адаптеры)
+Интерфейсы окружения определены в Shimi.Abstractions:</li>
+</ol>
+<p>IFileSystem — базовый (байтовые операции): ReadBytesAsync, WriteBytesAsync, ExistsAsync, GetTreeAsync.</p>
+<p>ITextFileSystem — расширяет IFileSystem: ReadTextAsync, WriteTextAsync, AppendTextAsync с параметром Encoding.</p>
+<p>IJsonFileSystem — расширяет IFileSystem: ReadJsonAsync<t>, WriteJsonAsync<t> с параметрами JsonSerializerOptions.</t></t></p>
+<p>ITerminal — RunCommandAsync.</p>
+<p>IStateStore — GetAsync<t>, SetAsync<t>, RemoveAsync.</t></t></p>
+<p>ITelemetryLogger — LogEvent, LogError.</p>
+<p>Конкретные адаптеры (ConsoleFileSystem, ConsoleTerminal) поставляются в Kouki.Ubusuna и регистрируются через метод расширения AddUbusuna.</p>
+<ol start="11">
+<li>Поток выполнения (полный цикл)</li>
+</ol>
+<pre><code class="lang-mermaid">
+flowchart TD
+
+    Client[Внешний код / Клиент] --&gt;|JsonNode + commandName + контекст| Router
+
+    Router[&quot;IRouter(StaticRouter / DelegatingRouter)&quot;] --&gt; Registry[(CommandRegistry)]
+
+    Router --&gt; Factory[ICommandFactory]
+
+    Factory --&gt;|десериализует| DTO[DTO команды]
+
+    Router --&gt; Validator[ICommandValidator&amp;lt;T&amp;gt;]
+
+    Validator --&gt;|проверяет| DTO
+
+    Router --&gt; Dispatcher[ICommandDispatcher]
+
+    Dispatcher --&gt; Scope[IScopeManager]
+
+    Scope --&gt;|создаёт скоуп| Handler[ICommandHandler&amp;lt;T&amp;gt;]
+
+    Handler --&gt; Context[IExecutionContext]
+
+    Context --&gt; FS[IFileSystem / ITerminal / IStateStore]
+
+    Handler --&gt;|возвращает JsonNode| Client
+
+</code></pre>
+<ol>
+<li><strong>Вход</strong> — внешний код вызывает <code>IRouter.RouteAsync(commandName, argument, context?)</code>.</li>
+<li><strong>Роутер</strong> (например, <code>StaticRouter</code>) получает <code>CommandEntry</code> из <code>CommandRegistry</code>.</li>
+<li><strong>Фабрика</strong> создаёт DTO команды из <code>JsonNode</code> (через generic-метод <code>CreateCommand&lt;TCommand&gt;</code>).</li>
+<li><strong>Валидатор</strong> (если зарегистрирован) проверяет DTO; при ошибке возвращается <code>JsonNode</code> с ошибкой.</li>
+<li><strong>Диспетчер</strong> создаёт скоуп через <code>ScopeManager</code>, получает хендлер из DI и вызывает <code>HandleAsync</code>.</li>
+<li><strong>Хендлер</strong> выполняет бизнес-логику, используя сервисы из контекста (<code>IFileSystem</code>, <code>ITerminal</code>, <code>IStateStore</code>).</li>
+<li><strong>Результат</strong> (JsonNode) возвращается обратно вызывающему коду.</li>
+</ol>
+<hr>
+<ol start="12">
+<li>Расширение роутинга (IntentRouter)
+IntentRouter (внешняя реализация) переопределяет RouteAsync:</li>
+</ol>
+<p>Принимает commandName как голосовую фразу.</p>
+<p>Классифицирует интент (через каскад ML.NET → BERT → LLM).</p>
+<p>Извлекает слоты (аргументы).</p>
+<p>Формирует JsonNode с аргументами и вызывает base.RouteAsync с именем команды и аргументами.</p>
+<p>При необходимости выбирает контекст на основе распознанного слота.</p>
+<ol start="13">
+<li>Логирование и телеметрия
+ITelemetryLogger используется в роутерах, диспетчере и хендлерах для логирования событий, ошибок и метрик. Например:</li>
+</ol>
+<p>Успешные/неудачные выполнения команд.</p>
+<p>Отказы интентов (для дообучения моделей).</p>
+<p>Долгие вызовы.</p>
+<ol start="14">
+<li>Примечания
+Все асинхронные методы поддерживают CancellationToken.</li>
+</ol>
+<p>Входной аргумент всегда передаётся как JsonNode (может быть null, но нормализуется в пустой объект фабрикой).</p>
+<p>Выход команды — JsonNode, что позволяет возвращать простые типы (string, int) или сложные объекты.</p>
+<p>Жизненный цикл: Registry, Factory, Dispatcher, Router, ScopeManager, ContextRegistry — синглтоны; хендлеры и валидаторы — Scoped (создаются на каждый вызов команды).</p>
+<p>Контекст (IExecutionContext) не является DI-сервисом и не привязан к скоупу; он передаётся явно как параметр.</p>
+<p>Для повышения производительности StaticRouter кеширует делегаты вызова валидатора и диспетчера по типу команды.</p>
+<p>Генерация кода (Source Generators) планируется для автоматической регистрации команд и валидаторов, что позволит отказаться от рефлексии в рантайме.</p>
+
+</article>
+
+        <div class="contribution d-print-none">
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

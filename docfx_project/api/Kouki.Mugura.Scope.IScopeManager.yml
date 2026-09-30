@@ -1,0 +1,291 @@
+### YamlMime:ManagedReference
+items:
+- uid: Kouki.Mugura.Scope.IScopeManager
+  commentId: T:Kouki.Mugura.Scope.IScopeManager
+  id: IScopeManager
+  parent: Kouki.Mugura.Scope
+  children:
+  - Kouki.Mugura.Scope.IScopeManager.RunInScopeAsync``1(System.Func{System.IServiceProvider,System.Threading.Tasks.Task{``0}})
+  langs:
+  - csharp
+  - vb
+  name: IScopeManager
+  nameWithType: IScopeManager
+  fullName: Kouki.Mugura.Scope.IScopeManager
+  type: Interface
+  source:
+    id: IScopeManager
+    path: F:\Projects\Kouki\Kouki.Mugura\Scope\IScopeManager.cs
+    startLine: 5
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Scope
+  remarks: >-
+    <strong>TODO:</strong> Добавить параметр configureScope для передачи контекста в скоуп.
+
+    Это позволит роутерам настраивать Scoped-сервисы (например, IContext) до резолва хендлера.
+  example: []
+  syntax:
+    content: public interface IScopeManager
+    content.vb: Public Interface IScopeManager
+  derivedClasses:
+  - Kouki.Mugura.Scope.ScopeManager
+- uid: Kouki.Mugura.Scope.IScopeManager.RunInScopeAsync``1(System.Func{System.IServiceProvider,System.Threading.Tasks.Task{``0}})
+  commentId: M:Kouki.Mugura.Scope.IScopeManager.RunInScopeAsync``1(System.Func{System.IServiceProvider,System.Threading.Tasks.Task{``0}})
+  id: RunInScopeAsync``1(System.Func{System.IServiceProvider,System.Threading.Tasks.Task{``0}})
+  parent: Kouki.Mugura.Scope.IScopeManager
+  langs:
+  - csharp
+  - vb
+  name: RunInScopeAsync<T>(Func<IServiceProvider, Task<T>>)
+  nameWithType: IScopeManager.RunInScopeAsync<T>(Func<IServiceProvider, Task<T>>)
+  fullName: Kouki.Mugura.Scope.IScopeManager.RunInScopeAsync<T>(System.Func<System.IServiceProvider, System.Threading.Tasks.Task<T>>)
+  type: Method
+  source:
+    id: RunInScopeAsync
+    path: F:\Projects\Kouki\Kouki.Mugura\Scope\IScopeManager.cs
+    startLine: 7
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Scope
+  syntax:
+    content: Task<T> RunInScopeAsync<T>(Func<IServiceProvider, Task<T>> action)
+    parameters:
+    - id: action
+      type: System.Func{System.IServiceProvider,System.Threading.Tasks.Task{{T}}}
+    typeParameters:
+    - id: T
+    return:
+      type: System.Threading.Tasks.Task{{T}}
+    content.vb: Function RunInScopeAsync(Of T)(action As Func(Of IServiceProvider, Task(Of T))) As Task(Of T)
+  overload: Kouki.Mugura.Scope.IScopeManager.RunInScopeAsync*
+  nameWithType.vb: IScopeManager.RunInScopeAsync(Of T)(Func(Of IServiceProvider, Task(Of T)))
+  fullName.vb: Kouki.Mugura.Scope.IScopeManager.RunInScopeAsync(Of T)(System.Func(Of System.IServiceProvider, System.Threading.Tasks.Task(Of T)))
+  name.vb: RunInScopeAsync(Of T)(Func(Of IServiceProvider, Task(Of T)))
+references:
+- uid: Kouki.Mugura.Scope
+  commentId: N:Kouki.Mugura.Scope
+  href: Kouki.html
+  name: Kouki.Mugura.Scope
+  nameWithType: Kouki.Mugura.Scope
+  fullName: Kouki.Mugura.Scope
+  spec.csharp:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Scope
+    name: Scope
+    href: Kouki.Mugura.Scope.html
+  spec.vb:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Scope
+    name: Scope
+    href: Kouki.Mugura.Scope.html
+- uid: Kouki.Mugura.Scope.IScopeManager.RunInScopeAsync*
+  commentId: Overload:Kouki.Mugura.Scope.IScopeManager.RunInScopeAsync
+  href: Kouki.Mugura.Scope.IScopeManager.html#Kouki_Mugura_Scope_IScopeManager_RunInScopeAsync__1_System_Func_System_IServiceProvider_System_Threading_Tasks_Task___0___
+  name: RunInScopeAsync
+  nameWithType: IScopeManager.RunInScopeAsync
+  fullName: Kouki.Mugura.Scope.IScopeManager.RunInScopeAsync
+- uid: System.Func{System.IServiceProvider,System.Threading.Tasks.Task{{T}}}
+  commentId: T:System.Func{System.IServiceProvider,System.Threading.Tasks.Task{``0}}
+  parent: System
+  definition: System.Func`2
+  href: https://learn.microsoft.com/dotnet/api/system.func-2
+  name: Func<IServiceProvider, Task<T>>
+  nameWithType: Func<IServiceProvider, Task<T>>
+  fullName: System.Func<System.IServiceProvider, System.Threading.Tasks.Task<T>>
+  nameWithType.vb: Func(Of IServiceProvider, Task(Of T))
+  fullName.vb: System.Func(Of System.IServiceProvider, System.Threading.Tasks.Task(Of T))
+  name.vb: Func(Of IServiceProvider, Task(Of T))
+  spec.csharp:
+  - uid: System.Func`2
+    name: Func
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.func-2
+  - name: <
+  - uid: System.IServiceProvider
+    name: IServiceProvider
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iserviceprovider
+  - name: ','
+  - name: " "
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: <
+  - name: T
+  - name: '>'
+  - name: '>'
+  spec.vb:
+  - uid: System.Func`2
+    name: Func
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.func-2
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.IServiceProvider
+    name: IServiceProvider
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iserviceprovider
+  - name: ','
+  - name: " "
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+  - name: )
+- uid: System.Threading.Tasks.Task{{T}}
+  commentId: T:System.Threading.Tasks.Task{``0}
+  parent: System.Threading.Tasks
+  definition: System.Threading.Tasks.Task`1
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  name: Task<T>
+  nameWithType: Task<T>
+  fullName: System.Threading.Tasks.Task<T>
+  nameWithType.vb: Task(Of T)
+  fullName.vb: System.Threading.Tasks.Task(Of T)
+  name.vb: Task(Of T)
+  spec.csharp:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: System.Func`2
+  commentId: T:System.Func`2
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.func-2
+  name: Func<T, TResult>
+  nameWithType: Func<T, TResult>
+  fullName: System.Func<T, TResult>
+  nameWithType.vb: Func(Of T, TResult)
+  fullName.vb: System.Func(Of T, TResult)
+  name.vb: Func(Of T, TResult)
+  spec.csharp:
+  - uid: System.Func`2
+    name: Func
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.func-2
+  - name: <
+  - name: T
+  - name: ','
+  - name: " "
+  - name: TResult
+  - name: '>'
+  spec.vb:
+  - uid: System.Func`2
+    name: Func
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.func-2
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: ','
+  - name: " "
+  - name: TResult
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.Threading.Tasks.Task`1
+  commentId: T:System.Threading.Tasks.Task`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  name: Task<TResult>
+  nameWithType: Task<TResult>
+  fullName: System.Threading.Tasks.Task<TResult>
+  nameWithType.vb: Task(Of TResult)
+  fullName.vb: System.Threading.Tasks.Task(Of TResult)
+  name.vb: Task(Of TResult)
+  spec.csharp:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: <
+  - name: TResult
+  - name: '>'
+  spec.vb:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: TResult
+  - name: )
+- uid: System.Threading.Tasks
+  commentId: N:System.Threading.Tasks
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Threading.Tasks
+  nameWithType: System.Threading.Tasks
+  fullName: System.Threading.Tasks
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  - name: .
+  - uid: System.Threading.Tasks
+    name: Tasks
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  - name: .
+  - uid: System.Threading.Tasks
+    name: Tasks
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks

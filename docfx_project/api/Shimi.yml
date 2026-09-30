@@ -1,0 +1,23 @@
+### YamlMime:ManagedReference
+items:
+- uid: Shimi
+  commentId: N:Shimi
+  id: Shimi
+  children:
+  - Shimi.Class1
+  langs:
+  - csharp
+  - vb
+  name: Shimi
+  nameWithType: Shimi
+  fullName: Shimi
+  type: Namespace
+  assemblies:
+  - Shimi
+references:
+- uid: Shimi.Class1
+  commentId: T:Shimi.Class1
+  href: Shimi.Class1.html
+  name: Class1
+  nameWithType: Class1
+  fullName: Shimi.Class1

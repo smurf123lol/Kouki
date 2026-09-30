@@ -1,0 +1,337 @@
+### YamlMime:ManagedReference
+items:
+- uid: Kouki.Mugura.Dispatcher.IRouter
+  commentId: T:Kouki.Mugura.Dispatcher.IRouter
+  id: IRouter
+  parent: Kouki.Mugura.Dispatcher
+  children:
+  - Kouki.Mugura.Dispatcher.IRouter.RouteAsync(System.String,System.Text.Json.Nodes.JsonNode,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  langs:
+  - csharp
+  - vb
+  name: IRouter
+  nameWithType: IRouter
+  fullName: Kouki.Mugura.Dispatcher.IRouter
+  type: Interface
+  source:
+    id: IRouter
+    path: F:\Projects\Kouki\Kouki.Mugura\Dispatcher\IRouter.cs
+    startLine: 5
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Dispatcher
+  syntax:
+    content: public interface IRouter
+    content.vb: Public Interface IRouter
+  derivedClasses:
+  - Kouki.Mugura.Dispatcher.DelegatingRouter
+- uid: Kouki.Mugura.Dispatcher.IRouter.RouteAsync(System.String,System.Text.Json.Nodes.JsonNode,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  commentId: M:Kouki.Mugura.Dispatcher.IRouter.RouteAsync(System.String,System.Text.Json.Nodes.JsonNode,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  id: RouteAsync(System.String,System.Text.Json.Nodes.JsonNode,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  parent: Kouki.Mugura.Dispatcher.IRouter
+  langs:
+  - csharp
+  - vb
+  name: RouteAsync(string, JsonNode?, IExecutionContext?, CancellationToken)
+  nameWithType: IRouter.RouteAsync(string, JsonNode?, IExecutionContext?, CancellationToken)
+  fullName: Kouki.Mugura.Dispatcher.IRouter.RouteAsync(string, System.Text.Json.Nodes.JsonNode?, Shimi.Context.IExecutionContext?, System.Threading.CancellationToken)
+  type: Method
+  source:
+    id: RouteAsync
+    path: F:\Projects\Kouki\Kouki.Mugura\Dispatcher\IRouter.cs
+    startLine: 7
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Dispatcher
+  syntax:
+    content: Task<JsonNode> RouteAsync(string commandName, JsonNode? argument, IExecutionContext? context = null, CancellationToken cancellationToken = default)
+    parameters:
+    - id: commandName
+      type: System.String
+    - id: argument
+      type: System.Text.Json.Nodes.JsonNode
+    - id: context
+      type: Shimi.Context.IExecutionContext
+    - id: cancellationToken
+      type: System.Threading.CancellationToken
+    return:
+      type: System.Threading.Tasks.Task{System.Text.Json.Nodes.JsonNode}
+    content.vb: Function RouteAsync(commandName As String, argument As JsonNode, context As IExecutionContext = Nothing, cancellationToken As CancellationToken = Nothing) As Task(Of JsonNode)
+  overload: Kouki.Mugura.Dispatcher.IRouter.RouteAsync*
+  nameWithType.vb: IRouter.RouteAsync(String, JsonNode, IExecutionContext, CancellationToken)
+  fullName.vb: Kouki.Mugura.Dispatcher.IRouter.RouteAsync(String, System.Text.Json.Nodes.JsonNode, Shimi.Context.IExecutionContext, System.Threading.CancellationToken)
+  name.vb: RouteAsync(String, JsonNode, IExecutionContext, CancellationToken)
+references:
+- uid: Kouki.Mugura.Dispatcher
+  commentId: N:Kouki.Mugura.Dispatcher
+  href: Kouki.html
+  name: Kouki.Mugura.Dispatcher
+  nameWithType: Kouki.Mugura.Dispatcher
+  fullName: Kouki.Mugura.Dispatcher
+  spec.csharp:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Dispatcher
+    name: Dispatcher
+    href: Kouki.Mugura.Dispatcher.html
+  spec.vb:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Dispatcher
+    name: Dispatcher
+    href: Kouki.Mugura.Dispatcher.html
+- uid: Kouki.Mugura.Dispatcher.IRouter.RouteAsync*
+  commentId: Overload:Kouki.Mugura.Dispatcher.IRouter.RouteAsync
+  href: Kouki.Mugura.Dispatcher.IRouter.html#Kouki_Mugura_Dispatcher_IRouter_RouteAsync_System_String_System_Text_Json_Nodes_JsonNode_Shimi_Context_IExecutionContext_System_Threading_CancellationToken_
+  name: RouteAsync
+  nameWithType: IRouter.RouteAsync
+  fullName: Kouki.Mugura.Dispatcher.IRouter.RouteAsync
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String
+- uid: System.Text.Json.Nodes.JsonNode
+  commentId: T:System.Text.Json.Nodes.JsonNode
+  parent: System.Text.Json.Nodes
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.text.json.nodes.jsonnode
+  name: JsonNode
+  nameWithType: JsonNode
+  fullName: System.Text.Json.Nodes.JsonNode
+- uid: Shimi.Context.IExecutionContext
+  commentId: T:Shimi.Context.IExecutionContext
+  parent: Shimi.Context
+  href: Shimi.Context.IExecutionContext.html
+  name: IExecutionContext
+  nameWithType: IExecutionContext
+  fullName: Shimi.Context.IExecutionContext
+- uid: System.Threading.CancellationToken
+  commentId: T:System.Threading.CancellationToken
+  parent: System.Threading
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  name: CancellationToken
+  nameWithType: CancellationToken
+  fullName: System.Threading.CancellationToken
+- uid: System.Threading.Tasks.Task{System.Text.Json.Nodes.JsonNode}
+  commentId: T:System.Threading.Tasks.Task{System.Text.Json.Nodes.JsonNode}
+  parent: System.Threading.Tasks
+  definition: System.Threading.Tasks.Task`1
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  name: Task<JsonNode>
+  nameWithType: Task<JsonNode>
+  fullName: System.Threading.Tasks.Task<System.Text.Json.Nodes.JsonNode>
+  nameWithType.vb: Task(Of JsonNode)
+  fullName.vb: System.Threading.Tasks.Task(Of System.Text.Json.Nodes.JsonNode)
+  name.vb: Task(Of JsonNode)
+  spec.csharp:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: <
+  - uid: System.Text.Json.Nodes.JsonNode
+    name: JsonNode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json.nodes.jsonnode
+  - name: '>'
+  spec.vb:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.Text.Json.Nodes.JsonNode
+    name: JsonNode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json.nodes.jsonnode
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.Text.Json.Nodes
+  commentId: N:System.Text.Json.Nodes
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Text.Json.Nodes
+  nameWithType: System.Text.Json.Nodes
+  fullName: System.Text.Json.Nodes
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Text
+    name: Text
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text
+  - name: .
+  - uid: System.Text.Json
+    name: Json
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json
+  - name: .
+  - uid: System.Text.Json.Nodes
+    name: Nodes
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json.nodes
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Text
+    name: Text
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text
+  - name: .
+  - uid: System.Text.Json
+    name: Json
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json
+  - name: .
+  - uid: System.Text.Json.Nodes
+    name: Nodes
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json.nodes
+- uid: Shimi.Context
+  commentId: N:Shimi.Context
+  href: Shimi.html
+  name: Shimi.Context
+  nameWithType: Shimi.Context
+  fullName: Shimi.Context
+  spec.csharp:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.Context
+    name: Context
+    href: Shimi.Context.html
+  spec.vb:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.Context
+    name: Context
+    href: Shimi.Context.html
+- uid: System.Threading
+  commentId: N:System.Threading
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Threading
+  nameWithType: System.Threading
+  fullName: System.Threading
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+- uid: System.Threading.Tasks.Task`1
+  commentId: T:System.Threading.Tasks.Task`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  name: Task<TResult>
+  nameWithType: Task<TResult>
+  fullName: System.Threading.Tasks.Task<TResult>
+  nameWithType.vb: Task(Of TResult)
+  fullName.vb: System.Threading.Tasks.Task(Of TResult)
+  name.vb: Task(Of TResult)
+  spec.csharp:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: <
+  - name: TResult
+  - name: '>'
+  spec.vb:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: TResult
+  - name: )
+- uid: System.Threading.Tasks
+  commentId: N:System.Threading.Tasks
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Threading.Tasks
+  nameWithType: System.Threading.Tasks
+  fullName: System.Threading.Tasks
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  - name: .
+  - uid: System.Threading.Tasks
+    name: Tasks
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  - name: .
+  - uid: System.Threading.Tasks
+    name: Tasks
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks

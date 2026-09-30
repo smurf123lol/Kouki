@@ -1,0 +1,23 @@
+### YamlMime:ManagedReference
+items:
+- uid: Kouki.Mugura.DependencyInjection
+  commentId: N:Kouki.Mugura.DependencyInjection
+  id: Kouki.Mugura.DependencyInjection
+  children:
+  - Kouki.Mugura.DependencyInjection.ServiceCollectionExtensions
+  langs:
+  - csharp
+  - vb
+  name: Kouki.Mugura.DependencyInjection
+  nameWithType: Kouki.Mugura.DependencyInjection
+  fullName: Kouki.Mugura.DependencyInjection
+  type: Namespace
+  assemblies:
+  - Kouki.Mugura
+references:
+- uid: Kouki.Mugura.DependencyInjection.ServiceCollectionExtensions
+  commentId: T:Kouki.Mugura.DependencyInjection.ServiceCollectionExtensions
+  href: Kouki.Mugura.DependencyInjection.ServiceCollectionExtensions.html
+  name: ServiceCollectionExtensions
+  nameWithType: ServiceCollectionExtensions
+  fullName: Kouki.Mugura.DependencyInjection.ServiceCollectionExtensions

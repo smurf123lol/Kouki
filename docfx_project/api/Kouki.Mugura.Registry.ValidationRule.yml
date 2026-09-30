@@ -1,0 +1,537 @@
+### YamlMime:ManagedReference
+items:
+- uid: Kouki.Mugura.Registry.ValidationRule
+  commentId: T:Kouki.Mugura.Registry.ValidationRule
+  id: ValidationRule
+  parent: Kouki.Mugura.Registry
+  children:
+  - Kouki.Mugura.Registry.ValidationRule.#ctor(System.String,System.ComponentModel.DataAnnotations.ValidationAttribute)
+  - Kouki.Mugura.Registry.ValidationRule.Attribute
+  - Kouki.Mugura.Registry.ValidationRule.PropertyName
+  langs:
+  - csharp
+  - vb
+  name: ValidationRule
+  nameWithType: ValidationRule
+  fullName: Kouki.Mugura.Registry.ValidationRule
+  type: Class
+  source:
+    id: ValidationRule
+    path: F:\Projects\Kouki\Kouki.Mugura\Registry\CommandEntry.cs
+    startLine: 27
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Registry
+  summary: Правило валидации для одного свойства DTO команды.
+  remarks: >-
+    Содержит имя свойства и экземпляр <xref href="System.ComponentModel.DataAnnotations.ValidationAttribute" data-throw-if-not-resolved="false"></xref>.
+
+    Используется <xref href="Kouki.Mugura.Validators.DataAnnotationsValidator%601" data-throw-if-not-resolved="false"></xref> для проверки.
+  example: []
+  syntax:
+    content: 'public sealed record ValidationRule : IEquatable<ValidationRule>'
+    content.vb: Public NotInheritable Class ValidationRule Implements IEquatable(Of ValidationRule)
+  inheritance:
+  - System.Object
+  implements:
+  - System.IEquatable{Kouki.Mugura.Registry.ValidationRule}
+  inheritedMembers:
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.ToString
+- uid: Kouki.Mugura.Registry.ValidationRule.#ctor(System.String,System.ComponentModel.DataAnnotations.ValidationAttribute)
+  commentId: M:Kouki.Mugura.Registry.ValidationRule.#ctor(System.String,System.ComponentModel.DataAnnotations.ValidationAttribute)
+  id: '#ctor(System.String,System.ComponentModel.DataAnnotations.ValidationAttribute)'
+  parent: Kouki.Mugura.Registry.ValidationRule
+  langs:
+  - csharp
+  - vb
+  name: ValidationRule(string, ValidationAttribute)
+  nameWithType: ValidationRule.ValidationRule(string, ValidationAttribute)
+  fullName: Kouki.Mugura.Registry.ValidationRule.ValidationRule(string, System.ComponentModel.DataAnnotations.ValidationAttribute)
+  type: Constructor
+  source:
+    id: .ctor
+    path: F:\Projects\Kouki\Kouki.Mugura\Registry\CommandEntry.cs
+    startLine: 27
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Registry
+  summary: Правило валидации для одного свойства DTO команды.
+  remarks: >-
+    Содержит имя свойства и экземпляр <xref href="System.ComponentModel.DataAnnotations.ValidationAttribute" data-throw-if-not-resolved="false"></xref>.
+
+    Используется <xref href="Kouki.Mugura.Validators.DataAnnotationsValidator%601" data-throw-if-not-resolved="false"></xref> для проверки.
+  example: []
+  syntax:
+    content: public ValidationRule(string PropertyName, ValidationAttribute Attribute)
+    parameters:
+    - id: PropertyName
+      type: System.String
+    - id: Attribute
+      type: System.ComponentModel.DataAnnotations.ValidationAttribute
+    content.vb: Public Sub New(PropertyName As String, Attribute As ValidationAttribute)
+  overload: Kouki.Mugura.Registry.ValidationRule.#ctor*
+  nameWithType.vb: ValidationRule.New(String, ValidationAttribute)
+  fullName.vb: Kouki.Mugura.Registry.ValidationRule.New(String, System.ComponentModel.DataAnnotations.ValidationAttribute)
+  name.vb: New(String, ValidationAttribute)
+- uid: Kouki.Mugura.Registry.ValidationRule.PropertyName
+  commentId: P:Kouki.Mugura.Registry.ValidationRule.PropertyName
+  id: PropertyName
+  parent: Kouki.Mugura.Registry.ValidationRule
+  langs:
+  - csharp
+  - vb
+  name: PropertyName
+  nameWithType: ValidationRule.PropertyName
+  fullName: Kouki.Mugura.Registry.ValidationRule.PropertyName
+  type: Property
+  source:
+    id: PropertyName
+    path: F:\Projects\Kouki\Kouki.Mugura\Registry\CommandEntry.cs
+    startLine: 28
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Registry
+  syntax:
+    content: public string PropertyName { get; init; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property PropertyName As String
+  overload: Kouki.Mugura.Registry.ValidationRule.PropertyName*
+- uid: Kouki.Mugura.Registry.ValidationRule.Attribute
+  commentId: P:Kouki.Mugura.Registry.ValidationRule.Attribute
+  id: Attribute
+  parent: Kouki.Mugura.Registry.ValidationRule
+  langs:
+  - csharp
+  - vb
+  name: Attribute
+  nameWithType: ValidationRule.Attribute
+  fullName: Kouki.Mugura.Registry.ValidationRule.Attribute
+  type: Property
+  source:
+    id: Attribute
+    path: F:\Projects\Kouki\Kouki.Mugura\Registry\CommandEntry.cs
+    startLine: 29
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Registry
+  syntax:
+    content: public ValidationAttribute Attribute { get; init; }
+    parameters: []
+    return:
+      type: System.ComponentModel.DataAnnotations.ValidationAttribute
+    content.vb: Public Property Attribute As ValidationAttribute
+  overload: Kouki.Mugura.Registry.ValidationRule.Attribute*
+references:
+- uid: System.ComponentModel.DataAnnotations.ValidationAttribute
+  commentId: T:System.ComponentModel.DataAnnotations.ValidationAttribute
+  parent: System.ComponentModel.DataAnnotations
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.componentmodel.dataannotations.validationattribute
+  name: ValidationAttribute
+  nameWithType: ValidationAttribute
+  fullName: System.ComponentModel.DataAnnotations.ValidationAttribute
+- uid: Kouki.Mugura.Validators.DataAnnotationsValidator`1
+  commentId: T:Kouki.Mugura.Validators.DataAnnotationsValidator`1
+  href: Kouki.Mugura.Validators.DataAnnotationsValidator-1.html
+  name: DataAnnotationsValidator<TCommand>
+  nameWithType: DataAnnotationsValidator<TCommand>
+  fullName: Kouki.Mugura.Validators.DataAnnotationsValidator<TCommand>
+  nameWithType.vb: DataAnnotationsValidator(Of TCommand)
+  fullName.vb: Kouki.Mugura.Validators.DataAnnotationsValidator(Of TCommand)
+  name.vb: DataAnnotationsValidator(Of TCommand)
+  spec.csharp:
+  - uid: Kouki.Mugura.Validators.DataAnnotationsValidator`1
+    name: DataAnnotationsValidator
+    href: Kouki.Mugura.Validators.DataAnnotationsValidator-1.html
+  - name: <
+  - name: TCommand
+  - name: '>'
+  spec.vb:
+  - uid: Kouki.Mugura.Validators.DataAnnotationsValidator`1
+    name: DataAnnotationsValidator
+    href: Kouki.Mugura.Validators.DataAnnotationsValidator-1.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: TCommand
+  - name: )
+- uid: Kouki.Mugura.Registry
+  commentId: N:Kouki.Mugura.Registry
+  href: Kouki.html
+  name: Kouki.Mugura.Registry
+  nameWithType: Kouki.Mugura.Registry
+  fullName: Kouki.Mugura.Registry
+  spec.csharp:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Registry
+    name: Registry
+    href: Kouki.Mugura.Registry.html
+  spec.vb:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Registry
+    name: Registry
+    href: Kouki.Mugura.Registry.html
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System.IEquatable{Kouki.Mugura.Registry.ValidationRule}
+  commentId: T:System.IEquatable{Kouki.Mugura.Registry.ValidationRule}
+  parent: System
+  definition: System.IEquatable`1
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  name: IEquatable<ValidationRule>
+  nameWithType: IEquatable<ValidationRule>
+  fullName: System.IEquatable<Kouki.Mugura.Registry.ValidationRule>
+  nameWithType.vb: IEquatable(Of ValidationRule)
+  fullName.vb: System.IEquatable(Of Kouki.Mugura.Registry.ValidationRule)
+  name.vb: IEquatable(Of ValidationRule)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: <
+  - uid: Kouki.Mugura.Registry.ValidationRule
+    name: ValidationRule
+    href: Kouki.Mugura.Registry.ValidationRule.html
+  - name: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: Kouki.Mugura.Registry.ValidationRule
+    name: ValidationRule
+    href: Kouki.Mugura.Registry.ValidationRule.html
+  - name: )
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  name: Equals(object)
+  nameWithType: object.Equals(object)
+  fullName: object.Equals(object)
+  nameWithType.vb: Object.Equals(Object)
+  fullName.vb: Object.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  name: GetHashCode()
+  nameWithType: object.GetHashCode()
+  fullName: object.GetHashCode()
+  nameWithType.vb: Object.GetHashCode()
+  fullName.vb: Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  name: ToString()
+  nameWithType: object.ToString()
+  fullName: object.ToString()
+  nameWithType.vb: Object.ToString()
+  fullName.vb: Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+- uid: System.ComponentModel.DataAnnotations
+  commentId: N:System.ComponentModel.DataAnnotations
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.ComponentModel.DataAnnotations
+  nameWithType: System.ComponentModel.DataAnnotations
+  fullName: System.ComponentModel.DataAnnotations
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.ComponentModel
+    name: ComponentModel
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.componentmodel
+  - name: .
+  - uid: System.ComponentModel.DataAnnotations
+    name: DataAnnotations
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.componentmodel.dataannotations
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.ComponentModel
+    name: ComponentModel
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.componentmodel
+  - name: .
+  - uid: System.ComponentModel.DataAnnotations
+    name: DataAnnotations
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.componentmodel.dataannotations
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.IEquatable`1
+  commentId: T:System.IEquatable`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  name: IEquatable<T>
+  nameWithType: IEquatable<T>
+  fullName: System.IEquatable<T>
+  nameWithType.vb: IEquatable(Of T)
+  fullName.vb: System.IEquatable(Of T)
+  name.vb: IEquatable(Of T)
+  spec.csharp:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.IEquatable`1
+    name: IEquatable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.iequatable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: Kouki.Mugura.Registry.ValidationRule.#ctor*
+  commentId: Overload:Kouki.Mugura.Registry.ValidationRule.#ctor
+  href: Kouki.Mugura.Registry.ValidationRule.html#Kouki_Mugura_Registry_ValidationRule__ctor_System_String_System_ComponentModel_DataAnnotations_ValidationAttribute_
+  name: ValidationRule
+  nameWithType: ValidationRule.ValidationRule
+  fullName: Kouki.Mugura.Registry.ValidationRule.ValidationRule
+  nameWithType.vb: ValidationRule.New
+  fullName.vb: Kouki.Mugura.Registry.ValidationRule.New
+  name.vb: New
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String
+- uid: Kouki.Mugura.Registry.ValidationRule.PropertyName*
+  commentId: Overload:Kouki.Mugura.Registry.ValidationRule.PropertyName
+  href: Kouki.Mugura.Registry.ValidationRule.html#Kouki_Mugura_Registry_ValidationRule_PropertyName
+  name: PropertyName
+  nameWithType: ValidationRule.PropertyName
+  fullName: Kouki.Mugura.Registry.ValidationRule.PropertyName
+- uid: Kouki.Mugura.Registry.ValidationRule.Attribute*
+  commentId: Overload:Kouki.Mugura.Registry.ValidationRule.Attribute
+  href: Kouki.Mugura.Registry.ValidationRule.html#Kouki_Mugura_Registry_ValidationRule_Attribute
+  name: Attribute
+  nameWithType: ValidationRule.Attribute
+  fullName: Kouki.Mugura.Registry.ValidationRule.Attribute

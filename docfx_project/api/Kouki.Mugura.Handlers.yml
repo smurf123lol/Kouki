@@ -1,0 +1,42 @@
+### YamlMime:ManagedReference
+items:
+- uid: Kouki.Mugura.Handlers
+  commentId: N:Kouki.Mugura.Handlers
+  id: Kouki.Mugura.Handlers
+  children:
+  - Kouki.Mugura.Handlers.ICommandHandler`1
+  langs:
+  - csharp
+  - vb
+  name: Kouki.Mugura.Handlers
+  nameWithType: Kouki.Mugura.Handlers
+  fullName: Kouki.Mugura.Handlers
+  type: Namespace
+  assemblies:
+  - Kouki.Mugura
+references:
+- uid: Kouki.Mugura.Handlers.ICommandHandler`1
+  commentId: T:Kouki.Mugura.Handlers.ICommandHandler`1
+  href: Kouki.Mugura.Handlers.ICommandHandler-1.html
+  name: ICommandHandler<TCommand>
+  nameWithType: ICommandHandler<TCommand>
+  fullName: Kouki.Mugura.Handlers.ICommandHandler<TCommand>
+  nameWithType.vb: ICommandHandler(Of TCommand)
+  fullName.vb: Kouki.Mugura.Handlers.ICommandHandler(Of TCommand)
+  name.vb: ICommandHandler(Of TCommand)
+  spec.csharp:
+  - uid: Kouki.Mugura.Handlers.ICommandHandler`1
+    name: ICommandHandler
+    href: Kouki.Mugura.Handlers.ICommandHandler-1.html
+  - name: <
+  - name: TCommand
+  - name: '>'
+  spec.vb:
+  - uid: Kouki.Mugura.Handlers.ICommandHandler`1
+    name: ICommandHandler
+    href: Kouki.Mugura.Handlers.ICommandHandler-1.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: TCommand
+  - name: )

@@ -1,0 +1,158 @@
+### YamlMime:ManagedReference
+items:
+- uid: Shimi.ServiceAbstractions.ITelemetryLogger
+  commentId: T:Shimi.ServiceAbstractions.ITelemetryLogger
+  id: ITelemetryLogger
+  parent: Shimi.ServiceAbstractions
+  children:
+  - Shimi.ServiceAbstractions.ITelemetryLogger.LogError(System.String,System.Exception)
+  - Shimi.ServiceAbstractions.ITelemetryLogger.LogEvent(System.String,System.Object)
+  langs:
+  - csharp
+  - vb
+  name: ITelemetryLogger
+  nameWithType: ITelemetryLogger
+  fullName: Shimi.ServiceAbstractions.ITelemetryLogger
+  type: Interface
+  source:
+    id: ITelemetryLogger
+    path: F:\Projects\Kouki\Shimi\ServiceAbstractions\ITelemetryLogger.cs
+    startLine: 2
+  assemblies:
+  - Shimi
+  namespace: Shimi.ServiceAbstractions
+  syntax:
+    content: public interface ITelemetryLogger
+    content.vb: Public Interface ITelemetryLogger
+- uid: Shimi.ServiceAbstractions.ITelemetryLogger.LogEvent(System.String,System.Object)
+  commentId: M:Shimi.ServiceAbstractions.ITelemetryLogger.LogEvent(System.String,System.Object)
+  id: LogEvent(System.String,System.Object)
+  parent: Shimi.ServiceAbstractions.ITelemetryLogger
+  langs:
+  - csharp
+  - vb
+  name: LogEvent(string, object?)
+  nameWithType: ITelemetryLogger.LogEvent(string, object?)
+  fullName: Shimi.ServiceAbstractions.ITelemetryLogger.LogEvent(string, object?)
+  type: Method
+  source:
+    id: LogEvent
+    path: F:\Projects\Kouki\Shimi\ServiceAbstractions\ITelemetryLogger.cs
+    startLine: 4
+  assemblies:
+  - Shimi
+  namespace: Shimi.ServiceAbstractions
+  syntax:
+    content: void LogEvent(string name, object? data = null)
+    parameters:
+    - id: name
+      type: System.String
+    - id: data
+      type: System.Object
+    content.vb: Sub LogEvent(name As String, data As Object = Nothing)
+  overload: Shimi.ServiceAbstractions.ITelemetryLogger.LogEvent*
+  nameWithType.vb: ITelemetryLogger.LogEvent(String, Object)
+  fullName.vb: Shimi.ServiceAbstractions.ITelemetryLogger.LogEvent(String, Object)
+  name.vb: LogEvent(String, Object)
+- uid: Shimi.ServiceAbstractions.ITelemetryLogger.LogError(System.String,System.Exception)
+  commentId: M:Shimi.ServiceAbstractions.ITelemetryLogger.LogError(System.String,System.Exception)
+  id: LogError(System.String,System.Exception)
+  parent: Shimi.ServiceAbstractions.ITelemetryLogger
+  langs:
+  - csharp
+  - vb
+  name: LogError(string, Exception?)
+  nameWithType: ITelemetryLogger.LogError(string, Exception?)
+  fullName: Shimi.ServiceAbstractions.ITelemetryLogger.LogError(string, System.Exception?)
+  type: Method
+  source:
+    id: LogError
+    path: F:\Projects\Kouki\Shimi\ServiceAbstractions\ITelemetryLogger.cs
+    startLine: 5
+  assemblies:
+  - Shimi
+  namespace: Shimi.ServiceAbstractions
+  syntax:
+    content: void LogError(string message, Exception? ex = null)
+    parameters:
+    - id: message
+      type: System.String
+    - id: ex
+      type: System.Exception
+    content.vb: Sub LogError(message As String, ex As Exception = Nothing)
+  overload: Shimi.ServiceAbstractions.ITelemetryLogger.LogError*
+  nameWithType.vb: ITelemetryLogger.LogError(String, Exception)
+  fullName.vb: Shimi.ServiceAbstractions.ITelemetryLogger.LogError(String, System.Exception)
+  name.vb: LogError(String, Exception)
+references:
+- uid: Shimi.ServiceAbstractions
+  commentId: N:Shimi.ServiceAbstractions
+  href: Shimi.html
+  name: Shimi.ServiceAbstractions
+  nameWithType: Shimi.ServiceAbstractions
+  fullName: Shimi.ServiceAbstractions
+  spec.csharp:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.ServiceAbstractions
+    name: ServiceAbstractions
+    href: Shimi.ServiceAbstractions.html
+  spec.vb:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.ServiceAbstractions
+    name: ServiceAbstractions
+    href: Shimi.ServiceAbstractions.html
+- uid: Shimi.ServiceAbstractions.ITelemetryLogger.LogEvent*
+  commentId: Overload:Shimi.ServiceAbstractions.ITelemetryLogger.LogEvent
+  href: Shimi.ServiceAbstractions.ITelemetryLogger.html#Shimi_ServiceAbstractions_ITelemetryLogger_LogEvent_System_String_System_Object_
+  name: LogEvent
+  nameWithType: ITelemetryLogger.LogEvent
+  fullName: Shimi.ServiceAbstractions.ITelemetryLogger.LogEvent
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Shimi.ServiceAbstractions.ITelemetryLogger.LogError*
+  commentId: Overload:Shimi.ServiceAbstractions.ITelemetryLogger.LogError
+  href: Shimi.ServiceAbstractions.ITelemetryLogger.html#Shimi_ServiceAbstractions_ITelemetryLogger_LogError_System_String_System_Exception_
+  name: LogError
+  nameWithType: ITelemetryLogger.LogError
+  fullName: Shimi.ServiceAbstractions.ITelemetryLogger.LogError
+- uid: System.Exception
+  commentId: T:System.Exception
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.exception
+  name: Exception
+  nameWithType: Exception
+  fullName: System.Exception

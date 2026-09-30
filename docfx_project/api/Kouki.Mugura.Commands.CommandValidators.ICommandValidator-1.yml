@@ -1,0 +1,150 @@
+### YamlMime:ManagedReference
+items:
+- uid: Kouki.Mugura.Commands.CommandValidators.ICommandValidator`1
+  commentId: T:Kouki.Mugura.Commands.CommandValidators.ICommandValidator`1
+  id: ICommandValidator`1
+  parent: Kouki.Mugura.Commands.CommandValidators
+  children:
+  - Kouki.Mugura.Commands.CommandValidators.ICommandValidator`1.TryValidate(`0,System.String@)
+  langs:
+  - csharp
+  - vb
+  name: ICommandValidator<TCommand>
+  nameWithType: ICommandValidator<TCommand>
+  fullName: Kouki.Mugura.Commands.CommandValidators.ICommandValidator<TCommand>
+  type: Interface
+  source:
+    id: ICommandValidator
+    path: F:\Projects\Kouki\Kouki.Mugura\Commands\CommandValidators\ICommandValidator.cs
+    startLine: 4
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Commands.CommandValidators
+  syntax:
+    content: 'public interface ICommandValidator<TCommand> where TCommand : ICommand'
+    typeParameters:
+    - id: TCommand
+    content.vb: Public Interface ICommandValidator(Of TCommand As ICommand)
+  derivedClasses:
+  - Kouki.Mugura.Validators.DataAnnotationsValidator`1
+  nameWithType.vb: ICommandValidator(Of TCommand)
+  fullName.vb: Kouki.Mugura.Commands.CommandValidators.ICommandValidator(Of TCommand)
+  name.vb: ICommandValidator(Of TCommand)
+- uid: Kouki.Mugura.Commands.CommandValidators.ICommandValidator`1.TryValidate(`0,System.String@)
+  commentId: M:Kouki.Mugura.Commands.CommandValidators.ICommandValidator`1.TryValidate(`0,System.String@)
+  id: TryValidate(`0,System.String@)
+  parent: Kouki.Mugura.Commands.CommandValidators.ICommandValidator`1
+  langs:
+  - csharp
+  - vb
+  name: TryValidate(TCommand, out string?)
+  nameWithType: ICommandValidator<TCommand>.TryValidate(TCommand, out string?)
+  fullName: Kouki.Mugura.Commands.CommandValidators.ICommandValidator<TCommand>.TryValidate(TCommand, out string?)
+  type: Method
+  source:
+    id: TryValidate
+    path: F:\Projects\Kouki\Kouki.Mugura\Commands\CommandValidators\ICommandValidator.cs
+    startLine: 6
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Commands.CommandValidators
+  syntax:
+    content: bool TryValidate(TCommand command, out string? error)
+    parameters:
+    - id: command
+      type: '{TCommand}'
+    - id: error
+      type: System.String
+    return:
+      type: System.Boolean
+    content.vb: Function TryValidate(command As TCommand, [error] As String) As Boolean
+  overload: Kouki.Mugura.Commands.CommandValidators.ICommandValidator`1.TryValidate*
+  nameWithType.vb: ICommandValidator(Of TCommand).TryValidate(TCommand, String)
+  fullName.vb: Kouki.Mugura.Commands.CommandValidators.ICommandValidator(Of TCommand).TryValidate(TCommand, String)
+  name.vb: TryValidate(TCommand, String)
+references:
+- uid: Kouki.Mugura.Commands.CommandValidators
+  commentId: N:Kouki.Mugura.Commands.CommandValidators
+  href: Kouki.html
+  name: Kouki.Mugura.Commands.CommandValidators
+  nameWithType: Kouki.Mugura.Commands.CommandValidators
+  fullName: Kouki.Mugura.Commands.CommandValidators
+  spec.csharp:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Commands
+    name: Commands
+    href: Kouki.Mugura.Commands.html
+  - name: .
+  - uid: Kouki.Mugura.Commands.CommandValidators
+    name: CommandValidators
+    href: Kouki.Mugura.Commands.CommandValidators.html
+  spec.vb:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Commands
+    name: Commands
+    href: Kouki.Mugura.Commands.html
+  - name: .
+  - uid: Kouki.Mugura.Commands.CommandValidators
+    name: CommandValidators
+    href: Kouki.Mugura.Commands.CommandValidators.html
+- uid: Kouki.Mugura.Commands.CommandValidators.ICommandValidator`1.TryValidate*
+  commentId: Overload:Kouki.Mugura.Commands.CommandValidators.ICommandValidator`1.TryValidate
+  href: Kouki.Mugura.Commands.CommandValidators.ICommandValidator-1.html#Kouki_Mugura_Commands_CommandValidators_ICommandValidator_1_TryValidate__0_System_String__
+  name: TryValidate
+  nameWithType: ICommandValidator<TCommand>.TryValidate
+  fullName: Kouki.Mugura.Commands.CommandValidators.ICommandValidator<TCommand>.TryValidate
+  nameWithType.vb: ICommandValidator(Of TCommand).TryValidate
+  fullName.vb: Kouki.Mugura.Commands.CommandValidators.ICommandValidator(Of TCommand).TryValidate
+- uid: '{TCommand}'
+  commentId: '!:TCommand'
+  definition: TCommand
+  name: TCommand
+  nameWithType: TCommand
+  fullName: TCommand
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: TCommand
+  name: TCommand
+  nameWithType: TCommand
+  fullName: TCommand
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System

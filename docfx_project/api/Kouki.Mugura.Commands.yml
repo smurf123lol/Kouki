@@ -1,0 +1,23 @@
+### YamlMime:ManagedReference
+items:
+- uid: Kouki.Mugura.Commands
+  commentId: N:Kouki.Mugura.Commands
+  id: Kouki.Mugura.Commands
+  children:
+  - Kouki.Mugura.Commands.TestCommand
+  langs:
+  - csharp
+  - vb
+  name: Kouki.Mugura.Commands
+  nameWithType: Kouki.Mugura.Commands
+  fullName: Kouki.Mugura.Commands
+  type: Namespace
+  assemblies:
+  - Kouki.Mugura
+references:
+- uid: Kouki.Mugura.Commands.TestCommand
+  commentId: T:Kouki.Mugura.Commands.TestCommand
+  href: Kouki.Mugura.Commands.TestCommand.html
+  name: TestCommand
+  nameWithType: TestCommand
+  fullName: Kouki.Mugura.Commands.TestCommand

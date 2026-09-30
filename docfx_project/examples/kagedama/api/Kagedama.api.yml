@@ -1,0 +1,23 @@
+### YamlMime:ManagedReference
+items:
+- uid: Kagedama.api
+  commentId: N:Kagedama.api
+  id: Kagedama.api
+  children:
+  - Kagedama.api.Class1
+  langs:
+  - csharp
+  - vb
+  name: Kagedama.api
+  nameWithType: Kagedama.api
+  fullName: Kagedama.api
+  type: Namespace
+  assemblies:
+  - Kagedama.api
+references:
+- uid: Kagedama.api.Class1
+  commentId: T:Kagedama.api.Class1
+  href: Kagedama.api.Class1.html
+  name: Class1
+  nameWithType: Class1
+  fullName: Kagedama.api.Class1

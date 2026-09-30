@@ -1,0 +1,23 @@
+### YamlMime:ManagedReference
+items:
+- uid: Shimi.Context.DependencyInjection
+  commentId: N:Shimi.Context.DependencyInjection
+  id: Shimi.Context.DependencyInjection
+  children:
+  - Shimi.Context.DependencyInjection.ServiceCollectionExtensions
+  langs:
+  - csharp
+  - vb
+  name: Shimi.Context.DependencyInjection
+  nameWithType: Shimi.Context.DependencyInjection
+  fullName: Shimi.Context.DependencyInjection
+  type: Namespace
+  assemblies:
+  - Shimi
+references:
+- uid: Shimi.Context.DependencyInjection.ServiceCollectionExtensions
+  commentId: T:Shimi.Context.DependencyInjection.ServiceCollectionExtensions
+  href: Shimi.Context.DependencyInjection.ServiceCollectionExtensions.html
+  name: ServiceCollectionExtensions
+  nameWithType: ServiceCollectionExtensions
+  fullName: Shimi.Context.DependencyInjection.ServiceCollectionExtensions

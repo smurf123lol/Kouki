@@ -1,0 +1,62 @@
+### YamlMime:ManagedReference
+items:
+- uid: Kouki.Mugura.Attributes
+  commentId: N:Kouki.Mugura.Attributes
+  id: Kouki.Mugura.Attributes
+  children:
+  - Kouki.Mugura.Attributes.CommandAttribute
+  - Kouki.Mugura.Attributes.CommandCategory
+  langs:
+  - csharp
+  - vb
+  name: Kouki.Mugura.Attributes
+  nameWithType: Kouki.Mugura.Attributes
+  fullName: Kouki.Mugura.Attributes
+  type: Namespace
+  assemblies:
+  - Kouki.Mugura
+references:
+- uid: Kouki.Mugura.Attributes.CommandAttribute
+  commentId: T:Kouki.Mugura.Attributes.CommandAttribute
+  parent: Kouki.Mugura.Attributes
+  href: Kouki.Mugura.Attributes.CommandAttribute.html
+  name: CommandAttribute
+  nameWithType: CommandAttribute
+  fullName: Kouki.Mugura.Attributes.CommandAttribute
+- uid: Kouki.Mugura.Attributes.CommandCategory
+  commentId: T:Kouki.Mugura.Attributes.CommandCategory
+  parent: Kouki.Mugura.Attributes
+  href: Kouki.Mugura.Attributes.CommandCategory.html
+  name: CommandCategory
+  nameWithType: CommandCategory
+  fullName: Kouki.Mugura.Attributes.CommandCategory
+- uid: Kouki.Mugura.Attributes
+  commentId: N:Kouki.Mugura.Attributes
+  href: Kouki.html
+  name: Kouki.Mugura.Attributes
+  nameWithType: Kouki.Mugura.Attributes
+  fullName: Kouki.Mugura.Attributes
+  spec.csharp:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Attributes
+    name: Attributes
+    href: Kouki.Mugura.Attributes.html
+  spec.vb:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Attributes
+    name: Attributes
+    href: Kouki.Mugura.Attributes.html

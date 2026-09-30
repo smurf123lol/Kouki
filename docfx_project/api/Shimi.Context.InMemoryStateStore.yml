@@ -1,0 +1,822 @@
+### YamlMime:ManagedReference
+items:
+- uid: Shimi.Context.InMemoryStateStore
+  commentId: T:Shimi.Context.InMemoryStateStore
+  id: InMemoryStateStore
+  parent: Shimi.Context
+  children:
+  - Shimi.Context.InMemoryStateStore.GetAsync``1(System.String,System.Threading.CancellationToken)
+  - Shimi.Context.InMemoryStateStore.RemoveAsync(System.String,System.Threading.CancellationToken)
+  - Shimi.Context.InMemoryStateStore.SetAsync``1(System.String,``0,System.Threading.CancellationToken)
+  langs:
+  - csharp
+  - vb
+  name: InMemoryStateStore
+  nameWithType: InMemoryStateStore
+  fullName: Shimi.Context.InMemoryStateStore
+  type: Class
+  source:
+    id: InMemoryStateStore
+    path: F:\Projects\Kouki\Shimi\Context\InMemoryStateStore.cs
+    startLine: 4
+  assemblies:
+  - Shimi
+  namespace: Shimi.Context
+  syntax:
+    content: 'public class InMemoryStateStore : IStateStore'
+    content.vb: Public Class InMemoryStateStore Implements IStateStore
+  inheritance:
+  - System.Object
+  implements:
+  - Shimi.ServiceAbstractions.IStateStore
+  inheritedMembers:
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.ToString
+- uid: Shimi.Context.InMemoryStateStore.GetAsync``1(System.String,System.Threading.CancellationToken)
+  commentId: M:Shimi.Context.InMemoryStateStore.GetAsync``1(System.String,System.Threading.CancellationToken)
+  id: GetAsync``1(System.String,System.Threading.CancellationToken)
+  parent: Shimi.Context.InMemoryStateStore
+  langs:
+  - csharp
+  - vb
+  name: GetAsync<T>(string, CancellationToken)
+  nameWithType: InMemoryStateStore.GetAsync<T>(string, CancellationToken)
+  fullName: Shimi.Context.InMemoryStateStore.GetAsync<T>(string, System.Threading.CancellationToken)
+  type: Method
+  source:
+    id: GetAsync
+    path: F:\Projects\Kouki\Shimi\Context\InMemoryStateStore.cs
+    startLine: 8
+  assemblies:
+  - Shimi
+  namespace: Shimi.Context
+  example: []
+  syntax:
+    content: public Task<T?> GetAsync<T>(string key, CancellationToken ct = default)
+    parameters:
+    - id: key
+      type: System.String
+    - id: ct
+      type: System.Threading.CancellationToken
+    typeParameters:
+    - id: T
+    return:
+      type: System.Threading.Tasks.Task{{T}}
+    content.vb: Public Function GetAsync(Of T)(key As String, ct As CancellationToken = Nothing) As Task(Of T)
+  overload: Shimi.Context.InMemoryStateStore.GetAsync*
+  implements:
+  - Shimi.ServiceAbstractions.IStateStore.GetAsync``1(System.String,System.Threading.CancellationToken)
+  nameWithType.vb: InMemoryStateStore.GetAsync(Of T)(String, CancellationToken)
+  fullName.vb: Shimi.Context.InMemoryStateStore.GetAsync(Of T)(String, System.Threading.CancellationToken)
+  name.vb: GetAsync(Of T)(String, CancellationToken)
+- uid: Shimi.Context.InMemoryStateStore.SetAsync``1(System.String,``0,System.Threading.CancellationToken)
+  commentId: M:Shimi.Context.InMemoryStateStore.SetAsync``1(System.String,``0,System.Threading.CancellationToken)
+  id: SetAsync``1(System.String,``0,System.Threading.CancellationToken)
+  parent: Shimi.Context.InMemoryStateStore
+  langs:
+  - csharp
+  - vb
+  name: SetAsync<T>(string, T, CancellationToken)
+  nameWithType: InMemoryStateStore.SetAsync<T>(string, T, CancellationToken)
+  fullName: Shimi.Context.InMemoryStateStore.SetAsync<T>(string, T, System.Threading.CancellationToken)
+  type: Method
+  source:
+    id: SetAsync
+    path: F:\Projects\Kouki\Shimi\Context\InMemoryStateStore.cs
+    startLine: 14
+  assemblies:
+  - Shimi
+  namespace: Shimi.Context
+  example: []
+  syntax:
+    content: public Task SetAsync<T>(string key, T value, CancellationToken ct = default)
+    parameters:
+    - id: key
+      type: System.String
+    - id: value
+      type: '{T}'
+    - id: ct
+      type: System.Threading.CancellationToken
+    typeParameters:
+    - id: T
+    return:
+      type: System.Threading.Tasks.Task
+    content.vb: Public Function SetAsync(Of T)(key As String, value As T, ct As CancellationToken = Nothing) As Task
+  overload: Shimi.Context.InMemoryStateStore.SetAsync*
+  implements:
+  - Shimi.ServiceAbstractions.IStateStore.SetAsync``1(System.String,{T},System.Threading.CancellationToken)
+  nameWithType.vb: InMemoryStateStore.SetAsync(Of T)(String, T, CancellationToken)
+  fullName.vb: Shimi.Context.InMemoryStateStore.SetAsync(Of T)(String, T, System.Threading.CancellationToken)
+  name.vb: SetAsync(Of T)(String, T, CancellationToken)
+- uid: Shimi.Context.InMemoryStateStore.RemoveAsync(System.String,System.Threading.CancellationToken)
+  commentId: M:Shimi.Context.InMemoryStateStore.RemoveAsync(System.String,System.Threading.CancellationToken)
+  id: RemoveAsync(System.String,System.Threading.CancellationToken)
+  parent: Shimi.Context.InMemoryStateStore
+  langs:
+  - csharp
+  - vb
+  name: RemoveAsync(string, CancellationToken)
+  nameWithType: InMemoryStateStore.RemoveAsync(string, CancellationToken)
+  fullName: Shimi.Context.InMemoryStateStore.RemoveAsync(string, System.Threading.CancellationToken)
+  type: Method
+  source:
+    id: RemoveAsync
+    path: F:\Projects\Kouki\Shimi\Context\InMemoryStateStore.cs
+    startLine: 20
+  assemblies:
+  - Shimi
+  namespace: Shimi.Context
+  example: []
+  syntax:
+    content: public Task RemoveAsync(string key, CancellationToken ct = default)
+    parameters:
+    - id: key
+      type: System.String
+    - id: ct
+      type: System.Threading.CancellationToken
+    return:
+      type: System.Threading.Tasks.Task
+    content.vb: Public Function RemoveAsync(key As String, ct As CancellationToken = Nothing) As Task
+  overload: Shimi.Context.InMemoryStateStore.RemoveAsync*
+  implements:
+  - Shimi.ServiceAbstractions.IStateStore.RemoveAsync(System.String,System.Threading.CancellationToken)
+  nameWithType.vb: InMemoryStateStore.RemoveAsync(String, CancellationToken)
+  fullName.vb: Shimi.Context.InMemoryStateStore.RemoveAsync(String, System.Threading.CancellationToken)
+  name.vb: RemoveAsync(String, CancellationToken)
+references:
+- uid: Shimi.Context
+  commentId: N:Shimi.Context
+  href: Shimi.html
+  name: Shimi.Context
+  nameWithType: Shimi.Context
+  fullName: Shimi.Context
+  spec.csharp:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.Context
+    name: Context
+    href: Shimi.Context.html
+  spec.vb:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.Context
+    name: Context
+    href: Shimi.Context.html
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: Shimi.ServiceAbstractions.IStateStore
+  commentId: T:Shimi.ServiceAbstractions.IStateStore
+  parent: Shimi.ServiceAbstractions
+  href: Shimi.ServiceAbstractions.IStateStore.html
+  name: IStateStore
+  nameWithType: IStateStore
+  fullName: Shimi.ServiceAbstractions.IStateStore
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  name: Equals(object)
+  nameWithType: object.Equals(object)
+  fullName: object.Equals(object)
+  nameWithType.vb: Object.Equals(Object)
+  fullName.vb: Object.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  name: GetHashCode()
+  nameWithType: object.GetHashCode()
+  fullName: object.GetHashCode()
+  nameWithType.vb: Object.GetHashCode()
+  fullName.vb: Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  name: MemberwiseClone()
+  nameWithType: object.MemberwiseClone()
+  fullName: object.MemberwiseClone()
+  nameWithType.vb: Object.MemberwiseClone()
+  fullName.vb: Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  name: ToString()
+  nameWithType: object.ToString()
+  fullName: object.ToString()
+  nameWithType.vb: Object.ToString()
+  fullName.vb: Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Shimi.ServiceAbstractions
+  commentId: N:Shimi.ServiceAbstractions
+  href: Shimi.html
+  name: Shimi.ServiceAbstractions
+  nameWithType: Shimi.ServiceAbstractions
+  fullName: Shimi.ServiceAbstractions
+  spec.csharp:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.ServiceAbstractions
+    name: ServiceAbstractions
+    href: Shimi.ServiceAbstractions.html
+  spec.vb:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.ServiceAbstractions
+    name: ServiceAbstractions
+    href: Shimi.ServiceAbstractions.html
+- uid: Shimi.Context.InMemoryStateStore.GetAsync*
+  commentId: Overload:Shimi.Context.InMemoryStateStore.GetAsync
+  href: Shimi.Context.InMemoryStateStore.html#Shimi_Context_InMemoryStateStore_GetAsync__1_System_String_System_Threading_CancellationToken_
+  name: GetAsync
+  nameWithType: InMemoryStateStore.GetAsync
+  fullName: Shimi.Context.InMemoryStateStore.GetAsync
+- uid: Shimi.ServiceAbstractions.IStateStore.GetAsync``1(System.String,System.Threading.CancellationToken)
+  commentId: M:Shimi.ServiceAbstractions.IStateStore.GetAsync``1(System.String,System.Threading.CancellationToken)
+  parent: Shimi.ServiceAbstractions.IStateStore
+  isExternal: true
+  href: Shimi.ServiceAbstractions.IStateStore.html#Shimi_ServiceAbstractions_IStateStore_GetAsync__1_System_String_System_Threading_CancellationToken_
+  name: GetAsync<T>(string, CancellationToken)
+  nameWithType: IStateStore.GetAsync<T>(string, CancellationToken)
+  fullName: Shimi.ServiceAbstractions.IStateStore.GetAsync<T>(string, System.Threading.CancellationToken)
+  nameWithType.vb: IStateStore.GetAsync(Of T)(String, CancellationToken)
+  fullName.vb: Shimi.ServiceAbstractions.IStateStore.GetAsync(Of T)(String, System.Threading.CancellationToken)
+  name.vb: GetAsync(Of T)(String, CancellationToken)
+  spec.csharp:
+  - uid: Shimi.ServiceAbstractions.IStateStore.GetAsync``1(System.String,System.Threading.CancellationToken)
+    name: GetAsync
+    href: Shimi.ServiceAbstractions.IStateStore.html#Shimi_ServiceAbstractions_IStateStore_GetAsync__1_System_String_System_Threading_CancellationToken_
+  - name: <
+  - name: T
+  - name: '>'
+  - name: (
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Threading.CancellationToken
+    name: CancellationToken
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  - name: )
+  spec.vb:
+  - uid: Shimi.ServiceAbstractions.IStateStore.GetAsync``1(System.String,System.Threading.CancellationToken)
+    name: GetAsync
+    href: Shimi.ServiceAbstractions.IStateStore.html#Shimi_ServiceAbstractions_IStateStore_GetAsync__1_System_String_System_Threading_CancellationToken_
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+  - name: (
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Threading.CancellationToken
+    name: CancellationToken
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  - name: )
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String
+- uid: System.Threading.CancellationToken
+  commentId: T:System.Threading.CancellationToken
+  parent: System.Threading
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  name: CancellationToken
+  nameWithType: CancellationToken
+  fullName: System.Threading.CancellationToken
+- uid: System.Threading.Tasks.Task{{T}}
+  commentId: T:System.Threading.Tasks.Task{``0}
+  parent: System.Threading.Tasks
+  definition: System.Threading.Tasks.Task`1
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  name: Task<T>
+  nameWithType: Task<T>
+  fullName: System.Threading.Tasks.Task<T>
+  nameWithType.vb: Task(Of T)
+  fullName.vb: System.Threading.Tasks.Task(Of T)
+  name.vb: Task(Of T)
+  spec.csharp:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: System.Threading
+  commentId: N:System.Threading
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Threading
+  nameWithType: System.Threading
+  fullName: System.Threading
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+- uid: System.Threading.Tasks.Task`1
+  commentId: T:System.Threading.Tasks.Task`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  name: Task<TResult>
+  nameWithType: Task<TResult>
+  fullName: System.Threading.Tasks.Task<TResult>
+  nameWithType.vb: Task(Of TResult)
+  fullName.vb: System.Threading.Tasks.Task(Of TResult)
+  name.vb: Task(Of TResult)
+  spec.csharp:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: <
+  - name: TResult
+  - name: '>'
+  spec.vb:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: TResult
+  - name: )
+- uid: System.Threading.Tasks
+  commentId: N:System.Threading.Tasks
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Threading.Tasks
+  nameWithType: System.Threading.Tasks
+  fullName: System.Threading.Tasks
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  - name: .
+  - uid: System.Threading.Tasks
+    name: Tasks
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  - name: .
+  - uid: System.Threading.Tasks
+    name: Tasks
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks
+- uid: Shimi.Context.InMemoryStateStore.SetAsync*
+  commentId: Overload:Shimi.Context.InMemoryStateStore.SetAsync
+  href: Shimi.Context.InMemoryStateStore.html#Shimi_Context_InMemoryStateStore_SetAsync__1_System_String___0_System_Threading_CancellationToken_
+  name: SetAsync
+  nameWithType: InMemoryStateStore.SetAsync
+  fullName: Shimi.Context.InMemoryStateStore.SetAsync
+- uid: Shimi.ServiceAbstractions.IStateStore.SetAsync``1(System.String,{T},System.Threading.CancellationToken)
+  commentId: M:Shimi.ServiceAbstractions.IStateStore.SetAsync``1(System.String,``0,System.Threading.CancellationToken)
+  parent: Shimi.ServiceAbstractions.IStateStore
+  definition: Shimi.ServiceAbstractions.IStateStore.SetAsync``1(System.String,``0,System.Threading.CancellationToken)
+  href: Shimi.ServiceAbstractions.IStateStore.html#Shimi_ServiceAbstractions_IStateStore_SetAsync__1_System_String___0_System_Threading_CancellationToken_
+  name: SetAsync<T>(string, T, CancellationToken)
+  nameWithType: IStateStore.SetAsync<T>(string, T, CancellationToken)
+  fullName: Shimi.ServiceAbstractions.IStateStore.SetAsync<T>(string, T, System.Threading.CancellationToken)
+  nameWithType.vb: IStateStore.SetAsync(Of T)(String, T, CancellationToken)
+  fullName.vb: Shimi.ServiceAbstractions.IStateStore.SetAsync(Of T)(String, T, System.Threading.CancellationToken)
+  name.vb: SetAsync(Of T)(String, T, CancellationToken)
+  spec.csharp:
+  - uid: Shimi.ServiceAbstractions.IStateStore.SetAsync``1(System.String,``0,System.Threading.CancellationToken)
+    name: SetAsync
+    href: Shimi.ServiceAbstractions.IStateStore.html#Shimi_ServiceAbstractions_IStateStore_SetAsync__1_System_String___0_System_Threading_CancellationToken_
+  - name: <
+  - name: T
+  - name: '>'
+  - name: (
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - name: T
+  - name: ','
+  - name: " "
+  - uid: System.Threading.CancellationToken
+    name: CancellationToken
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  - name: )
+  spec.vb:
+  - uid: Shimi.ServiceAbstractions.IStateStore.SetAsync``1(System.String,``0,System.Threading.CancellationToken)
+    name: SetAsync
+    href: Shimi.ServiceAbstractions.IStateStore.html#Shimi_ServiceAbstractions_IStateStore_SetAsync__1_System_String___0_System_Threading_CancellationToken_
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+  - name: (
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - name: T
+  - name: ','
+  - name: " "
+  - uid: System.Threading.CancellationToken
+    name: CancellationToken
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  - name: )
+- uid: '{T}'
+  commentId: '!:T'
+  definition: T
+  name: T
+  nameWithType: T
+  fullName: T
+- uid: System.Threading.Tasks.Task
+  commentId: T:System.Threading.Tasks.Task
+  parent: System.Threading.Tasks
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task
+  name: Task
+  nameWithType: Task
+  fullName: System.Threading.Tasks.Task
+- uid: Shimi.ServiceAbstractions.IStateStore.SetAsync``1(System.String,``0,System.Threading.CancellationToken)
+  commentId: M:Shimi.ServiceAbstractions.IStateStore.SetAsync``1(System.String,``0,System.Threading.CancellationToken)
+  isExternal: true
+  href: Shimi.ServiceAbstractions.IStateStore.html#Shimi_ServiceAbstractions_IStateStore_SetAsync__1_System_String___0_System_Threading_CancellationToken_
+  name: SetAsync<T>(string, T, CancellationToken)
+  nameWithType: IStateStore.SetAsync<T>(string, T, CancellationToken)
+  fullName: Shimi.ServiceAbstractions.IStateStore.SetAsync<T>(string, T, System.Threading.CancellationToken)
+  nameWithType.vb: IStateStore.SetAsync(Of T)(String, T, CancellationToken)
+  fullName.vb: Shimi.ServiceAbstractions.IStateStore.SetAsync(Of T)(String, T, System.Threading.CancellationToken)
+  name.vb: SetAsync(Of T)(String, T, CancellationToken)
+  spec.csharp:
+  - uid: Shimi.ServiceAbstractions.IStateStore.SetAsync``1(System.String,``0,System.Threading.CancellationToken)
+    name: SetAsync
+    href: Shimi.ServiceAbstractions.IStateStore.html#Shimi_ServiceAbstractions_IStateStore_SetAsync__1_System_String___0_System_Threading_CancellationToken_
+  - name: <
+  - name: T
+  - name: '>'
+  - name: (
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - name: T
+  - name: ','
+  - name: " "
+  - uid: System.Threading.CancellationToken
+    name: CancellationToken
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  - name: )
+  spec.vb:
+  - uid: Shimi.ServiceAbstractions.IStateStore.SetAsync``1(System.String,``0,System.Threading.CancellationToken)
+    name: SetAsync
+    href: Shimi.ServiceAbstractions.IStateStore.html#Shimi_ServiceAbstractions_IStateStore_SetAsync__1_System_String___0_System_Threading_CancellationToken_
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+  - name: (
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - name: T
+  - name: ','
+  - name: " "
+  - uid: System.Threading.CancellationToken
+    name: CancellationToken
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  - name: )
+- uid: T
+  name: T
+  nameWithType: T
+  fullName: T
+- uid: Shimi.Context.InMemoryStateStore.RemoveAsync*
+  commentId: Overload:Shimi.Context.InMemoryStateStore.RemoveAsync
+  href: Shimi.Context.InMemoryStateStore.html#Shimi_Context_InMemoryStateStore_RemoveAsync_System_String_System_Threading_CancellationToken_
+  name: RemoveAsync
+  nameWithType: InMemoryStateStore.RemoveAsync
+  fullName: Shimi.Context.InMemoryStateStore.RemoveAsync
+- uid: Shimi.ServiceAbstractions.IStateStore.RemoveAsync(System.String,System.Threading.CancellationToken)
+  commentId: M:Shimi.ServiceAbstractions.IStateStore.RemoveAsync(System.String,System.Threading.CancellationToken)
+  parent: Shimi.ServiceAbstractions.IStateStore
+  isExternal: true
+  href: Shimi.ServiceAbstractions.IStateStore.html#Shimi_ServiceAbstractions_IStateStore_RemoveAsync_System_String_System_Threading_CancellationToken_
+  name: RemoveAsync(string, CancellationToken)
+  nameWithType: IStateStore.RemoveAsync(string, CancellationToken)
+  fullName: Shimi.ServiceAbstractions.IStateStore.RemoveAsync(string, System.Threading.CancellationToken)
+  nameWithType.vb: IStateStore.RemoveAsync(String, CancellationToken)
+  fullName.vb: Shimi.ServiceAbstractions.IStateStore.RemoveAsync(String, System.Threading.CancellationToken)
+  name.vb: RemoveAsync(String, CancellationToken)
+  spec.csharp:
+  - uid: Shimi.ServiceAbstractions.IStateStore.RemoveAsync(System.String,System.Threading.CancellationToken)
+    name: RemoveAsync
+    href: Shimi.ServiceAbstractions.IStateStore.html#Shimi_ServiceAbstractions_IStateStore_RemoveAsync_System_String_System_Threading_CancellationToken_
+  - name: (
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Threading.CancellationToken
+    name: CancellationToken
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  - name: )
+  spec.vb:
+  - uid: Shimi.ServiceAbstractions.IStateStore.RemoveAsync(System.String,System.Threading.CancellationToken)
+    name: RemoveAsync
+    href: Shimi.ServiceAbstractions.IStateStore.html#Shimi_ServiceAbstractions_IStateStore_RemoveAsync_System_String_System_Threading_CancellationToken_
+  - name: (
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Threading.CancellationToken
+    name: CancellationToken
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  - name: )

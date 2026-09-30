@@ -1,0 +1,76 @@
+### YamlMime:ManagedReference
+items:
+- uid: Kouki.Mugura.Dispatcher
+  commentId: N:Kouki.Mugura.Dispatcher
+  id: Kouki.Mugura.Dispatcher
+  children:
+  - Kouki.Mugura.Dispatcher.CommandDispatcher
+  - Kouki.Mugura.Dispatcher.DelegatingRouter
+  - Kouki.Mugura.Dispatcher.ICommandDispatcher
+  - Kouki.Mugura.Dispatcher.IRouter
+  langs:
+  - csharp
+  - vb
+  name: Kouki.Mugura.Dispatcher
+  nameWithType: Kouki.Mugura.Dispatcher
+  fullName: Kouki.Mugura.Dispatcher
+  type: Namespace
+  assemblies:
+  - Kouki.Mugura
+references:
+- uid: Kouki.Mugura.Dispatcher.CommandDispatcher
+  commentId: T:Kouki.Mugura.Dispatcher.CommandDispatcher
+  href: Kouki.Mugura.Dispatcher.CommandDispatcher.html
+  name: CommandDispatcher
+  nameWithType: CommandDispatcher
+  fullName: Kouki.Mugura.Dispatcher.CommandDispatcher
+- uid: Kouki.Mugura.Dispatcher.DelegatingRouter
+  commentId: T:Kouki.Mugura.Dispatcher.DelegatingRouter
+  href: Kouki.Mugura.Dispatcher.DelegatingRouter.html
+  name: DelegatingRouter
+  nameWithType: DelegatingRouter
+  fullName: Kouki.Mugura.Dispatcher.DelegatingRouter
+- uid: Kouki.Mugura.Dispatcher.ICommandDispatcher
+  commentId: T:Kouki.Mugura.Dispatcher.ICommandDispatcher
+  parent: Kouki.Mugura.Dispatcher
+  href: Kouki.Mugura.Dispatcher.ICommandDispatcher.html
+  name: ICommandDispatcher
+  nameWithType: ICommandDispatcher
+  fullName: Kouki.Mugura.Dispatcher.ICommandDispatcher
+- uid: Kouki.Mugura.Dispatcher.IRouter
+  commentId: T:Kouki.Mugura.Dispatcher.IRouter
+  parent: Kouki.Mugura.Dispatcher
+  href: Kouki.Mugura.Dispatcher.IRouter.html
+  name: IRouter
+  nameWithType: IRouter
+  fullName: Kouki.Mugura.Dispatcher.IRouter
+- uid: Kouki.Mugura.Dispatcher
+  commentId: N:Kouki.Mugura.Dispatcher
+  href: Kouki.html
+  name: Kouki.Mugura.Dispatcher
+  nameWithType: Kouki.Mugura.Dispatcher
+  fullName: Kouki.Mugura.Dispatcher
+  spec.csharp:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Dispatcher
+    name: Dispatcher
+    href: Kouki.Mugura.Dispatcher.html
+  spec.vb:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Dispatcher
+    name: Dispatcher
+    href: Kouki.Mugura.Dispatcher.html

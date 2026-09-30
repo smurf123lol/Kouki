@@ -1,0 +1,68 @@
+### YamlMime:ManagedReference
+items:
+- uid: Kouki.Mugura.Validators
+  commentId: N:Kouki.Mugura.Validators
+  id: Kouki.Mugura.Validators
+  children:
+  - Kouki.Mugura.Validators.DataAnnotationsValidator`1
+  - Kouki.Mugura.Validators.ICommandValidator`1
+  langs:
+  - csharp
+  - vb
+  name: Kouki.Mugura.Validators
+  nameWithType: Kouki.Mugura.Validators
+  fullName: Kouki.Mugura.Validators
+  type: Namespace
+  assemblies:
+  - Kouki.Mugura
+references:
+- uid: Kouki.Mugura.Validators.DataAnnotationsValidator`1
+  commentId: T:Kouki.Mugura.Validators.DataAnnotationsValidator`1
+  href: Kouki.Mugura.Validators.DataAnnotationsValidator-1.html
+  name: DataAnnotationsValidator<TCommand>
+  nameWithType: DataAnnotationsValidator<TCommand>
+  fullName: Kouki.Mugura.Validators.DataAnnotationsValidator<TCommand>
+  nameWithType.vb: DataAnnotationsValidator(Of TCommand)
+  fullName.vb: Kouki.Mugura.Validators.DataAnnotationsValidator(Of TCommand)
+  name.vb: DataAnnotationsValidator(Of TCommand)
+  spec.csharp:
+  - uid: Kouki.Mugura.Validators.DataAnnotationsValidator`1
+    name: DataAnnotationsValidator
+    href: Kouki.Mugura.Validators.DataAnnotationsValidator-1.html
+  - name: <
+  - name: TCommand
+  - name: '>'
+  spec.vb:
+  - uid: Kouki.Mugura.Validators.DataAnnotationsValidator`1
+    name: DataAnnotationsValidator
+    href: Kouki.Mugura.Validators.DataAnnotationsValidator-1.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: TCommand
+  - name: )
+- uid: Kouki.Mugura.Validators.ICommandValidator`1
+  commentId: T:Kouki.Mugura.Validators.ICommandValidator`1
+  href: Kouki.Mugura.Validators.ICommandValidator-1.html
+  name: ICommandValidator<TCommand>
+  nameWithType: ICommandValidator<TCommand>
+  fullName: Kouki.Mugura.Validators.ICommandValidator<TCommand>
+  nameWithType.vb: ICommandValidator(Of TCommand)
+  fullName.vb: Kouki.Mugura.Validators.ICommandValidator(Of TCommand)
+  name.vb: ICommandValidator(Of TCommand)
+  spec.csharp:
+  - uid: Kouki.Mugura.Validators.ICommandValidator`1
+    name: ICommandValidator
+    href: Kouki.Mugura.Validators.ICommandValidator-1.html
+  - name: <
+  - name: TCommand
+  - name: '>'
+  spec.vb:
+  - uid: Kouki.Mugura.Validators.ICommandValidator`1
+    name: ICommandValidator
+    href: Kouki.Mugura.Validators.ICommandValidator-1.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: TCommand
+  - name: )

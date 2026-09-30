@@ -1,0 +1,61 @@
+### YamlMime:ManagedReference
+items:
+- uid: Kouki.Mugura.Scope
+  commentId: N:Kouki.Mugura.Scope
+  id: Kouki.Mugura.Scope
+  children:
+  - Kouki.Mugura.Scope.IScopeManager
+  - Kouki.Mugura.Scope.ScopeManager
+  langs:
+  - csharp
+  - vb
+  name: Kouki.Mugura.Scope
+  nameWithType: Kouki.Mugura.Scope
+  fullName: Kouki.Mugura.Scope
+  type: Namespace
+  assemblies:
+  - Kouki.Mugura
+references:
+- uid: Kouki.Mugura.Scope.IScopeManager
+  commentId: T:Kouki.Mugura.Scope.IScopeManager
+  parent: Kouki.Mugura.Scope
+  href: Kouki.Mugura.Scope.IScopeManager.html
+  name: IScopeManager
+  nameWithType: IScopeManager
+  fullName: Kouki.Mugura.Scope.IScopeManager
+- uid: Kouki.Mugura.Scope.ScopeManager
+  commentId: T:Kouki.Mugura.Scope.ScopeManager
+  href: Kouki.Mugura.Scope.ScopeManager.html
+  name: ScopeManager
+  nameWithType: ScopeManager
+  fullName: Kouki.Mugura.Scope.ScopeManager
+- uid: Kouki.Mugura.Scope
+  commentId: N:Kouki.Mugura.Scope
+  href: Kouki.html
+  name: Kouki.Mugura.Scope
+  nameWithType: Kouki.Mugura.Scope
+  fullName: Kouki.Mugura.Scope
+  spec.csharp:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Scope
+    name: Scope
+    href: Kouki.Mugura.Scope.html
+  spec.vb:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Scope
+    name: Scope
+    href: Kouki.Mugura.Scope.html

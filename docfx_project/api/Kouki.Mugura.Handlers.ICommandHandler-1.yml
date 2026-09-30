@@ -1,0 +1,280 @@
+### YamlMime:ManagedReference
+items:
+- uid: Kouki.Mugura.Handlers.ICommandHandler`1
+  commentId: T:Kouki.Mugura.Handlers.ICommandHandler`1
+  id: ICommandHandler`1
+  parent: Kouki.Mugura.Handlers
+  children:
+  - Kouki.Mugura.Handlers.ICommandHandler`1.HandleAsync(`0,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  langs:
+  - csharp
+  - vb
+  name: ICommandHandler<TCommand>
+  nameWithType: ICommandHandler<TCommand>
+  fullName: Kouki.Mugura.Handlers.ICommandHandler<TCommand>
+  type: Interface
+  source:
+    id: ICommandHandler
+    path: F:\Projects\Kouki\Kouki.Mugura\Handlers\ICommandHandler.cs
+    startLine: 12
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Handlers
+  summary: Обработчик команды. Возвращает результат в виде JsonNode (универсальный формат).
+  example: []
+  syntax:
+    content: 'public interface ICommandHandler<in TCommand> where TCommand : ICommand'
+    typeParameters:
+    - id: TCommand
+      description: Тип команды (DTO).
+    content.vb: Public Interface ICommandHandler(Of In TCommand As ICommand)
+  nameWithType.vb: ICommandHandler(Of TCommand)
+  fullName.vb: Kouki.Mugura.Handlers.ICommandHandler(Of TCommand)
+  name.vb: ICommandHandler(Of TCommand)
+- uid: Kouki.Mugura.Handlers.ICommandHandler`1.HandleAsync(`0,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  commentId: M:Kouki.Mugura.Handlers.ICommandHandler`1.HandleAsync(`0,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  id: HandleAsync(`0,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  parent: Kouki.Mugura.Handlers.ICommandHandler`1
+  langs:
+  - csharp
+  - vb
+  name: HandleAsync(TCommand, IExecutionContext?, CancellationToken)
+  nameWithType: ICommandHandler<TCommand>.HandleAsync(TCommand, IExecutionContext?, CancellationToken)
+  fullName: Kouki.Mugura.Handlers.ICommandHandler<TCommand>.HandleAsync(TCommand, Shimi.Context.IExecutionContext?, System.Threading.CancellationToken)
+  type: Method
+  source:
+    id: HandleAsync
+    path: F:\Projects\Kouki\Kouki.Mugura\Handlers\ICommandHandler.cs
+    startLine: 14
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Handlers
+  syntax:
+    content: Task<JsonNode> HandleAsync(TCommand command, IExecutionContext? context = null, CancellationToken cancellationToken = default)
+    parameters:
+    - id: command
+      type: '{TCommand}'
+    - id: context
+      type: Shimi.Context.IExecutionContext
+    - id: cancellationToken
+      type: System.Threading.CancellationToken
+    return:
+      type: System.Threading.Tasks.Task{System.Text.Json.Nodes.JsonNode}
+    content.vb: Function HandleAsync(command As TCommand, context As IExecutionContext = Nothing, cancellationToken As CancellationToken = Nothing) As Task(Of JsonNode)
+  overload: Kouki.Mugura.Handlers.ICommandHandler`1.HandleAsync*
+  nameWithType.vb: ICommandHandler(Of TCommand).HandleAsync(TCommand, IExecutionContext, CancellationToken)
+  fullName.vb: Kouki.Mugura.Handlers.ICommandHandler(Of TCommand).HandleAsync(TCommand, Shimi.Context.IExecutionContext, System.Threading.CancellationToken)
+  name.vb: HandleAsync(TCommand, IExecutionContext, CancellationToken)
+references:
+- uid: Kouki.Mugura.Handlers
+  commentId: N:Kouki.Mugura.Handlers
+  href: Kouki.html
+  name: Kouki.Mugura.Handlers
+  nameWithType: Kouki.Mugura.Handlers
+  fullName: Kouki.Mugura.Handlers
+  spec.csharp:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Handlers
+    name: Handlers
+    href: Kouki.Mugura.Handlers.html
+  spec.vb:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Handlers
+    name: Handlers
+    href: Kouki.Mugura.Handlers.html
+- uid: Kouki.Mugura.Handlers.ICommandHandler`1.HandleAsync*
+  commentId: Overload:Kouki.Mugura.Handlers.ICommandHandler`1.HandleAsync
+  href: Kouki.Mugura.Handlers.ICommandHandler-1.html#Kouki_Mugura_Handlers_ICommandHandler_1_HandleAsync__0_Shimi_Context_IExecutionContext_System_Threading_CancellationToken_
+  name: HandleAsync
+  nameWithType: ICommandHandler<TCommand>.HandleAsync
+  fullName: Kouki.Mugura.Handlers.ICommandHandler<TCommand>.HandleAsync
+  nameWithType.vb: ICommandHandler(Of TCommand).HandleAsync
+  fullName.vb: Kouki.Mugura.Handlers.ICommandHandler(Of TCommand).HandleAsync
+- uid: '{TCommand}'
+  commentId: '!:TCommand'
+  definition: TCommand
+  name: TCommand
+  nameWithType: TCommand
+  fullName: TCommand
+- uid: Shimi.Context.IExecutionContext
+  commentId: T:Shimi.Context.IExecutionContext
+  parent: Shimi.Context
+  href: Shimi.Context.IExecutionContext.html
+  name: IExecutionContext
+  nameWithType: IExecutionContext
+  fullName: Shimi.Context.IExecutionContext
+- uid: System.Threading.CancellationToken
+  commentId: T:System.Threading.CancellationToken
+  parent: System.Threading
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  name: CancellationToken
+  nameWithType: CancellationToken
+  fullName: System.Threading.CancellationToken
+- uid: System.Threading.Tasks.Task{System.Text.Json.Nodes.JsonNode}
+  commentId: T:System.Threading.Tasks.Task{System.Text.Json.Nodes.JsonNode}
+  parent: System.Threading.Tasks
+  definition: System.Threading.Tasks.Task`1
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  name: Task<JsonNode>
+  nameWithType: Task<JsonNode>
+  fullName: System.Threading.Tasks.Task<System.Text.Json.Nodes.JsonNode>
+  nameWithType.vb: Task(Of JsonNode)
+  fullName.vb: System.Threading.Tasks.Task(Of System.Text.Json.Nodes.JsonNode)
+  name.vb: Task(Of JsonNode)
+  spec.csharp:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: <
+  - uid: System.Text.Json.Nodes.JsonNode
+    name: JsonNode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json.nodes.jsonnode
+  - name: '>'
+  spec.vb:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.Text.Json.Nodes.JsonNode
+    name: JsonNode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json.nodes.jsonnode
+  - name: )
+- uid: TCommand
+  name: TCommand
+  nameWithType: TCommand
+  fullName: TCommand
+- uid: Shimi.Context
+  commentId: N:Shimi.Context
+  href: Shimi.html
+  name: Shimi.Context
+  nameWithType: Shimi.Context
+  fullName: Shimi.Context
+  spec.csharp:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.Context
+    name: Context
+    href: Shimi.Context.html
+  spec.vb:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.Context
+    name: Context
+    href: Shimi.Context.html
+- uid: System.Threading
+  commentId: N:System.Threading
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Threading
+  nameWithType: System.Threading
+  fullName: System.Threading
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+- uid: System.Threading.Tasks.Task`1
+  commentId: T:System.Threading.Tasks.Task`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  name: Task<TResult>
+  nameWithType: Task<TResult>
+  fullName: System.Threading.Tasks.Task<TResult>
+  nameWithType.vb: Task(Of TResult)
+  fullName.vb: System.Threading.Tasks.Task(Of TResult)
+  name.vb: Task(Of TResult)
+  spec.csharp:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: <
+  - name: TResult
+  - name: '>'
+  spec.vb:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: TResult
+  - name: )
+- uid: System.Threading.Tasks
+  commentId: N:System.Threading.Tasks
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Threading.Tasks
+  nameWithType: System.Threading.Tasks
+  fullName: System.Threading.Tasks
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  - name: .
+  - uid: System.Threading.Tasks
+    name: Tasks
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  - name: .
+  - uid: System.Threading.Tasks
+    name: Tasks
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks

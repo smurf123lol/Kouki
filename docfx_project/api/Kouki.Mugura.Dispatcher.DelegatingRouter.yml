@@ -1,0 +1,774 @@
+### YamlMime:ManagedReference
+items:
+- uid: Kouki.Mugura.Dispatcher.DelegatingRouter
+  commentId: T:Kouki.Mugura.Dispatcher.DelegatingRouter
+  id: DelegatingRouter
+  parent: Kouki.Mugura.Dispatcher
+  children:
+  - Kouki.Mugura.Dispatcher.DelegatingRouter.#ctor(Kouki.Mugura.Dispatcher.IRouter)
+  - Kouki.Mugura.Dispatcher.DelegatingRouter.InnerRouter
+  - Kouki.Mugura.Dispatcher.DelegatingRouter.RouteAsync(System.String,System.Text.Json.Nodes.JsonNode,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  langs:
+  - csharp
+  - vb
+  name: DelegatingRouter
+  nameWithType: DelegatingRouter
+  fullName: Kouki.Mugura.Dispatcher.DelegatingRouter
+  type: Class
+  source:
+    id: DelegatingRouter
+    path: F:\Projects\Kouki\Kouki.Mugura\Dispatcher\DelegatingRouter.cs
+    startLine: 34
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Dispatcher
+  summary: Базовый класс для роутеров-обёрток, которые делегируют выполнение другому роутеру.
+  remarks: >-
+    Используйте этот класс, когда ваш роутер должен выполнить дополнительную обработку 
+
+    (например, классификацию интента, кеширование, удалённый вызов), а затем передать управление 
+
+    внутреннему роутеру (обычно <xref href="StaticRouter" data-throw-if-not-resolved="false"></xref>).
+  example:
+  - >-
+    <pre><code class="lang-csharp">public class IntentRouter : DelegatingRouter
+
+    {
+        private readonly IIntentClassifier _classifier;
+
+        public IntentRouter(IRouter innerRouter, IIntentClassifier classifier) 
+            : base(innerRouter) 
+        {
+            _classifier = classifier;
+        }
+
+        public override async Task&lt;JsonNode&gt; RouteAsync(string commandName, JsonNode? argument, CancellationToken ct)
+        {
+            // Преобразуем голосовую фразу в имя команды и аргументы
+            var (name, args) = await _classifier.ClassifyAndExtract(commandName, ct);
+            return await base.RouteAsync(name, args, ct);
+        }
+    }</code></pre>
+  syntax:
+    content: 'public abstract class DelegatingRouter : IRouter'
+    content.vb: Public MustInherit Class DelegatingRouter Implements IRouter
+  inheritance:
+  - System.Object
+  implements:
+  - Kouki.Mugura.Dispatcher.IRouter
+  inheritedMembers:
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.ToString
+- uid: Kouki.Mugura.Dispatcher.DelegatingRouter.InnerRouter
+  commentId: F:Kouki.Mugura.Dispatcher.DelegatingRouter.InnerRouter
+  id: InnerRouter
+  parent: Kouki.Mugura.Dispatcher.DelegatingRouter
+  langs:
+  - csharp
+  - vb
+  name: InnerRouter
+  nameWithType: DelegatingRouter.InnerRouter
+  fullName: Kouki.Mugura.Dispatcher.DelegatingRouter.InnerRouter
+  type: Field
+  source:
+    id: InnerRouter
+    path: F:\Projects\Kouki\Kouki.Mugura\Dispatcher\DelegatingRouter.cs
+    startLine: 39
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Dispatcher
+  summary: 'Внутренний роутер, которому делегируется выполнение. TODO: переписать комментарии под context'
+  example: []
+  syntax:
+    content: protected readonly IRouter InnerRouter
+    return:
+      type: Kouki.Mugura.Dispatcher.IRouter
+    content.vb: Protected ReadOnly InnerRouter As IRouter
+- uid: Kouki.Mugura.Dispatcher.DelegatingRouter.#ctor(Kouki.Mugura.Dispatcher.IRouter)
+  commentId: M:Kouki.Mugura.Dispatcher.DelegatingRouter.#ctor(Kouki.Mugura.Dispatcher.IRouter)
+  id: '#ctor(Kouki.Mugura.Dispatcher.IRouter)'
+  parent: Kouki.Mugura.Dispatcher.DelegatingRouter
+  langs:
+  - csharp
+  - vb
+  name: DelegatingRouter(IRouter)
+  nameWithType: DelegatingRouter.DelegatingRouter(IRouter)
+  fullName: Kouki.Mugura.Dispatcher.DelegatingRouter.DelegatingRouter(Kouki.Mugura.Dispatcher.IRouter)
+  type: Constructor
+  source:
+    id: .ctor
+    path: F:\Projects\Kouki\Kouki.Mugura\Dispatcher\DelegatingRouter.cs
+    startLine: 46
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Dispatcher
+  summary: Инициализирует новый экземпляр класса <xref href="Kouki.Mugura.Dispatcher.DelegatingRouter" data-throw-if-not-resolved="false"></xref>.
+  example: []
+  syntax:
+    content: protected DelegatingRouter(IRouter innerRouter)
+    parameters:
+    - id: innerRouter
+      type: Kouki.Mugura.Dispatcher.IRouter
+      description: Внутренний роутер, которому будет передано выполнение.
+    content.vb: Protected Sub New(innerRouter As IRouter)
+  overload: Kouki.Mugura.Dispatcher.DelegatingRouter.#ctor*
+  exceptions:
+  - type: System.ArgumentNullException
+    commentId: T:System.ArgumentNullException
+    description: Если <code class="paramref">innerRouter</code> равен null.
+  nameWithType.vb: DelegatingRouter.New(IRouter)
+  fullName.vb: Kouki.Mugura.Dispatcher.DelegatingRouter.New(Kouki.Mugura.Dispatcher.IRouter)
+  name.vb: New(IRouter)
+- uid: Kouki.Mugura.Dispatcher.DelegatingRouter.RouteAsync(System.String,System.Text.Json.Nodes.JsonNode,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  commentId: M:Kouki.Mugura.Dispatcher.DelegatingRouter.RouteAsync(System.String,System.Text.Json.Nodes.JsonNode,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  id: RouteAsync(System.String,System.Text.Json.Nodes.JsonNode,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  parent: Kouki.Mugura.Dispatcher.DelegatingRouter
+  langs:
+  - csharp
+  - vb
+  name: RouteAsync(string, JsonNode?, IExecutionContext?, CancellationToken)
+  nameWithType: DelegatingRouter.RouteAsync(string, JsonNode?, IExecutionContext?, CancellationToken)
+  fullName: Kouki.Mugura.Dispatcher.DelegatingRouter.RouteAsync(string, System.Text.Json.Nodes.JsonNode?, Shimi.Context.IExecutionContext?, System.Threading.CancellationToken)
+  type: Method
+  source:
+    id: RouteAsync
+    path: F:\Projects\Kouki\Kouki.Mugura\Dispatcher\DelegatingRouter.cs
+    startLine: 58
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Dispatcher
+  summary: Выполняет маршрутизацию команды. По умолчанию делегирует вызов внутреннему роутеру.
+  example: []
+  syntax:
+    content: public virtual Task<JsonNode> RouteAsync(string commandName, JsonNode? argument, IExecutionContext? context = null, CancellationToken cancellationToken = default)
+    parameters:
+    - id: commandName
+      type: System.String
+      description: Имя команды (или фраза для IntentRouter).
+    - id: argument
+      type: System.Text.Json.Nodes.JsonNode
+      description: Аргументы команды в формате JsonNode.
+    - id: context
+      type: Shimi.Context.IExecutionContext
+    - id: cancellationToken
+      type: System.Threading.CancellationToken
+      description: Токен отмены.
+    return:
+      type: System.Threading.Tasks.Task{System.Text.Json.Nodes.JsonNode}
+      description: Результат выполнения команды в виде JsonNode.
+    content.vb: Public Overridable Function RouteAsync(commandName As String, argument As JsonNode, context As IExecutionContext = Nothing, cancellationToken As CancellationToken = Nothing) As Task(Of JsonNode)
+  overload: Kouki.Mugura.Dispatcher.DelegatingRouter.RouteAsync*
+  implements:
+  - Kouki.Mugura.Dispatcher.IRouter.RouteAsync(System.String,System.Text.Json.Nodes.JsonNode,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  nameWithType.vb: DelegatingRouter.RouteAsync(String, JsonNode, IExecutionContext, CancellationToken)
+  fullName.vb: Kouki.Mugura.Dispatcher.DelegatingRouter.RouteAsync(String, System.Text.Json.Nodes.JsonNode, Shimi.Context.IExecutionContext, System.Threading.CancellationToken)
+  name.vb: RouteAsync(String, JsonNode, IExecutionContext, CancellationToken)
+references:
+- uid: StaticRouter
+  commentId: T:StaticRouter
+  href: StaticRouter.html
+  name: StaticRouter
+  nameWithType: StaticRouter
+  fullName: StaticRouter
+- uid: Kouki.Mugura.Dispatcher
+  commentId: N:Kouki.Mugura.Dispatcher
+  href: Kouki.html
+  name: Kouki.Mugura.Dispatcher
+  nameWithType: Kouki.Mugura.Dispatcher
+  fullName: Kouki.Mugura.Dispatcher
+  spec.csharp:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Dispatcher
+    name: Dispatcher
+    href: Kouki.Mugura.Dispatcher.html
+  spec.vb:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Dispatcher
+    name: Dispatcher
+    href: Kouki.Mugura.Dispatcher.html
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: Kouki.Mugura.Dispatcher.IRouter
+  commentId: T:Kouki.Mugura.Dispatcher.IRouter
+  parent: Kouki.Mugura.Dispatcher
+  href: Kouki.Mugura.Dispatcher.IRouter.html
+  name: IRouter
+  nameWithType: IRouter
+  fullName: Kouki.Mugura.Dispatcher.IRouter
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  name: Equals(object)
+  nameWithType: object.Equals(object)
+  fullName: object.Equals(object)
+  nameWithType.vb: Object.Equals(Object)
+  fullName.vb: Object.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  name: GetHashCode()
+  nameWithType: object.GetHashCode()
+  fullName: object.GetHashCode()
+  nameWithType.vb: Object.GetHashCode()
+  fullName.vb: Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  name: MemberwiseClone()
+  nameWithType: object.MemberwiseClone()
+  fullName: object.MemberwiseClone()
+  nameWithType.vb: Object.MemberwiseClone()
+  fullName.vb: Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  name: ToString()
+  nameWithType: object.ToString()
+  fullName: object.ToString()
+  nameWithType.vb: Object.ToString()
+  fullName.vb: Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: Kouki.Mugura.Dispatcher.DelegatingRouter
+  commentId: T:Kouki.Mugura.Dispatcher.DelegatingRouter
+  href: Kouki.Mugura.Dispatcher.DelegatingRouter.html
+  name: DelegatingRouter
+  nameWithType: DelegatingRouter
+  fullName: Kouki.Mugura.Dispatcher.DelegatingRouter
+- uid: System.ArgumentNullException
+  commentId: T:System.ArgumentNullException
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.argumentnullexception
+  name: ArgumentNullException
+  nameWithType: ArgumentNullException
+  fullName: System.ArgumentNullException
+- uid: Kouki.Mugura.Dispatcher.DelegatingRouter.#ctor*
+  commentId: Overload:Kouki.Mugura.Dispatcher.DelegatingRouter.#ctor
+  href: Kouki.Mugura.Dispatcher.DelegatingRouter.html#Kouki_Mugura_Dispatcher_DelegatingRouter__ctor_Kouki_Mugura_Dispatcher_IRouter_
+  name: DelegatingRouter
+  nameWithType: DelegatingRouter.DelegatingRouter
+  fullName: Kouki.Mugura.Dispatcher.DelegatingRouter.DelegatingRouter
+  nameWithType.vb: DelegatingRouter.New
+  fullName.vb: Kouki.Mugura.Dispatcher.DelegatingRouter.New
+  name.vb: New
+- uid: Kouki.Mugura.Dispatcher.DelegatingRouter.RouteAsync*
+  commentId: Overload:Kouki.Mugura.Dispatcher.DelegatingRouter.RouteAsync
+  href: Kouki.Mugura.Dispatcher.DelegatingRouter.html#Kouki_Mugura_Dispatcher_DelegatingRouter_RouteAsync_System_String_System_Text_Json_Nodes_JsonNode_Shimi_Context_IExecutionContext_System_Threading_CancellationToken_
+  name: RouteAsync
+  nameWithType: DelegatingRouter.RouteAsync
+  fullName: Kouki.Mugura.Dispatcher.DelegatingRouter.RouteAsync
+- uid: Kouki.Mugura.Dispatcher.IRouter.RouteAsync(System.String,System.Text.Json.Nodes.JsonNode,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  commentId: M:Kouki.Mugura.Dispatcher.IRouter.RouteAsync(System.String,System.Text.Json.Nodes.JsonNode,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+  parent: Kouki.Mugura.Dispatcher.IRouter
+  isExternal: true
+  href: Kouki.Mugura.Dispatcher.IRouter.html#Kouki_Mugura_Dispatcher_IRouter_RouteAsync_System_String_System_Text_Json_Nodes_JsonNode_Shimi_Context_IExecutionContext_System_Threading_CancellationToken_
+  name: RouteAsync(string, JsonNode, IExecutionContext, CancellationToken)
+  nameWithType: IRouter.RouteAsync(string, JsonNode, IExecutionContext, CancellationToken)
+  fullName: Kouki.Mugura.Dispatcher.IRouter.RouteAsync(string, System.Text.Json.Nodes.JsonNode, Shimi.Context.IExecutionContext, System.Threading.CancellationToken)
+  nameWithType.vb: IRouter.RouteAsync(String, JsonNode, IExecutionContext, CancellationToken)
+  fullName.vb: Kouki.Mugura.Dispatcher.IRouter.RouteAsync(String, System.Text.Json.Nodes.JsonNode, Shimi.Context.IExecutionContext, System.Threading.CancellationToken)
+  name.vb: RouteAsync(String, JsonNode, IExecutionContext, CancellationToken)
+  spec.csharp:
+  - uid: Kouki.Mugura.Dispatcher.IRouter.RouteAsync(System.String,System.Text.Json.Nodes.JsonNode,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+    name: RouteAsync
+    href: Kouki.Mugura.Dispatcher.IRouter.html#Kouki_Mugura_Dispatcher_IRouter_RouteAsync_System_String_System_Text_Json_Nodes_JsonNode_Shimi_Context_IExecutionContext_System_Threading_CancellationToken_
+  - name: (
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Text.Json.Nodes.JsonNode
+    name: JsonNode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json.nodes.jsonnode
+  - name: ','
+  - name: " "
+  - uid: Shimi.Context.IExecutionContext
+    name: IExecutionContext
+    href: Shimi.Context.IExecutionContext.html
+  - name: ','
+  - name: " "
+  - uid: System.Threading.CancellationToken
+    name: CancellationToken
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  - name: )
+  spec.vb:
+  - uid: Kouki.Mugura.Dispatcher.IRouter.RouteAsync(System.String,System.Text.Json.Nodes.JsonNode,Shimi.Context.IExecutionContext,System.Threading.CancellationToken)
+    name: RouteAsync
+    href: Kouki.Mugura.Dispatcher.IRouter.html#Kouki_Mugura_Dispatcher_IRouter_RouteAsync_System_String_System_Text_Json_Nodes_JsonNode_Shimi_Context_IExecutionContext_System_Threading_CancellationToken_
+  - name: (
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Text.Json.Nodes.JsonNode
+    name: JsonNode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json.nodes.jsonnode
+  - name: ','
+  - name: " "
+  - uid: Shimi.Context.IExecutionContext
+    name: IExecutionContext
+    href: Shimi.Context.IExecutionContext.html
+  - name: ','
+  - name: " "
+  - uid: System.Threading.CancellationToken
+    name: CancellationToken
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  - name: )
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String
+- uid: System.Text.Json.Nodes.JsonNode
+  commentId: T:System.Text.Json.Nodes.JsonNode
+  parent: System.Text.Json.Nodes
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.text.json.nodes.jsonnode
+  name: JsonNode
+  nameWithType: JsonNode
+  fullName: System.Text.Json.Nodes.JsonNode
+- uid: Shimi.Context.IExecutionContext
+  commentId: T:Shimi.Context.IExecutionContext
+  parent: Shimi.Context
+  href: Shimi.Context.IExecutionContext.html
+  name: IExecutionContext
+  nameWithType: IExecutionContext
+  fullName: Shimi.Context.IExecutionContext
+- uid: System.Threading.CancellationToken
+  commentId: T:System.Threading.CancellationToken
+  parent: System.Threading
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  name: CancellationToken
+  nameWithType: CancellationToken
+  fullName: System.Threading.CancellationToken
+- uid: System.Threading.Tasks.Task{System.Text.Json.Nodes.JsonNode}
+  commentId: T:System.Threading.Tasks.Task{System.Text.Json.Nodes.JsonNode}
+  parent: System.Threading.Tasks
+  definition: System.Threading.Tasks.Task`1
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  name: Task<JsonNode>
+  nameWithType: Task<JsonNode>
+  fullName: System.Threading.Tasks.Task<System.Text.Json.Nodes.JsonNode>
+  nameWithType.vb: Task(Of JsonNode)
+  fullName.vb: System.Threading.Tasks.Task(Of System.Text.Json.Nodes.JsonNode)
+  name.vb: Task(Of JsonNode)
+  spec.csharp:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: <
+  - uid: System.Text.Json.Nodes.JsonNode
+    name: JsonNode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json.nodes.jsonnode
+  - name: '>'
+  spec.vb:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.Text.Json.Nodes.JsonNode
+    name: JsonNode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json.nodes.jsonnode
+  - name: )
+- uid: System.Text.Json.Nodes
+  commentId: N:System.Text.Json.Nodes
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Text.Json.Nodes
+  nameWithType: System.Text.Json.Nodes
+  fullName: System.Text.Json.Nodes
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Text
+    name: Text
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text
+  - name: .
+  - uid: System.Text.Json
+    name: Json
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json
+  - name: .
+  - uid: System.Text.Json.Nodes
+    name: Nodes
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json.nodes
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Text
+    name: Text
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text
+  - name: .
+  - uid: System.Text.Json
+    name: Json
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json
+  - name: .
+  - uid: System.Text.Json.Nodes
+    name: Nodes
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json.nodes
+- uid: Shimi.Context
+  commentId: N:Shimi.Context
+  href: Shimi.html
+  name: Shimi.Context
+  nameWithType: Shimi.Context
+  fullName: Shimi.Context
+  spec.csharp:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.Context
+    name: Context
+    href: Shimi.Context.html
+  spec.vb:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.Context
+    name: Context
+    href: Shimi.Context.html
+- uid: System.Threading
+  commentId: N:System.Threading
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Threading
+  nameWithType: System.Threading
+  fullName: System.Threading
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+- uid: System.Threading.Tasks.Task`1
+  commentId: T:System.Threading.Tasks.Task`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  name: Task<TResult>
+  nameWithType: Task<TResult>
+  fullName: System.Threading.Tasks.Task<TResult>
+  nameWithType.vb: Task(Of TResult)
+  fullName.vb: System.Threading.Tasks.Task(Of TResult)
+  name.vb: Task(Of TResult)
+  spec.csharp:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: <
+  - name: TResult
+  - name: '>'
+  spec.vb:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: TResult
+  - name: )
+- uid: System.Threading.Tasks
+  commentId: N:System.Threading.Tasks
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Threading.Tasks
+  nameWithType: System.Threading.Tasks
+  fullName: System.Threading.Tasks
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  - name: .
+  - uid: System.Threading.Tasks
+    name: Tasks
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  - name: .
+  - uid: System.Threading.Tasks
+    name: Tasks
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks

@@ -1,0 +1,83 @@
+### YamlMime:ManagedReference
+items:
+- uid: Shimi.ServiceAbstractions
+  commentId: N:Shimi.ServiceAbstractions
+  id: Shimi.ServiceAbstractions
+  children:
+  - Shimi.ServiceAbstractions.IFileSystem
+  - Shimi.ServiceAbstractions.IJsonFileSystem
+  - Shimi.ServiceAbstractions.IStateStore
+  - Shimi.ServiceAbstractions.ITelemetryLogger
+  - Shimi.ServiceAbstractions.ITerminal
+  - Shimi.ServiceAbstractions.ITextFileSystem
+  langs:
+  - csharp
+  - vb
+  name: Shimi.ServiceAbstractions
+  nameWithType: Shimi.ServiceAbstractions
+  fullName: Shimi.ServiceAbstractions
+  type: Namespace
+  assemblies:
+  - Shimi
+references:
+- uid: Shimi.ServiceAbstractions.IFileSystem
+  commentId: T:Shimi.ServiceAbstractions.IFileSystem
+  parent: Shimi.ServiceAbstractions
+  href: Shimi.ServiceAbstractions.IFileSystem.html
+  name: IFileSystem
+  nameWithType: IFileSystem
+  fullName: Shimi.ServiceAbstractions.IFileSystem
+- uid: Shimi.ServiceAbstractions.IJsonFileSystem
+  commentId: T:Shimi.ServiceAbstractions.IJsonFileSystem
+  href: Shimi.ServiceAbstractions.IJsonFileSystem.html
+  name: IJsonFileSystem
+  nameWithType: IJsonFileSystem
+  fullName: Shimi.ServiceAbstractions.IJsonFileSystem
+- uid: Shimi.ServiceAbstractions.IStateStore
+  commentId: T:Shimi.ServiceAbstractions.IStateStore
+  parent: Shimi.ServiceAbstractions
+  href: Shimi.ServiceAbstractions.IStateStore.html
+  name: IStateStore
+  nameWithType: IStateStore
+  fullName: Shimi.ServiceAbstractions.IStateStore
+- uid: Shimi.ServiceAbstractions.ITelemetryLogger
+  commentId: T:Shimi.ServiceAbstractions.ITelemetryLogger
+  href: Shimi.ServiceAbstractions.ITelemetryLogger.html
+  name: ITelemetryLogger
+  nameWithType: ITelemetryLogger
+  fullName: Shimi.ServiceAbstractions.ITelemetryLogger
+- uid: Shimi.ServiceAbstractions.ITerminal
+  commentId: T:Shimi.ServiceAbstractions.ITerminal
+  parent: Shimi.ServiceAbstractions
+  href: Shimi.ServiceAbstractions.ITerminal.html
+  name: ITerminal
+  nameWithType: ITerminal
+  fullName: Shimi.ServiceAbstractions.ITerminal
+- uid: Shimi.ServiceAbstractions.ITextFileSystem
+  commentId: T:Shimi.ServiceAbstractions.ITextFileSystem
+  href: Shimi.ServiceAbstractions.ITextFileSystem.html
+  name: ITextFileSystem
+  nameWithType: ITextFileSystem
+  fullName: Shimi.ServiceAbstractions.ITextFileSystem
+- uid: Shimi.ServiceAbstractions
+  commentId: N:Shimi.ServiceAbstractions
+  href: Shimi.html
+  name: Shimi.ServiceAbstractions
+  nameWithType: Shimi.ServiceAbstractions
+  fullName: Shimi.ServiceAbstractions
+  spec.csharp:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.ServiceAbstractions
+    name: ServiceAbstractions
+    href: Shimi.ServiceAbstractions.html
+  spec.vb:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.ServiceAbstractions
+    name: ServiceAbstractions
+    href: Shimi.ServiceAbstractions.html

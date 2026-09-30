@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title> </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content=" ">
+      
+      
+      <link rel="icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../public/docfx.min.css">
+      <link rel="stylesheet" href="../public/main.css">
+      <meta name="docfx:navrel" content="../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      
+      
+      
+      
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../index.html">
+            <img id="logo" class="svg" src="../logo.svg" alt="">
+            
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+
+<h3 id="1-общая-концепция">1. Общая концепция</h3>
+<p>Kouki — это модульная платформа для оркестрации команд, предназначенная для встраивания в AI-агенты, голосовые ассистенты, CLI-утилиты, веб-сервисы и автоматизированные системы. Она состоит из трёх основных уровней:</p>
+<ul>
+<li><strong>Mugura</strong> — чистое ядро оркестрации. Регистрирует команды через атрибуты, управляет их жизненным циклом, вызывает хендлеры в изолированных DI-скоупах. Не зависит от окружения (файловая система, терминал, сеть).</li>
+<li><strong>Shimi</strong> — слой абстракций и адаптеров. Определяет интерфейсы для работы с окружением (файловая система, терминал, хранилище, логирование) и предоставляет механизм контекстов выполнения (<code>IExecutionContext</code>, <code>IContextRegistry</code>). Разделён на <code>Abstractions</code> (только интерфейсы) и <code>Context</code> (реализации реестра и базового контекста).</li>
+<li><strong>Ubusuna</strong> — библиотека расширений, содержащая готовые адаптеры (консольные, HTTP, FTP), конкретные контексты, дополнительные роутеры (<code>RemoteRouter</code>, <code>MushiRouter</code>, <code>DelegatingRouter</code>) и фабрики. Подключается одной строкой через <code>AddUbusuna()</code>. //todo: delegatingrouter по находится в mugura</li>
+</ul>
+<p>Такое разделение обеспечивает гибкость, переиспользуемость и тестируемость.</p>
+<hr>
+<h3 id="2-mugura-ядро">2. Mugura (ядро)</h3>
+<h4 id="21-назначение">2.1. Назначение</h4>
+<ul>
+<li>Регистрация команд через атрибут <code>[Command]</code> на классах-хендлерах.</li>
+<li>Оркестрация вызова: от имени команды до выполнения хендлера.</li>
+<li>Управление временем жизни: каждый вызов выполняется в своём DI-скоупе (изоляция зависимостей).</li>
+<li>Единый формат ввода/вывода: входной аргумент — <code>JsonNode?</code>, выход — <code>JsonNode</code> (может быть любым JSON-совместимым значением). Внутри ядра аргумент десериализуется в строго типизированный DTO команды.</li>
+<li>Базовая валидация DTO через <code>System.ComponentModel.DataAnnotations</code> (с возможностью расширения кастомными атрибутами из внешних библиотек).</li>
+</ul>
+<h4 id="22-ключевые-компоненты">2.2. Ключевые компоненты</h4>
+<ul>
+<li><strong><code>CommandAttribute</code></strong> — применяется к хендлеру. Содержит имя команды, описание, категорию (битовые флаги), флаг подтверждения и пример.</li>
+<li><strong><code>CommandRegistry</code></strong> — сканирует сборки, находит хендлеры с атрибутом, извлекает DTO команды, собирает правила валидации из атрибутов свойств DTO. Хранит записи <code>CommandEntry</code> в словарях по имени и по типу DTO.</li>
+<li><strong><code>CommandEntry</code></strong> — запись с полями: <code>CommandType</code>, <code>HandlerType</code>, <code>Name</code>, <code>Description</code>, <code>Category</code>, <code>ValidationRules</code>, <code>Example</code>.</li>
+<li><strong><code>ICommandFactory</code></strong> — фабрика для создания DTO из <code>JsonNode</code>. Содержит generic-метод <code>CreateCommand&lt;TCommand&gt;</code>; сама фабрика не generic. Использует <code>JsonSerializer.Deserialize</code> для десериализации.</li>
+<li><strong><code>ICommandValidator&lt;TCommand&gt;</code></strong> — интерфейс валидатора. Реализация по умолчанию — <code>DataAnnotationsValidator&lt;TCommand&gt;</code>, использующая правила из <code>CommandEntry</code> (полученные через <code>CommandRegistry</code>). Может быть переопределена для конкретной команды через DI.</li>
+<li><strong><code>IScopeManager</code></strong> / <strong><code>ScopeManager</code></strong> — управляет созданием DI-скоупов для каждого вызова команды.</li>
+<li><strong><code>ICommandDispatcher</code></strong> — generic-метод <code>SendAsync&lt;TCommand&gt;</code>, внутри скоупа получает хендлер <code>ICommandHandler&lt;TCommand&gt;</code> и вызывает его.</li>
+<li><strong><code>IRouter</code></strong> — интерфейс для маршрутизации. Основная реализация — <code>StaticRouter</code>.</li>
+<li><strong><code>StaticRouter</code></strong> — локальный исполнительный роутер. По имени команды находит <code>CommandEntry</code>, создаёт DTO через фабрику, применяет валидатор (если зарегистрирован), затем вызывает диспетчер. Кеширует делегаты для вызова валидатора и диспетчера по типу команды для производительности.</li>
+<li><strong><code>DelegatingRouter</code></strong> — абстрактный базовый класс для роутеров-обёрток, которые делегируют выполнение внутреннему роутеру. Упрощает создание новых типов роутеров (например, <code>IntentRouter</code>, <code>RemoteRouter</code>).</li>
+<li><strong>Метод расширения <code>AddMugura</code></strong> — регистрирует все компоненты ядра в DI (синглтоны), сканирует сборки и регистрирует хендлеры как Scoped.</li>
+</ul>
+<h4 id="23-поток-вызова-статический-роутер">2.3. Поток вызова (статический роутер)</h4>
+<ol>
+<li>Внешний код вызывает <code>IRouter.RouteAsync(commandName, argument, context?)</code>.</li>
+<li><code>StaticRouter</code> получает <code>CommandEntry</code> из <code>CommandRegistry</code>.</li>
+<li>Фабрика создаёт DTO команды из <code>JsonNode</code>.</li>
+<li>Если зарегистрирован валидатор, он проверяет DTO; при ошибке возвращается <code>JsonNode</code> с ошибкой.</li>
+<li>Диспетчер создаёт скоуп, получает хендлер и вызывает <code>HandleAsync</code>.</li>
+<li>Хендлер выполняет бизнес-логику, используя контекст (если передан) и сервисы из DI.</li>
+<li>Результат (JsonNode) возвращается обратно.</li>
+</ol>
+<hr>
+<h3 id="3-shimi-абстракции-и-контексты">3. Shimi (абстракции и контексты)</h3>
+<h4 id="31-абстракции-shimiabstractions">3.1. Абстракции (Shimi.Abstractions)</h4>
+<p>Проект содержит только интерфейсы, без реализаций. Основные из них:</p>
+<ul>
+<li><strong><code>IFileSystem</code></strong> — базовый интерфейс для работы с байтовыми данными: <code>ReadBytesAsync</code>, <code>WriteBytesAsync</code>, <code>ExistsAsync</code>, <code>GetTreeAsync</code>.</li>
+<li><strong><code>ITextFileSystem</code></strong> — расширяет <code>IFileSystem</code>, добавляет методы для текстовых файлов (<code>ReadTextAsync</code>, <code>WriteTextAsync</code>, <code>AppendTextAsync</code>) с параметром <code>Encoding</code>.</li>
+<li><strong><code>IJsonFileSystem</code></strong> — расширяет <code>IFileSystem</code>, добавляет методы для JSON-сериализации (<code>ReadJsonAsync</code>, <code>WriteJsonAsync</code>) с параметрами <code>JsonSerializerOptions</code>.</li>
+<li><strong><code>IStateStore</code></strong> — хранилище ключ-значение для состояния.</li>
+<li><strong><code>ITelemetryLogger</code></strong> — логирование событий и ошибок.</li>
+<li><strong><code>IExecutionContext</code></strong> — контекст выполнения, содержащий конкретные реализации <code>IFileSystem</code>, <code>ITerminal</code>, <code>IStateStore</code> и доступ к дополнительным сервисам через <code>GetService&lt;T&gt;()</code>. Имеет свойство <code>Name</code> для идентификации.</li>
+<li><strong><code>IContextRegistry</code></strong> — реестр предопределённых контекстов. Позволяет регистрировать контексты по имени, устанавливать и получать контекст по умолчанию.</li>
+</ul>
+<h4 id="32-контексты-shimicontext">3.2. Контексты (Shimi.Context)</h4>
+<p>//todo
+Содержит реализации:</p>
+<ul>
+<li><strong><code>ContextRegistry</code></strong> — синглтон, хранит словарь контекстов. Методы: <code>RegisterContext</code>, <code>GetContext</code>, <code>SetDefaultContext</code> (по экземпляру или по имени), <code>GetDefaultContext</code>.</li>
+<li><strong><code>BaseExecutionContext</code></strong> — абстрактный базовый класс для контекстов. Хранит имя и словарь дополнительных сервисов. Предоставляет реализацию <code>GetService&lt;T&gt;()</code>. Конкретные контексты должны переопределять свойства <code>FileSystem</code>, <code>Terminal</code>, <code>StateStore</code>.</li>
+<li><strong><code>InMemoryStateStore</code></strong> — базовая реализация <code>IStateStore</code> в памяти (опционально).</li>
+<li><strong>Метод расширения <code>AddShimiContext</code></strong> — регистрирует <code>IContextRegistry</code> и <code>IStateStore</code> (можно переопределить).</li>
+</ul>
+<p>Важно: <code>Shimi.Context</code> <strong>не создаёт</strong> дефолтный контекст автоматически. Приложение должно явно установить его через <code>SetDefaultContext</code>.</p>
+<hr>
+<h3 id="4-ubusuna-библиотека-расширений">4. Ubusuna (библиотека расширений)</h3>
+<p><code>Kouki.Ubusuna</code> предоставляет готовые реализации адаптеров, контекстов, роутеров и фабрик, чтобы упростить подключение и настройку.</p>
+<h4 id="41-адаптеры">4.1. Адаптеры</h4>
+<p>//todo</p>
+<ul>
+<li><strong><code>ConsoleFileSystem</code></strong> — реализует <code>IFileSystem</code> (и опционально <code>ITextFileSystem</code>, <code>IJsonFileSystem</code>) для работы с локальной файловой системой через стандартные методы <code>System.IO</code>. Поддерживает работу с корневым каталогом.</li>
+<li><strong><code>ConsoleTerminal</code></strong> — реализует <code>ITerminal</code>, запускает внешние процессы через <code>System.Diagnostics.Process</code>.</li>
+<li><strong><code>HttpFileSystem</code></strong>, <strong><code>FtpFileSystem</code></strong> — (планируются) для работы с удалёнными файловыми хранилищами.</li>
+</ul>
+<h4 id="42-контексты">4.2. Контексты</h4>
+<ul>
+<li><strong><code>ConsoleExecutionContext</code></strong> — конкретный контекст с консольными адаптерами (<code>ConsoleFileSystem</code>, <code>ConsoleTerminal</code>, <code>InMemoryStateStore</code>).</li>
+<li><strong><code>ObsidianExecutionContext</code></strong> — (планируется) для интеграции с Obsidian API.</li>
+</ul>
+<h4 id="43-роутеры">4.3. Роутеры</h4>
+<p>//todo</p>
+<ul>
+<li><strong><code>DelegatingRouter</code></strong> — абстрактный базовый класс (может быть перенесён в ядро или оставлен в Ubusuna). Реализует <code>IRouter</code>, принимает внутренний роутер в конструкторе и делегирует ему выполнение. Наследники могут переопределить логику.</li>
+<li><strong><code>RemoteRouter</code></strong> — отправляет команды по сети (HTTP, gRPC) на удалённый сервер.</li>
+<li><strong><code>MushiRouter</code></strong> — композитный роутер, последовательно пробует список внутренних роутеров до первого успешного выполнения.</li>
+</ul>
+<h4 id="44-фабрики-и-di">4.4. Фабрики и DI</h4>
+<ul>
+<li><strong><code>AddUbusuna(this IServiceCollection, Action&lt;UbusunaOptions&gt;?)</code></strong> — регистрирует все стандартные адаптеры, контексты и роутеры. Позволяет через опции выбрать, какие адаптеры использовать, зарегистрировать предопределённые контексты и настроить роутинг.</li>
+</ul>
+<p>Пример использования:</p>
+<pre><code class="lang-csharp">services.AddShimiContext();
+services.AddUbusuna(options =&gt;
+{
+    options.UseConsoleAdapters();
+    options.SetDefaultContext(&quot;console&quot;);
+    options.AddContext(&quot;admin&quot;, adminFs, adminTerminal);
+    options.UseMushiRouter(); // или UseRemoteRouter, UseStaticRouter
+});
+</code></pre>
+<hr>
+<h3 id="5-взаимодействие-с-голосовым-ассистентом-intentrouter">5. Взаимодействие с голосовым ассистентом (IntentRouter)</h3>
+<p>//TODO
+<code>IntentRouter</code> — это внешняя реализация <code>IRouter</code>, живущая в приложении (например, в <code>Kagedama.Voice</code>). Она использует каскадную систему определения интента:</p>
+<ul>
+<li><strong>ML.NET / fastText</strong> — быстрый уровень, ранжирует все интенты, выдаёт топ-10 кандидатов.</li>
+<li><strong>BERT / Sentence-BERT</strong> — точный уровень, переранжирует кандидатов и выбирает лучший с оценкой уверенности.</li>
+<li><strong>LLM (GPT) или уточнение у пользователя</strong> — резервный уровень, если уверенность BERT ниже порога.</li>
+</ul>
+<p><code>IntentRouter</code> извлекает слоты (аргументы) через Cross-Encoder или NER-модель, формирует <code>JsonNode</code> с аргументами и вызывает внутренний роутер (обычно <code>StaticRouter</code> или <code>MushiRouter</code>) для выполнения команды. Логирование отказов и успехов происходит через <code>ITelemetryLogger</code>.</p>
+<hr>
+<h3 id="6-расширение-роутинга-mushirouter">6. Расширение роутинга (MushiRouter)</h3>
+<p><code>MushiRouter</code> — композитный роутер, реализующий <code>IRouter</code>. Он принимает список внутренних роутеров и последовательно вызывает их до первого успешного выполнения. Это позволяет комбинировать локальный <code>StaticRouter</code>, <code>IntentRouter</code>, <code>RemoteRouter</code> и другие. Например, можно попробовать сначала <code>IntentRouter</code> (для голосовых команд), затем <code>RemoteRouter</code> (для удалённых), и только потом <code>StaticRouter</code>.</p>
+<hr>
+<h3 id="7-преимущества-разделения">7. Преимущества разделения</h3>
+<ul>
+<li><strong>Чистое ядро</strong> — <code>Mugura</code> не зависит от окружения, легко тестируется, может использоваться в любых средах.</li>
+<li><strong>Гибкие адаптеры</strong> — <code>Shimi</code> предоставляет интерфейсы, а конкретные реализации подключаются через <code>Ubusuna</code> или приложение.</li>
+<li><strong>Контексты выполнения</strong> — позволяют переключать реализации сервисов (например, файловую систему) в зависимости от пользователя, проекта или окружения без изменения кода хендлеров.</li>
+<li><strong>Модульные расширения</strong> — <code>Ubusuna</code> предоставляет готовые компоненты, но их можно заменить своими.</li>
+<li><strong>Единый формат ввода/вывода</strong> (JsonNode) упрощает интеграцию.</li>
+<li><strong>DI-дружественность</strong> — всё собирается через стандартный контейнер.</li>
+</ul>
+<hr>
+<h3 id="8-рекомендации-по-использованию">8. Рекомендации по использованию</h3>
+<p>Для нового приложения:</p>
+<ol>
+<li>Добавить ссылки на <code>Kouki.Mugura</code>, <code>Shimi.Abstractions</code>, <code>Shimi.Context</code>, <code>Kouki.Ubusuna</code>.</li>
+<li>В DI вызвать <code>AddShimiContext()</code> и <code>AddUbusuna()</code> с нужными опциями.</li>
+<li>Написать хендлеры, помеченные <code>[Command]</code>.</li>
+<li>В точке входа (MCP, CLI, HTTP, голос) вызвать <code>IRouter.RouteAsync</code> с именем команды, <code>JsonNode</code> аргументами и, при необходимости, контекстом.</li>
+</ol>
+<p>Для удалённого взаимодействия использовать <code>RemoteRouter</code> и <code>MushiRouter</code> для композиции.</p>
+<hr>
+<h3 id="9-что-не-входит-в-архитектурную-заметку">9. Что не входит в архитектурную заметку</h3>
+<ul>
+<li>Конкретные сигнатуры методов (они описаны в датафлоу и документации API).</li>
+<li>Детали реализации <code>CommandRegistry</code> (рефлексия или генерация кода).</li>
+<li>Подробности работы <code>ScopeManager</code>.</li>
+<li>Реализация ML-моделей для <code>IntentRouter</code>.</li>
+</ul>
+
+</article>
+
+        <div class="contribution d-print-none">
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

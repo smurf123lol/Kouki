@@ -1,0 +1,42 @@
+### YamlMime:ManagedReference
+items:
+- uid: Kouki.Mugura.Commands.CommandValidators
+  commentId: N:Kouki.Mugura.Commands.CommandValidators
+  id: Kouki.Mugura.Commands.CommandValidators
+  children:
+  - Kouki.Mugura.Commands.CommandValidators.ICommandValidator`1
+  langs:
+  - csharp
+  - vb
+  name: Kouki.Mugura.Commands.CommandValidators
+  nameWithType: Kouki.Mugura.Commands.CommandValidators
+  fullName: Kouki.Mugura.Commands.CommandValidators
+  type: Namespace
+  assemblies:
+  - Kouki.Mugura
+references:
+- uid: Kouki.Mugura.Commands.CommandValidators.ICommandValidator`1
+  commentId: T:Kouki.Mugura.Commands.CommandValidators.ICommandValidator`1
+  href: Kouki.Mugura.Commands.CommandValidators.ICommandValidator-1.html
+  name: ICommandValidator<TCommand>
+  nameWithType: ICommandValidator<TCommand>
+  fullName: Kouki.Mugura.Commands.CommandValidators.ICommandValidator<TCommand>
+  nameWithType.vb: ICommandValidator(Of TCommand)
+  fullName.vb: Kouki.Mugura.Commands.CommandValidators.ICommandValidator(Of TCommand)
+  name.vb: ICommandValidator(Of TCommand)
+  spec.csharp:
+  - uid: Kouki.Mugura.Commands.CommandValidators.ICommandValidator`1
+    name: ICommandValidator
+    href: Kouki.Mugura.Commands.CommandValidators.ICommandValidator-1.html
+  - name: <
+  - name: TCommand
+  - name: '>'
+  spec.vb:
+  - uid: Kouki.Mugura.Commands.CommandValidators.ICommandValidator`1
+    name: ICommandValidator
+    href: Kouki.Mugura.Commands.CommandValidators.ICommandValidator-1.html
+  - name: (
+  - name: Of
+  - name: " "
+  - name: TCommand
+  - name: )

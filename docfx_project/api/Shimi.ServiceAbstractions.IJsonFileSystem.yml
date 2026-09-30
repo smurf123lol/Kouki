@@ -1,0 +1,559 @@
+### YamlMime:ManagedReference
+items:
+- uid: Shimi.ServiceAbstractions.IJsonFileSystem
+  commentId: T:Shimi.ServiceAbstractions.IJsonFileSystem
+  id: IJsonFileSystem
+  parent: Shimi.ServiceAbstractions
+  children:
+  - Shimi.ServiceAbstractions.IJsonFileSystem.ReadJsonAsync``1(System.String,System.Text.Json.JsonSerializerOptions,System.Threading.CancellationToken)
+  - Shimi.ServiceAbstractions.IJsonFileSystem.WriteJsonAsync``1(System.String,``0,System.Text.Json.JsonSerializerOptions,System.Threading.CancellationToken)
+  langs:
+  - csharp
+  - vb
+  name: IJsonFileSystem
+  nameWithType: IJsonFileSystem
+  fullName: Shimi.ServiceAbstractions.IJsonFileSystem
+  type: Interface
+  source:
+    id: IJsonFileSystem
+    path: F:\Projects\Kouki\Shimi\ServiceAbstractions\IJsonFileSystem.cs
+    startLine: 8
+  assemblies:
+  - Shimi
+  namespace: Shimi.ServiceAbstractions
+  summary: Расширение для работы с JSON-файлами.
+  example: []
+  syntax:
+    content: 'public interface IJsonFileSystem : IFileSystem'
+    content.vb: Public Interface IJsonFileSystem Inherits IFileSystem
+  inheritedMembers:
+  - Shimi.ServiceAbstractions.IFileSystem.ReadBytesAsync(System.String,System.Threading.CancellationToken)
+  - Shimi.ServiceAbstractions.IFileSystem.WriteBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)
+  - Shimi.ServiceAbstractions.IFileSystem.ExistsAsync(System.String,System.Threading.CancellationToken)
+  - Shimi.ServiceAbstractions.IFileSystem.GetTreeAsync(System.String,System.Boolean,System.Threading.CancellationToken)
+- uid: Shimi.ServiceAbstractions.IJsonFileSystem.ReadJsonAsync``1(System.String,System.Text.Json.JsonSerializerOptions,System.Threading.CancellationToken)
+  commentId: M:Shimi.ServiceAbstractions.IJsonFileSystem.ReadJsonAsync``1(System.String,System.Text.Json.JsonSerializerOptions,System.Threading.CancellationToken)
+  id: ReadJsonAsync``1(System.String,System.Text.Json.JsonSerializerOptions,System.Threading.CancellationToken)
+  parent: Shimi.ServiceAbstractions.IJsonFileSystem
+  langs:
+  - csharp
+  - vb
+  name: ReadJsonAsync<T>(string, JsonSerializerOptions?, CancellationToken)
+  nameWithType: IJsonFileSystem.ReadJsonAsync<T>(string, JsonSerializerOptions?, CancellationToken)
+  fullName: Shimi.ServiceAbstractions.IJsonFileSystem.ReadJsonAsync<T>(string, System.Text.Json.JsonSerializerOptions?, System.Threading.CancellationToken)
+  type: Method
+  source:
+    id: ReadJsonAsync
+    path: F:\Projects\Kouki\Shimi\ServiceAbstractions\IJsonFileSystem.cs
+    startLine: 10
+  assemblies:
+  - Shimi
+  namespace: Shimi.ServiceAbstractions
+  syntax:
+    content: Task<T> ReadJsonAsync<T>(string path, JsonSerializerOptions? options = null, CancellationToken ct = default)
+    parameters:
+    - id: path
+      type: System.String
+    - id: options
+      type: System.Text.Json.JsonSerializerOptions
+    - id: ct
+      type: System.Threading.CancellationToken
+    typeParameters:
+    - id: T
+    return:
+      type: System.Threading.Tasks.Task{{T}}
+    content.vb: Function ReadJsonAsync(Of T)(path As String, options As JsonSerializerOptions = Nothing, ct As CancellationToken = Nothing) As Task(Of T)
+  overload: Shimi.ServiceAbstractions.IJsonFileSystem.ReadJsonAsync*
+  nameWithType.vb: IJsonFileSystem.ReadJsonAsync(Of T)(String, JsonSerializerOptions, CancellationToken)
+  fullName.vb: Shimi.ServiceAbstractions.IJsonFileSystem.ReadJsonAsync(Of T)(String, System.Text.Json.JsonSerializerOptions, System.Threading.CancellationToken)
+  name.vb: ReadJsonAsync(Of T)(String, JsonSerializerOptions, CancellationToken)
+- uid: Shimi.ServiceAbstractions.IJsonFileSystem.WriteJsonAsync``1(System.String,``0,System.Text.Json.JsonSerializerOptions,System.Threading.CancellationToken)
+  commentId: M:Shimi.ServiceAbstractions.IJsonFileSystem.WriteJsonAsync``1(System.String,``0,System.Text.Json.JsonSerializerOptions,System.Threading.CancellationToken)
+  id: WriteJsonAsync``1(System.String,``0,System.Text.Json.JsonSerializerOptions,System.Threading.CancellationToken)
+  parent: Shimi.ServiceAbstractions.IJsonFileSystem
+  langs:
+  - csharp
+  - vb
+  name: WriteJsonAsync<T>(string, T, JsonSerializerOptions?, CancellationToken)
+  nameWithType: IJsonFileSystem.WriteJsonAsync<T>(string, T, JsonSerializerOptions?, CancellationToken)
+  fullName: Shimi.ServiceAbstractions.IJsonFileSystem.WriteJsonAsync<T>(string, T, System.Text.Json.JsonSerializerOptions?, System.Threading.CancellationToken)
+  type: Method
+  source:
+    id: WriteJsonAsync
+    path: F:\Projects\Kouki\Shimi\ServiceAbstractions\IJsonFileSystem.cs
+    startLine: 11
+  assemblies:
+  - Shimi
+  namespace: Shimi.ServiceAbstractions
+  syntax:
+    content: Task WriteJsonAsync<T>(string path, T data, JsonSerializerOptions? options = null, CancellationToken ct = default)
+    parameters:
+    - id: path
+      type: System.String
+    - id: data
+      type: '{T}'
+    - id: options
+      type: System.Text.Json.JsonSerializerOptions
+    - id: ct
+      type: System.Threading.CancellationToken
+    typeParameters:
+    - id: T
+    return:
+      type: System.Threading.Tasks.Task
+    content.vb: Function WriteJsonAsync(Of T)(path As String, data As T, options As JsonSerializerOptions = Nothing, ct As CancellationToken = Nothing) As Task
+  overload: Shimi.ServiceAbstractions.IJsonFileSystem.WriteJsonAsync*
+  nameWithType.vb: IJsonFileSystem.WriteJsonAsync(Of T)(String, T, JsonSerializerOptions, CancellationToken)
+  fullName.vb: Shimi.ServiceAbstractions.IJsonFileSystem.WriteJsonAsync(Of T)(String, T, System.Text.Json.JsonSerializerOptions, System.Threading.CancellationToken)
+  name.vb: WriteJsonAsync(Of T)(String, T, JsonSerializerOptions, CancellationToken)
+references:
+- uid: Shimi.ServiceAbstractions
+  commentId: N:Shimi.ServiceAbstractions
+  href: Shimi.html
+  name: Shimi.ServiceAbstractions
+  nameWithType: Shimi.ServiceAbstractions
+  fullName: Shimi.ServiceAbstractions
+  spec.csharp:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.ServiceAbstractions
+    name: ServiceAbstractions
+    href: Shimi.ServiceAbstractions.html
+  spec.vb:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.ServiceAbstractions
+    name: ServiceAbstractions
+    href: Shimi.ServiceAbstractions.html
+- uid: Shimi.ServiceAbstractions.IFileSystem.ReadBytesAsync(System.String,System.Threading.CancellationToken)
+  commentId: M:Shimi.ServiceAbstractions.IFileSystem.ReadBytesAsync(System.String,System.Threading.CancellationToken)
+  parent: Shimi.ServiceAbstractions.IFileSystem
+  isExternal: true
+  href: Shimi.ServiceAbstractions.IFileSystem.html#Shimi_ServiceAbstractions_IFileSystem_ReadBytesAsync_System_String_System_Threading_CancellationToken_
+  name: ReadBytesAsync(string, CancellationToken)
+  nameWithType: IFileSystem.ReadBytesAsync(string, CancellationToken)
+  fullName: Shimi.ServiceAbstractions.IFileSystem.ReadBytesAsync(string, System.Threading.CancellationToken)
+  nameWithType.vb: IFileSystem.ReadBytesAsync(String, CancellationToken)
+  fullName.vb: Shimi.ServiceAbstractions.IFileSystem.ReadBytesAsync(String, System.Threading.CancellationToken)
+  name.vb: ReadBytesAsync(String, CancellationToken)
+  spec.csharp:
+  - uid: Shimi.ServiceAbstractions.IFileSystem.ReadBytesAsync(System.String,System.Threading.CancellationToken)
+    name: ReadBytesAsync
+    href: Shimi.ServiceAbstractions.IFileSystem.html#Shimi_ServiceAbstractions_IFileSystem_ReadBytesAsync_System_String_System_Threading_CancellationToken_
+  - name: (
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Threading.CancellationToken
+    name: CancellationToken
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  - name: )
+  spec.vb:
+  - uid: Shimi.ServiceAbstractions.IFileSystem.ReadBytesAsync(System.String,System.Threading.CancellationToken)
+    name: ReadBytesAsync
+    href: Shimi.ServiceAbstractions.IFileSystem.html#Shimi_ServiceAbstractions_IFileSystem_ReadBytesAsync_System_String_System_Threading_CancellationToken_
+  - name: (
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Threading.CancellationToken
+    name: CancellationToken
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  - name: )
+- uid: Shimi.ServiceAbstractions.IFileSystem.WriteBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)
+  commentId: M:Shimi.ServiceAbstractions.IFileSystem.WriteBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)
+  parent: Shimi.ServiceAbstractions.IFileSystem
+  isExternal: true
+  href: Shimi.ServiceAbstractions.IFileSystem.html#Shimi_ServiceAbstractions_IFileSystem_WriteBytesAsync_System_String_System_Byte___System_Threading_CancellationToken_
+  name: WriteBytesAsync(string, byte[], CancellationToken)
+  nameWithType: IFileSystem.WriteBytesAsync(string, byte[], CancellationToken)
+  fullName: Shimi.ServiceAbstractions.IFileSystem.WriteBytesAsync(string, byte[], System.Threading.CancellationToken)
+  nameWithType.vb: IFileSystem.WriteBytesAsync(String, Byte(), CancellationToken)
+  fullName.vb: Shimi.ServiceAbstractions.IFileSystem.WriteBytesAsync(String, Byte(), System.Threading.CancellationToken)
+  name.vb: WriteBytesAsync(String, Byte(), CancellationToken)
+  spec.csharp:
+  - uid: Shimi.ServiceAbstractions.IFileSystem.WriteBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)
+    name: WriteBytesAsync
+    href: Shimi.ServiceAbstractions.IFileSystem.html#Shimi_ServiceAbstractions_IFileSystem_WriteBytesAsync_System_String_System_Byte___System_Threading_CancellationToken_
+  - name: (
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Byte
+    name: byte
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.byte
+  - name: '['
+  - name: ']'
+  - name: ','
+  - name: " "
+  - uid: System.Threading.CancellationToken
+    name: CancellationToken
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  - name: )
+  spec.vb:
+  - uid: Shimi.ServiceAbstractions.IFileSystem.WriteBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)
+    name: WriteBytesAsync
+    href: Shimi.ServiceAbstractions.IFileSystem.html#Shimi_ServiceAbstractions_IFileSystem_WriteBytesAsync_System_String_System_Byte___System_Threading_CancellationToken_
+  - name: (
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Byte
+    name: Byte
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.byte
+  - name: (
+  - name: )
+  - name: ','
+  - name: " "
+  - uid: System.Threading.CancellationToken
+    name: CancellationToken
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  - name: )
+- uid: Shimi.ServiceAbstractions.IFileSystem.ExistsAsync(System.String,System.Threading.CancellationToken)
+  commentId: M:Shimi.ServiceAbstractions.IFileSystem.ExistsAsync(System.String,System.Threading.CancellationToken)
+  parent: Shimi.ServiceAbstractions.IFileSystem
+  isExternal: true
+  href: Shimi.ServiceAbstractions.IFileSystem.html#Shimi_ServiceAbstractions_IFileSystem_ExistsAsync_System_String_System_Threading_CancellationToken_
+  name: ExistsAsync(string, CancellationToken)
+  nameWithType: IFileSystem.ExistsAsync(string, CancellationToken)
+  fullName: Shimi.ServiceAbstractions.IFileSystem.ExistsAsync(string, System.Threading.CancellationToken)
+  nameWithType.vb: IFileSystem.ExistsAsync(String, CancellationToken)
+  fullName.vb: Shimi.ServiceAbstractions.IFileSystem.ExistsAsync(String, System.Threading.CancellationToken)
+  name.vb: ExistsAsync(String, CancellationToken)
+  spec.csharp:
+  - uid: Shimi.ServiceAbstractions.IFileSystem.ExistsAsync(System.String,System.Threading.CancellationToken)
+    name: ExistsAsync
+    href: Shimi.ServiceAbstractions.IFileSystem.html#Shimi_ServiceAbstractions_IFileSystem_ExistsAsync_System_String_System_Threading_CancellationToken_
+  - name: (
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Threading.CancellationToken
+    name: CancellationToken
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  - name: )
+  spec.vb:
+  - uid: Shimi.ServiceAbstractions.IFileSystem.ExistsAsync(System.String,System.Threading.CancellationToken)
+    name: ExistsAsync
+    href: Shimi.ServiceAbstractions.IFileSystem.html#Shimi_ServiceAbstractions_IFileSystem_ExistsAsync_System_String_System_Threading_CancellationToken_
+  - name: (
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Threading.CancellationToken
+    name: CancellationToken
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  - name: )
+- uid: Shimi.ServiceAbstractions.IFileSystem.GetTreeAsync(System.String,System.Boolean,System.Threading.CancellationToken)
+  commentId: M:Shimi.ServiceAbstractions.IFileSystem.GetTreeAsync(System.String,System.Boolean,System.Threading.CancellationToken)
+  parent: Shimi.ServiceAbstractions.IFileSystem
+  isExternal: true
+  href: Shimi.ServiceAbstractions.IFileSystem.html#Shimi_ServiceAbstractions_IFileSystem_GetTreeAsync_System_String_System_Boolean_System_Threading_CancellationToken_
+  name: GetTreeAsync(string, bool, CancellationToken)
+  nameWithType: IFileSystem.GetTreeAsync(string, bool, CancellationToken)
+  fullName: Shimi.ServiceAbstractions.IFileSystem.GetTreeAsync(string, bool, System.Threading.CancellationToken)
+  nameWithType.vb: IFileSystem.GetTreeAsync(String, Boolean, CancellationToken)
+  fullName.vb: Shimi.ServiceAbstractions.IFileSystem.GetTreeAsync(String, Boolean, System.Threading.CancellationToken)
+  name.vb: GetTreeAsync(String, Boolean, CancellationToken)
+  spec.csharp:
+  - uid: Shimi.ServiceAbstractions.IFileSystem.GetTreeAsync(System.String,System.Boolean,System.Threading.CancellationToken)
+    name: GetTreeAsync
+    href: Shimi.ServiceAbstractions.IFileSystem.html#Shimi_ServiceAbstractions_IFileSystem_GetTreeAsync_System_String_System_Boolean_System_Threading_CancellationToken_
+  - name: (
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Boolean
+    name: bool
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.boolean
+  - name: ','
+  - name: " "
+  - uid: System.Threading.CancellationToken
+    name: CancellationToken
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  - name: )
+  spec.vb:
+  - uid: Shimi.ServiceAbstractions.IFileSystem.GetTreeAsync(System.String,System.Boolean,System.Threading.CancellationToken)
+    name: GetTreeAsync
+    href: Shimi.ServiceAbstractions.IFileSystem.html#Shimi_ServiceAbstractions_IFileSystem_GetTreeAsync_System_String_System_Boolean_System_Threading_CancellationToken_
+  - name: (
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Boolean
+    name: Boolean
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.boolean
+  - name: ','
+  - name: " "
+  - uid: System.Threading.CancellationToken
+    name: CancellationToken
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  - name: )
+- uid: Shimi.ServiceAbstractions.IFileSystem
+  commentId: T:Shimi.ServiceAbstractions.IFileSystem
+  parent: Shimi.ServiceAbstractions
+  href: Shimi.ServiceAbstractions.IFileSystem.html
+  name: IFileSystem
+  nameWithType: IFileSystem
+  fullName: Shimi.ServiceAbstractions.IFileSystem
+- uid: Shimi.ServiceAbstractions.IJsonFileSystem.ReadJsonAsync*
+  commentId: Overload:Shimi.ServiceAbstractions.IJsonFileSystem.ReadJsonAsync
+  href: Shimi.ServiceAbstractions.IJsonFileSystem.html#Shimi_ServiceAbstractions_IJsonFileSystem_ReadJsonAsync__1_System_String_System_Text_Json_JsonSerializerOptions_System_Threading_CancellationToken_
+  name: ReadJsonAsync
+  nameWithType: IJsonFileSystem.ReadJsonAsync
+  fullName: Shimi.ServiceAbstractions.IJsonFileSystem.ReadJsonAsync
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String
+- uid: System.Text.Json.JsonSerializerOptions
+  commentId: T:System.Text.Json.JsonSerializerOptions
+  parent: System.Text.Json
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.text.json.jsonserializeroptions
+  name: JsonSerializerOptions
+  nameWithType: JsonSerializerOptions
+  fullName: System.Text.Json.JsonSerializerOptions
+- uid: System.Threading.CancellationToken
+  commentId: T:System.Threading.CancellationToken
+  parent: System.Threading
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  name: CancellationToken
+  nameWithType: CancellationToken
+  fullName: System.Threading.CancellationToken
+- uid: System.Threading.Tasks.Task{{T}}
+  commentId: T:System.Threading.Tasks.Task{``0}
+  parent: System.Threading.Tasks
+  definition: System.Threading.Tasks.Task`1
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  name: Task<T>
+  nameWithType: Task<T>
+  fullName: System.Threading.Tasks.Task<T>
+  nameWithType.vb: Task(Of T)
+  fullName.vb: System.Threading.Tasks.Task(Of T)
+  name.vb: Task(Of T)
+  spec.csharp:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.Text.Json
+  commentId: N:System.Text.Json
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Text.Json
+  nameWithType: System.Text.Json
+  fullName: System.Text.Json
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Text
+    name: Text
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text
+  - name: .
+  - uid: System.Text.Json
+    name: Json
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Text
+    name: Text
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text
+  - name: .
+  - uid: System.Text.Json
+    name: Json
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json
+- uid: System.Threading
+  commentId: N:System.Threading
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Threading
+  nameWithType: System.Threading
+  fullName: System.Threading
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+- uid: System.Threading.Tasks.Task`1
+  commentId: T:System.Threading.Tasks.Task`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  name: Task<TResult>
+  nameWithType: Task<TResult>
+  fullName: System.Threading.Tasks.Task<TResult>
+  nameWithType.vb: Task(Of TResult)
+  fullName.vb: System.Threading.Tasks.Task(Of TResult)
+  name.vb: Task(Of TResult)
+  spec.csharp:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: <
+  - name: TResult
+  - name: '>'
+  spec.vb:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: TResult
+  - name: )
+- uid: System.Threading.Tasks
+  commentId: N:System.Threading.Tasks
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Threading.Tasks
+  nameWithType: System.Threading.Tasks
+  fullName: System.Threading.Tasks
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  - name: .
+  - uid: System.Threading.Tasks
+    name: Tasks
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  - name: .
+  - uid: System.Threading.Tasks
+    name: Tasks
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks
+- uid: Shimi.ServiceAbstractions.IJsonFileSystem.WriteJsonAsync*
+  commentId: Overload:Shimi.ServiceAbstractions.IJsonFileSystem.WriteJsonAsync
+  href: Shimi.ServiceAbstractions.IJsonFileSystem.html#Shimi_ServiceAbstractions_IJsonFileSystem_WriteJsonAsync__1_System_String___0_System_Text_Json_JsonSerializerOptions_System_Threading_CancellationToken_
+  name: WriteJsonAsync
+  nameWithType: IJsonFileSystem.WriteJsonAsync
+  fullName: Shimi.ServiceAbstractions.IJsonFileSystem.WriteJsonAsync
+- uid: '{T}'
+  commentId: '!:T'
+  definition: T
+  name: T
+  nameWithType: T
+  fullName: T
+- uid: System.Threading.Tasks.Task
+  commentId: T:System.Threading.Tasks.Task
+  parent: System.Threading.Tasks
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task
+  name: Task
+  nameWithType: Task
+  fullName: System.Threading.Tasks.Task
+- uid: T
+  name: T
+  nameWithType: T
+  fullName: T

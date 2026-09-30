@@ -1,0 +1,962 @@
+{
+  "source_base_path": "F:/Projects/Kouki/docfx_project",
+  "xrefmap": "xrefmap.yml",
+  "files": [
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Attributes.CommandAttribute.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Attributes.CommandAttribute.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Attributes.CommandAttribute",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Attributes.CommandCategory.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Attributes.CommandCategory.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Attributes.CommandCategory",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Attributes.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Attributes.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Attributes",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Commands.CommandBase.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Commands.CommandBase.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Commands.CommandBase",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Commands.CommandValidators.ICommandValidator-1.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Commands.CommandValidators.ICommandValidator-1.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Commands.CommandValidators.ICommandValidator<TCommand>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Commands.CommandValidators.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Commands.CommandValidators.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Commands.CommandValidators",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Commands.TestCommand.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Commands.TestCommand.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Commands.TestCommand",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Commands.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Commands.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Commands",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.DependencyInjection.ServiceCollectionExtensions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.DependencyInjection.ServiceCollectionExtensions.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.DependencyInjection.ServiceCollectionExtensions",
+      "Summary": "<p sourcefile=\"api/Kouki.Mugura.DependencyInjection.ServiceCollectionExtensions.yml\" sourcestartlinenumber=\"1\">Методы расширения для регистрации ядра Mugura в DI-контейнере.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.DependencyInjection.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.DependencyInjection.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.DependencyInjection",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Dispatcher.CommandDispatcher.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Dispatcher.CommandDispatcher.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Dispatcher.CommandDispatcher",
+      "Summary": "<p sourcefile=\"api/Kouki.Mugura.Dispatcher.CommandDispatcher.yml\" sourcestartlinenumber=\"1\">todo</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Dispatcher.DelegatingRouter.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Dispatcher.DelegatingRouter.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Dispatcher.DelegatingRouter",
+      "Summary": "<p sourcefile=\"api/Kouki.Mugura.Dispatcher.DelegatingRouter.yml\" sourcestartlinenumber=\"1\">Базовый класс для роутеров-обёрток, которые делегируют выполнение другому роутеру.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Dispatcher.ICommandDispatcher.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Dispatcher.ICommandDispatcher.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Dispatcher.ICommandDispatcher",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Dispatcher.IRouter.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Dispatcher.IRouter.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Dispatcher.IRouter",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Dispatcher.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Dispatcher.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Dispatcher",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Factories.CommandFactory.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Factories.CommandFactory.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Factories.CommandFactory",
+      "Summary": "<p sourcefile=\"api/Kouki.Mugura.Factories.CommandFactory.yml\" sourcestartlinenumber=\"1\">Реализация <xref href=\"Kouki.Mugura.Factories.ICommandFactory\" data-throw-if-not-resolved=\"false\"></xref>, создающая DTO команды из <xref href=\"System.Text.Json.Nodes.JsonNode\" data-throw-if-not-resolved=\"false\"></xref>.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Factories.ICommandFactory.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Factories.ICommandFactory.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Factories.ICommandFactory",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Factories.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Factories.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Factories",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Handlers.ICommandHandler-1.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Handlers.ICommandHandler-1.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Handlers.ICommandHandler<TCommand>",
+      "Summary": "<p sourcefile=\"api/Kouki.Mugura.Handlers.ICommandHandler-1.yml\" sourcestartlinenumber=\"1\">Обработчик команды. Возвращает результат в виде JsonNode (универсальный формат).</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Handlers.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Handlers.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Handlers",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Registry.CommandEntry.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Registry.CommandEntry.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Registry.CommandEntry",
+      "Summary": "<p sourcefile=\"api/Kouki.Mugura.Registry.CommandEntry.yml\" sourcestartlinenumber=\"1\">Запись параметров команд.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Registry.CommandRegistry.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Registry.CommandRegistry.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Registry.CommandRegistry",
+      "Summary": "<p sourcefile=\"api/Kouki.Mugura.Registry.CommandRegistry.yml\" sourcestartlinenumber=\"1\">Реестр команд, построенный путём сканирования сборок.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Registry.ValidationRule.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Registry.ValidationRule.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Registry.ValidationRule",
+      "Summary": "<p sourcefile=\"api/Kouki.Mugura.Registry.ValidationRule.yml\" sourcestartlinenumber=\"1\">Правило валидации для одного свойства DTO команды.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Registry.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Registry.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Registry",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Scope.IScopeManager.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Scope.IScopeManager.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Scope.IScopeManager",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Scope.ScopeManager.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Scope.ScopeManager.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Scope.ScopeManager",
+      "Summary": "<p sourcefile=\"api/Kouki.Mugura.Scope.ScopeManager.yml\" sourcestartlinenumber=\"1\">Реализация <xref href=\"Kouki.Mugura.Scope.IScopeManager\" data-throw-if-not-resolved=\"false\"></xref>, создающая DI-скоп для каждого вызова.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Scope.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Scope.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Scope",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Validators.DataAnnotationsValidator-1.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Validators.DataAnnotationsValidator-1.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Validators.DataAnnotationsValidator<TCommand>",
+      "Summary": "<p sourcefile=\"api/Kouki.Mugura.Validators.DataAnnotationsValidator-1.yml\" sourcestartlinenumber=\"1\">Валидатор на основе DataAnnotations, использующий правила из <xref href=\"Kouki.Mugura.Registry.CommandRegistry\" data-throw-if-not-resolved=\"false\"></xref>.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Validators.ICommandValidator-1.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Validators.ICommandValidator-1.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Validators.ICommandValidator<TCommand>",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Kouki.Mugura.Validators.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Kouki.Mugura.Validators.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.Validators",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.Abstractions.ITelemetryLogger.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.Abstractions.ITelemetryLogger.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi.Abstractions.ITelemetryLogger",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.Abstractions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.Abstractions.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi.Abstractions",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.Class1.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.Class1.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi.Class1",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.Context.BaseExecutionContext.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.Context.BaseExecutionContext.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi.Context.BaseExecutionContext",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.Context.ContextRegistry.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.Context.ContextRegistry.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi.Context.ContextRegistry",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.Context.DependencyInjection.ServiceCollectionExtensions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.Context.DependencyInjection.ServiceCollectionExtensions.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi.Context.DependencyInjection.ServiceCollectionExtensions",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.Context.DependencyInjection.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.Context.DependencyInjection.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi.Context.DependencyInjection",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.Context.IExecutionContext.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.Context.IExecutionContext.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi.Context.IExecutionContext",
+      "Summary": "<p sourcefile=\"api/Shimi.Context.IExecutionContext.yml\" sourcestartlinenumber=\"1\">Контекст выполнения, содержащий специфичные для окружения реализации сервисов.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.Context.InMemoryStateStore.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.Context.InMemoryStateStore.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi.Context.InMemoryStateStore",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.Context.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.Context.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi.Context",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.ServiceAbstractions.IFileSystem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.ServiceAbstractions.IFileSystem.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi.ServiceAbstractions.IFileSystem",
+      "Summary": "<p sourcefile=\"api/Shimi.ServiceAbstractions.IFileSystem.yml\" sourcestartlinenumber=\"1\">TODO</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.ServiceAbstractions.IJsonFileSystem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.ServiceAbstractions.IJsonFileSystem.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi.ServiceAbstractions.IJsonFileSystem",
+      "Summary": "<p sourcefile=\"api/Shimi.ServiceAbstractions.IJsonFileSystem.yml\" sourcestartlinenumber=\"1\">Расширение для работы с JSON-файлами.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.ServiceAbstractions.IStateStore.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.ServiceAbstractions.IStateStore.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi.ServiceAbstractions.IStateStore",
+      "Summary": "<p sourcefile=\"api/Shimi.ServiceAbstractions.IStateStore.yml\" sourcestartlinenumber=\"1\">TODO</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.ServiceAbstractions.ITelemetryLogger.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.ServiceAbstractions.ITelemetryLogger.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi.ServiceAbstractions.ITelemetryLogger",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.ServiceAbstractions.ITerminal.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.ServiceAbstractions.ITerminal.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi.ServiceAbstractions.ITerminal",
+      "Summary": "<p sourcefile=\"api/Shimi.ServiceAbstractions.ITerminal.yml\" sourcestartlinenumber=\"1\">TODO</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.ServiceAbstractions.ITextFileSystem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.ServiceAbstractions.ITextFileSystem.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi.ServiceAbstractions.ITextFileSystem",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.ServiceAbstractions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.ServiceAbstractions.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi.ServiceAbstractions",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.SystemAbstractions.IFileSystem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.SystemAbstractions.IFileSystem.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi.SystemAbstractions.IFileSystem",
+      "Summary": "<p sourcefile=\"api/Shimi.SystemAbstractions.IFileSystem.yml\" sourcestartlinenumber=\"1\">TODO</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.SystemAbstractions.IJsonFileSystem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.SystemAbstractions.IJsonFileSystem.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi.SystemAbstractions.IJsonFileSystem",
+      "Summary": "<p sourcefile=\"api/Shimi.SystemAbstractions.IJsonFileSystem.yml\" sourcestartlinenumber=\"1\">Расширение для работы с JSON-файлами.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.SystemAbstractions.IStateStore.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.SystemAbstractions.IStateStore.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi.SystemAbstractions.IStateStore",
+      "Summary": "<p sourcefile=\"api/Shimi.SystemAbstractions.IStateStore.yml\" sourcestartlinenumber=\"1\">TODO</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.SystemAbstractions.ITelemetryLogger.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.SystemAbstractions.ITelemetryLogger.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi.SystemAbstractions.ITelemetryLogger",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.SystemAbstractions.ITerminal.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.SystemAbstractions.ITerminal.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi.SystemAbstractions.ITerminal",
+      "Summary": "<p sourcefile=\"api/Shimi.SystemAbstractions.ITerminal.yml\" sourcestartlinenumber=\"1\">TODO</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.SystemAbstractions.ITextFileSystem.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.SystemAbstractions.ITextFileSystem.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi.SystemAbstractions.ITextFileSystem",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.SystemAbstractions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.SystemAbstractions.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi.SystemAbstractions",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Shimi.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Shimi.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Shimi",
+      "Summary": null
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "api/toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/toc.html"
+        },
+        ".json": {
+          "relative_path": "api/toc.json"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/architecture.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/architecture.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/dataflow.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/dataflow.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/guides/development.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/guides/development.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/guides/routers.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/guides/routers.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "docs/toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "docs/toc.html"
+        },
+        ".json": {
+          "relative_path": "docs/toc.json"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "examples/kagedama/api/Kagedama.api.Class1.yml",
+      "output": {
+        ".html": {
+          "relative_path": "examples/kagedama/api/Kagedama.api.Class1.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kagedama.api.Class1",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "examples/kagedama/api/Kagedama.api.yml",
+      "output": {
+        ".html": {
+          "relative_path": "examples/kagedama/api/Kagedama.api.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kagedama.api",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "examples/kagedama/api/Kouki.Mugura.ExtensionEntrypointCommandSet.yml",
+      "output": {
+        ".html": {
+          "relative_path": "examples/kagedama/api/Kouki.Mugura.ExtensionEntrypointCommandSet.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura.ExtensionEntrypointCommandSet",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "examples/kagedama/api/Kouki.Mugura.yml",
+      "output": {
+        ".html": {
+          "relative_path": "examples/kagedama/api/Kouki.Mugura.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "Kouki.Mugura",
+      "Summary": null
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "examples/kagedama/api/toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "examples/kagedama/api/toc.html"
+        },
+        ".json": {
+          "relative_path": "examples/kagedama/api/toc.json"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "examples/kagedama/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "examples/kagedama/index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "examples/kagedama/toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "examples/kagedama/toc.html"
+        },
+        ".json": {
+          "relative_path": "examples/kagedama/toc.json"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "index.md",
+      "output": {
+        ".html": {
+          "relative_path": "index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "toc.html"
+        },
+        ".json": {
+          "relative_path": "toc.json"
+        }
+      },
+      "version": ""
+    }
+  ],
+  "groups": [
+    {
+      "xrefmap": "xrefmap.yml"
+    }
+  ]
+}

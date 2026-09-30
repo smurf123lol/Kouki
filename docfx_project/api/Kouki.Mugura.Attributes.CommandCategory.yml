@@ -1,0 +1,279 @@
+### YamlMime:ManagedReference
+items:
+- uid: Kouki.Mugura.Attributes.CommandCategory
+  commentId: T:Kouki.Mugura.Attributes.CommandCategory
+  id: CommandCategory
+  parent: Kouki.Mugura.Attributes
+  children:
+  - Kouki.Mugura.Attributes.CommandCategory.Admin
+  - Kouki.Mugura.Attributes.CommandCategory.Dangerous
+  - Kouki.Mugura.Attributes.CommandCategory.Environment
+  - Kouki.Mugura.Attributes.CommandCategory.FileOperations
+  - Kouki.Mugura.Attributes.CommandCategory.Git
+  - Kouki.Mugura.Attributes.CommandCategory.Integration
+  - Kouki.Mugura.Attributes.CommandCategory.Navigation
+  - Kouki.Mugura.Attributes.CommandCategory.Terminal
+  - Kouki.Mugura.Attributes.CommandCategory.Uncategorized
+  langs:
+  - csharp
+  - vb
+  name: CommandCategory
+  nameWithType: CommandCategory
+  fullName: Kouki.Mugura.Attributes.CommandCategory
+  type: Enum
+  source:
+    id: CommandCategory
+    path: F:\Projects\Kouki\Kouki.Mugura\Attributes\CommandCategory.cs
+    startLine: 2
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Attributes
+  syntax:
+    content: >-
+      [Flags]
+
+      public enum CommandCategory
+    content.vb: >-
+      <Flags>
+
+      Public Enum CommandCategory
+  attributes:
+  - type: System.FlagsAttribute
+    ctor: System.FlagsAttribute.#ctor
+    arguments: []
+- uid: Kouki.Mugura.Attributes.CommandCategory.Uncategorized
+  commentId: F:Kouki.Mugura.Attributes.CommandCategory.Uncategorized
+  id: Uncategorized
+  parent: Kouki.Mugura.Attributes.CommandCategory
+  langs:
+  - csharp
+  - vb
+  name: Uncategorized
+  nameWithType: CommandCategory.Uncategorized
+  fullName: Kouki.Mugura.Attributes.CommandCategory.Uncategorized
+  type: Field
+  source:
+    id: Uncategorized
+    path: F:\Projects\Kouki\Kouki.Mugura\Attributes\CommandCategory.cs
+    startLine: 5
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Attributes
+  syntax:
+    content: Uncategorized = 0
+    return:
+      type: Kouki.Mugura.Attributes.CommandCategory
+- uid: Kouki.Mugura.Attributes.CommandCategory.Navigation
+  commentId: F:Kouki.Mugura.Attributes.CommandCategory.Navigation
+  id: Navigation
+  parent: Kouki.Mugura.Attributes.CommandCategory
+  langs:
+  - csharp
+  - vb
+  name: Navigation
+  nameWithType: CommandCategory.Navigation
+  fullName: Kouki.Mugura.Attributes.CommandCategory.Navigation
+  type: Field
+  source:
+    id: Navigation
+    path: F:\Projects\Kouki\Kouki.Mugura\Attributes\CommandCategory.cs
+    startLine: 6
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Attributes
+  syntax:
+    content: Navigation = 0
+    return:
+      type: Kouki.Mugura.Attributes.CommandCategory
+- uid: Kouki.Mugura.Attributes.CommandCategory.FileOperations
+  commentId: F:Kouki.Mugura.Attributes.CommandCategory.FileOperations
+  id: FileOperations
+  parent: Kouki.Mugura.Attributes.CommandCategory
+  langs:
+  - csharp
+  - vb
+  name: FileOperations
+  nameWithType: CommandCategory.FileOperations
+  fullName: Kouki.Mugura.Attributes.CommandCategory.FileOperations
+  type: Field
+  source:
+    id: FileOperations
+    path: F:\Projects\Kouki\Kouki.Mugura\Attributes\CommandCategory.cs
+    startLine: 7
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Attributes
+  syntax:
+    content: FileOperations = 0
+    return:
+      type: Kouki.Mugura.Attributes.CommandCategory
+- uid: Kouki.Mugura.Attributes.CommandCategory.Terminal
+  commentId: F:Kouki.Mugura.Attributes.CommandCategory.Terminal
+  id: Terminal
+  parent: Kouki.Mugura.Attributes.CommandCategory
+  langs:
+  - csharp
+  - vb
+  name: Terminal
+  nameWithType: CommandCategory.Terminal
+  fullName: Kouki.Mugura.Attributes.CommandCategory.Terminal
+  type: Field
+  source:
+    id: Terminal
+    path: F:\Projects\Kouki\Kouki.Mugura\Attributes\CommandCategory.cs
+    startLine: 8
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Attributes
+  syntax:
+    content: Terminal = 0
+    return:
+      type: Kouki.Mugura.Attributes.CommandCategory
+- uid: Kouki.Mugura.Attributes.CommandCategory.Environment
+  commentId: F:Kouki.Mugura.Attributes.CommandCategory.Environment
+  id: Environment
+  parent: Kouki.Mugura.Attributes.CommandCategory
+  langs:
+  - csharp
+  - vb
+  name: Environment
+  nameWithType: CommandCategory.Environment
+  fullName: Kouki.Mugura.Attributes.CommandCategory.Environment
+  type: Field
+  source:
+    id: Environment
+    path: F:\Projects\Kouki\Kouki.Mugura\Attributes\CommandCategory.cs
+    startLine: 9
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Attributes
+  syntax:
+    content: Environment = 0
+    return:
+      type: Kouki.Mugura.Attributes.CommandCategory
+- uid: Kouki.Mugura.Attributes.CommandCategory.Git
+  commentId: F:Kouki.Mugura.Attributes.CommandCategory.Git
+  id: Git
+  parent: Kouki.Mugura.Attributes.CommandCategory
+  langs:
+  - csharp
+  - vb
+  name: Git
+  nameWithType: CommandCategory.Git
+  fullName: Kouki.Mugura.Attributes.CommandCategory.Git
+  type: Field
+  source:
+    id: Git
+    path: F:\Projects\Kouki\Kouki.Mugura\Attributes\CommandCategory.cs
+    startLine: 10
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Attributes
+  syntax:
+    content: Git = 0
+    return:
+      type: Kouki.Mugura.Attributes.CommandCategory
+- uid: Kouki.Mugura.Attributes.CommandCategory.Dangerous
+  commentId: F:Kouki.Mugura.Attributes.CommandCategory.Dangerous
+  id: Dangerous
+  parent: Kouki.Mugura.Attributes.CommandCategory
+  langs:
+  - csharp
+  - vb
+  name: Dangerous
+  nameWithType: CommandCategory.Dangerous
+  fullName: Kouki.Mugura.Attributes.CommandCategory.Dangerous
+  type: Field
+  source:
+    id: Dangerous
+    path: F:\Projects\Kouki\Kouki.Mugura\Attributes\CommandCategory.cs
+    startLine: 11
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Attributes
+  syntax:
+    content: Dangerous = 0
+    return:
+      type: Kouki.Mugura.Attributes.CommandCategory
+- uid: Kouki.Mugura.Attributes.CommandCategory.Admin
+  commentId: F:Kouki.Mugura.Attributes.CommandCategory.Admin
+  id: Admin
+  parent: Kouki.Mugura.Attributes.CommandCategory
+  langs:
+  - csharp
+  - vb
+  name: Admin
+  nameWithType: CommandCategory.Admin
+  fullName: Kouki.Mugura.Attributes.CommandCategory.Admin
+  type: Field
+  source:
+    id: Admin
+    path: F:\Projects\Kouki\Kouki.Mugura\Attributes\CommandCategory.cs
+    startLine: 12
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Attributes
+  syntax:
+    content: Admin = 0
+    return:
+      type: Kouki.Mugura.Attributes.CommandCategory
+- uid: Kouki.Mugura.Attributes.CommandCategory.Integration
+  commentId: F:Kouki.Mugura.Attributes.CommandCategory.Integration
+  id: Integration
+  parent: Kouki.Mugura.Attributes.CommandCategory
+  langs:
+  - csharp
+  - vb
+  name: Integration
+  nameWithType: CommandCategory.Integration
+  fullName: Kouki.Mugura.Attributes.CommandCategory.Integration
+  type: Field
+  source:
+    id: Integration
+    path: F:\Projects\Kouki\Kouki.Mugura\Attributes\CommandCategory.cs
+    startLine: 13
+  assemblies:
+  - Kouki.Mugura
+  namespace: Kouki.Mugura.Attributes
+  syntax:
+    content: Integration = 0
+    return:
+      type: Kouki.Mugura.Attributes.CommandCategory
+references:
+- uid: Kouki.Mugura.Attributes
+  commentId: N:Kouki.Mugura.Attributes
+  href: Kouki.html
+  name: Kouki.Mugura.Attributes
+  nameWithType: Kouki.Mugura.Attributes
+  fullName: Kouki.Mugura.Attributes
+  spec.csharp:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Attributes
+    name: Attributes
+    href: Kouki.Mugura.Attributes.html
+  spec.vb:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Attributes
+    name: Attributes
+    href: Kouki.Mugura.Attributes.html
+- uid: Kouki.Mugura.Attributes.CommandCategory
+  commentId: T:Kouki.Mugura.Attributes.CommandCategory
+  parent: Kouki.Mugura.Attributes
+  href: Kouki.Mugura.Attributes.CommandCategory.html
+  name: CommandCategory
+  nameWithType: CommandCategory
+  fullName: Kouki.Mugura.Attributes.CommandCategory

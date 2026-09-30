@@ -1,0 +1,67 @@
+### YamlMime:ManagedReference
+items:
+- uid: Shimi.Context
+  commentId: N:Shimi.Context
+  id: Shimi.Context
+  children:
+  - Shimi.Context.BaseExecutionContext
+  - Shimi.Context.ContextRegistry
+  - Shimi.Context.IExecutionContext
+  - Shimi.Context.InMemoryStateStore
+  langs:
+  - csharp
+  - vb
+  name: Shimi.Context
+  nameWithType: Shimi.Context
+  fullName: Shimi.Context
+  type: Namespace
+  assemblies:
+  - Shimi
+references:
+- uid: Shimi.Context.BaseExecutionContext
+  commentId: T:Shimi.Context.BaseExecutionContext
+  href: Shimi.Context.BaseExecutionContext.html
+  name: BaseExecutionContext
+  nameWithType: BaseExecutionContext
+  fullName: Shimi.Context.BaseExecutionContext
+- uid: Shimi.Context.ContextRegistry
+  commentId: T:Shimi.Context.ContextRegistry
+  href: Shimi.Context.ContextRegistry.html
+  name: ContextRegistry
+  nameWithType: ContextRegistry
+  fullName: Shimi.Context.ContextRegistry
+- uid: Shimi.Context.IExecutionContext
+  commentId: T:Shimi.Context.IExecutionContext
+  parent: Shimi.Context
+  href: Shimi.Context.IExecutionContext.html
+  name: IExecutionContext
+  nameWithType: IExecutionContext
+  fullName: Shimi.Context.IExecutionContext
+- uid: Shimi.Context.InMemoryStateStore
+  commentId: T:Shimi.Context.InMemoryStateStore
+  href: Shimi.Context.InMemoryStateStore.html
+  name: InMemoryStateStore
+  nameWithType: InMemoryStateStore
+  fullName: Shimi.Context.InMemoryStateStore
+- uid: Shimi.Context
+  commentId: N:Shimi.Context
+  href: Shimi.html
+  name: Shimi.Context
+  nameWithType: Shimi.Context
+  fullName: Shimi.Context
+  spec.csharp:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.Context
+    name: Context
+    href: Shimi.Context.html
+  spec.vb:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.Context
+    name: Context
+    href: Shimi.Context.html

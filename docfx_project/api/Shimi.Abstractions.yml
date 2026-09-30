@@ -1,0 +1,23 @@
+### YamlMime:ManagedReference
+items:
+- uid: Shimi.Abstractions
+  commentId: N:Shimi.Abstractions
+  id: Shimi.Abstractions
+  children:
+  - Shimi.Abstractions.ITelemetryLogger
+  langs:
+  - csharp
+  - vb
+  name: Shimi.Abstractions
+  nameWithType: Shimi.Abstractions
+  fullName: Shimi.Abstractions
+  type: Namespace
+  assemblies:
+  - Shimi
+references:
+- uid: Shimi.Abstractions.ITelemetryLogger
+  commentId: T:Shimi.Abstractions.ITelemetryLogger
+  href: Shimi.Abstractions.ITelemetryLogger.html
+  name: ITelemetryLogger
+  nameWithType: ITelemetryLogger
+  fullName: Shimi.Abstractions.ITelemetryLogger

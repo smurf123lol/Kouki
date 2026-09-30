@@ -1,0 +1,337 @@
+### YamlMime:ManagedReference
+items:
+- uid: Shimi.SystemAbstractions.IStateStore
+  commentId: T:Shimi.SystemAbstractions.IStateStore
+  id: IStateStore
+  parent: Shimi.SystemAbstractions
+  children:
+  - Shimi.SystemAbstractions.IStateStore.GetAsync``1(System.String,System.Threading.CancellationToken)
+  - Shimi.SystemAbstractions.IStateStore.RemoveAsync(System.String,System.Threading.CancellationToken)
+  - Shimi.SystemAbstractions.IStateStore.SetAsync``1(System.String,``0,System.Threading.CancellationToken)
+  langs:
+  - csharp
+  - vb
+  name: IStateStore
+  nameWithType: IStateStore
+  fullName: Shimi.SystemAbstractions.IStateStore
+  type: Interface
+  source:
+    id: IStateStore
+    path: F:\Projects\Kouki\Shimi\SystemAbstractions\IStateStore.cs
+    startLine: 5
+  assemblies:
+  - Shimi
+  namespace: Shimi.SystemAbstractions
+  summary: TODO
+  example: []
+  syntax:
+    content: public interface IStateStore
+    content.vb: Public Interface IStateStore
+- uid: Shimi.SystemAbstractions.IStateStore.GetAsync``1(System.String,System.Threading.CancellationToken)
+  commentId: M:Shimi.SystemAbstractions.IStateStore.GetAsync``1(System.String,System.Threading.CancellationToken)
+  id: GetAsync``1(System.String,System.Threading.CancellationToken)
+  parent: Shimi.SystemAbstractions.IStateStore
+  langs:
+  - csharp
+  - vb
+  name: GetAsync<T>(string, CancellationToken)
+  nameWithType: IStateStore.GetAsync<T>(string, CancellationToken)
+  fullName: Shimi.SystemAbstractions.IStateStore.GetAsync<T>(string, System.Threading.CancellationToken)
+  type: Method
+  source:
+    id: GetAsync
+    path: F:\Projects\Kouki\Shimi\SystemAbstractions\IStateStore.cs
+    startLine: 7
+  assemblies:
+  - Shimi
+  namespace: Shimi.SystemAbstractions
+  syntax:
+    content: Task<T?> GetAsync<T>(string key, CancellationToken ct = default)
+    parameters:
+    - id: key
+      type: System.String
+    - id: ct
+      type: System.Threading.CancellationToken
+    typeParameters:
+    - id: T
+    return:
+      type: System.Threading.Tasks.Task{{T}}
+    content.vb: Function GetAsync(Of T)(key As String, ct As CancellationToken = Nothing) As Task(Of T)
+  overload: Shimi.SystemAbstractions.IStateStore.GetAsync*
+  nameWithType.vb: IStateStore.GetAsync(Of T)(String, CancellationToken)
+  fullName.vb: Shimi.SystemAbstractions.IStateStore.GetAsync(Of T)(String, System.Threading.CancellationToken)
+  name.vb: GetAsync(Of T)(String, CancellationToken)
+- uid: Shimi.SystemAbstractions.IStateStore.SetAsync``1(System.String,``0,System.Threading.CancellationToken)
+  commentId: M:Shimi.SystemAbstractions.IStateStore.SetAsync``1(System.String,``0,System.Threading.CancellationToken)
+  id: SetAsync``1(System.String,``0,System.Threading.CancellationToken)
+  parent: Shimi.SystemAbstractions.IStateStore
+  langs:
+  - csharp
+  - vb
+  name: SetAsync<T>(string, T, CancellationToken)
+  nameWithType: IStateStore.SetAsync<T>(string, T, CancellationToken)
+  fullName: Shimi.SystemAbstractions.IStateStore.SetAsync<T>(string, T, System.Threading.CancellationToken)
+  type: Method
+  source:
+    id: SetAsync
+    path: F:\Projects\Kouki\Shimi\SystemAbstractions\IStateStore.cs
+    startLine: 8
+  assemblies:
+  - Shimi
+  namespace: Shimi.SystemAbstractions
+  syntax:
+    content: Task SetAsync<T>(string key, T value, CancellationToken ct = default)
+    parameters:
+    - id: key
+      type: System.String
+    - id: value
+      type: '{T}'
+    - id: ct
+      type: System.Threading.CancellationToken
+    typeParameters:
+    - id: T
+    return:
+      type: System.Threading.Tasks.Task
+    content.vb: Function SetAsync(Of T)(key As String, value As T, ct As CancellationToken = Nothing) As Task
+  overload: Shimi.SystemAbstractions.IStateStore.SetAsync*
+  nameWithType.vb: IStateStore.SetAsync(Of T)(String, T, CancellationToken)
+  fullName.vb: Shimi.SystemAbstractions.IStateStore.SetAsync(Of T)(String, T, System.Threading.CancellationToken)
+  name.vb: SetAsync(Of T)(String, T, CancellationToken)
+- uid: Shimi.SystemAbstractions.IStateStore.RemoveAsync(System.String,System.Threading.CancellationToken)
+  commentId: M:Shimi.SystemAbstractions.IStateStore.RemoveAsync(System.String,System.Threading.CancellationToken)
+  id: RemoveAsync(System.String,System.Threading.CancellationToken)
+  parent: Shimi.SystemAbstractions.IStateStore
+  langs:
+  - csharp
+  - vb
+  name: RemoveAsync(string, CancellationToken)
+  nameWithType: IStateStore.RemoveAsync(string, CancellationToken)
+  fullName: Shimi.SystemAbstractions.IStateStore.RemoveAsync(string, System.Threading.CancellationToken)
+  type: Method
+  source:
+    id: RemoveAsync
+    path: F:\Projects\Kouki\Shimi\SystemAbstractions\IStateStore.cs
+    startLine: 9
+  assemblies:
+  - Shimi
+  namespace: Shimi.SystemAbstractions
+  syntax:
+    content: Task RemoveAsync(string key, CancellationToken ct = default)
+    parameters:
+    - id: key
+      type: System.String
+    - id: ct
+      type: System.Threading.CancellationToken
+    return:
+      type: System.Threading.Tasks.Task
+    content.vb: Function RemoveAsync(key As String, ct As CancellationToken = Nothing) As Task
+  overload: Shimi.SystemAbstractions.IStateStore.RemoveAsync*
+  nameWithType.vb: IStateStore.RemoveAsync(String, CancellationToken)
+  fullName.vb: Shimi.SystemAbstractions.IStateStore.RemoveAsync(String, System.Threading.CancellationToken)
+  name.vb: RemoveAsync(String, CancellationToken)
+references:
+- uid: Shimi.SystemAbstractions
+  commentId: N:Shimi.SystemAbstractions
+  href: Shimi.html
+  name: Shimi.SystemAbstractions
+  nameWithType: Shimi.SystemAbstractions
+  fullName: Shimi.SystemAbstractions
+  spec.csharp:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.SystemAbstractions
+    name: SystemAbstractions
+    href: Shimi.SystemAbstractions.html
+  spec.vb:
+  - uid: Shimi
+    name: Shimi
+    href: Shimi.html
+  - name: .
+  - uid: Shimi.SystemAbstractions
+    name: SystemAbstractions
+    href: Shimi.SystemAbstractions.html
+- uid: Shimi.SystemAbstractions.IStateStore.GetAsync*
+  commentId: Overload:Shimi.SystemAbstractions.IStateStore.GetAsync
+  href: Shimi.SystemAbstractions.IStateStore.html#Shimi_SystemAbstractions_IStateStore_GetAsync__1_System_String_System_Threading_CancellationToken_
+  name: GetAsync
+  nameWithType: IStateStore.GetAsync
+  fullName: Shimi.SystemAbstractions.IStateStore.GetAsync
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String
+- uid: System.Threading.CancellationToken
+  commentId: T:System.Threading.CancellationToken
+  parent: System.Threading
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  name: CancellationToken
+  nameWithType: CancellationToken
+  fullName: System.Threading.CancellationToken
+- uid: System.Threading.Tasks.Task{{T}}
+  commentId: T:System.Threading.Tasks.Task{``0}
+  parent: System.Threading.Tasks
+  definition: System.Threading.Tasks.Task`1
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  name: Task<T>
+  nameWithType: Task<T>
+  fullName: System.Threading.Tasks.Task<T>
+  nameWithType.vb: Task(Of T)
+  fullName.vb: System.Threading.Tasks.Task(Of T)
+  name.vb: Task(Of T)
+  spec.csharp:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.Threading
+  commentId: N:System.Threading
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Threading
+  nameWithType: System.Threading
+  fullName: System.Threading
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+- uid: System.Threading.Tasks.Task`1
+  commentId: T:System.Threading.Tasks.Task`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  name: Task<TResult>
+  nameWithType: Task<TResult>
+  fullName: System.Threading.Tasks.Task<TResult>
+  nameWithType.vb: Task(Of TResult)
+  fullName.vb: System.Threading.Tasks.Task(Of TResult)
+  name.vb: Task(Of TResult)
+  spec.csharp:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: <
+  - name: TResult
+  - name: '>'
+  spec.vb:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: TResult
+  - name: )
+- uid: System.Threading.Tasks
+  commentId: N:System.Threading.Tasks
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Threading.Tasks
+  nameWithType: System.Threading.Tasks
+  fullName: System.Threading.Tasks
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  - name: .
+  - uid: System.Threading.Tasks
+    name: Tasks
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  - name: .
+  - uid: System.Threading.Tasks
+    name: Tasks
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks
+- uid: Shimi.SystemAbstractions.IStateStore.SetAsync*
+  commentId: Overload:Shimi.SystemAbstractions.IStateStore.SetAsync
+  href: Shimi.SystemAbstractions.IStateStore.html#Shimi_SystemAbstractions_IStateStore_SetAsync__1_System_String___0_System_Threading_CancellationToken_
+  name: SetAsync
+  nameWithType: IStateStore.SetAsync
+  fullName: Shimi.SystemAbstractions.IStateStore.SetAsync
+- uid: '{T}'
+  commentId: '!:T'
+  definition: T
+  name: T
+  nameWithType: T
+  fullName: T
+- uid: System.Threading.Tasks.Task
+  commentId: T:System.Threading.Tasks.Task
+  parent: System.Threading.Tasks
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task
+  name: Task
+  nameWithType: Task
+  fullName: System.Threading.Tasks.Task
+- uid: T
+  name: T
+  nameWithType: T
+  fullName: T
+- uid: Shimi.SystemAbstractions.IStateStore.RemoveAsync*
+  commentId: Overload:Shimi.SystemAbstractions.IStateStore.RemoveAsync
+  href: Shimi.SystemAbstractions.IStateStore.html#Shimi_SystemAbstractions_IStateStore_RemoveAsync_System_String_System_Threading_CancellationToken_
+  name: RemoveAsync
+  nameWithType: IStateStore.RemoveAsync
+  fullName: Shimi.SystemAbstractions.IStateStore.RemoveAsync

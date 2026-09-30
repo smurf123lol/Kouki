@@ -1,0 +1,69 @@
+### YamlMime:ManagedReference
+items:
+- uid: Kouki.Mugura.Registry
+  commentId: N:Kouki.Mugura.Registry
+  id: Kouki.Mugura.Registry
+  children:
+  - Kouki.Mugura.Registry.CommandEntry
+  - Kouki.Mugura.Registry.CommandRegistry
+  - Kouki.Mugura.Registry.ValidationRule
+  langs:
+  - csharp
+  - vb
+  name: Kouki.Mugura.Registry
+  nameWithType: Kouki.Mugura.Registry
+  fullName: Kouki.Mugura.Registry
+  type: Namespace
+  assemblies:
+  - Kouki.Mugura
+references:
+- uid: Kouki.Mugura.Registry.CommandEntry
+  commentId: T:Kouki.Mugura.Registry.CommandEntry
+  parent: Kouki.Mugura.Registry
+  href: Kouki.Mugura.Registry.CommandEntry.html
+  name: CommandEntry
+  nameWithType: CommandEntry
+  fullName: Kouki.Mugura.Registry.CommandEntry
+- uid: Kouki.Mugura.Registry.ValidationRule
+  commentId: T:Kouki.Mugura.Registry.ValidationRule
+  href: Kouki.Mugura.Registry.ValidationRule.html
+  name: ValidationRule
+  nameWithType: ValidationRule
+  fullName: Kouki.Mugura.Registry.ValidationRule
+- uid: Kouki.Mugura.Registry.CommandRegistry
+  commentId: T:Kouki.Mugura.Registry.CommandRegistry
+  parent: Kouki.Mugura.Registry
+  href: Kouki.Mugura.Registry.CommandRegistry.html
+  name: CommandRegistry
+  nameWithType: CommandRegistry
+  fullName: Kouki.Mugura.Registry.CommandRegistry
+- uid: Kouki.Mugura.Registry
+  commentId: N:Kouki.Mugura.Registry
+  href: Kouki.html
+  name: Kouki.Mugura.Registry
+  nameWithType: Kouki.Mugura.Registry
+  fullName: Kouki.Mugura.Registry
+  spec.csharp:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Registry
+    name: Registry
+    href: Kouki.Mugura.Registry.html
+  spec.vb:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Registry
+    name: Registry
+    href: Kouki.Mugura.Registry.html

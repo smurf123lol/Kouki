@@ -1,0 +1,61 @@
+### YamlMime:ManagedReference
+items:
+- uid: Kouki.Mugura.Factories
+  commentId: N:Kouki.Mugura.Factories
+  id: Kouki.Mugura.Factories
+  children:
+  - Kouki.Mugura.Factories.CommandFactory
+  - Kouki.Mugura.Factories.ICommandFactory
+  langs:
+  - csharp
+  - vb
+  name: Kouki.Mugura.Factories
+  nameWithType: Kouki.Mugura.Factories
+  fullName: Kouki.Mugura.Factories
+  type: Namespace
+  assemblies:
+  - Kouki.Mugura
+references:
+- uid: Kouki.Mugura.Factories.CommandFactory
+  commentId: T:Kouki.Mugura.Factories.CommandFactory
+  href: Kouki.Mugura.Factories.CommandFactory.html
+  name: CommandFactory
+  nameWithType: CommandFactory
+  fullName: Kouki.Mugura.Factories.CommandFactory
+- uid: Kouki.Mugura.Factories.ICommandFactory
+  commentId: T:Kouki.Mugura.Factories.ICommandFactory
+  parent: Kouki.Mugura.Factories
+  href: Kouki.Mugura.Factories.ICommandFactory.html
+  name: ICommandFactory
+  nameWithType: ICommandFactory
+  fullName: Kouki.Mugura.Factories.ICommandFactory
+- uid: Kouki.Mugura.Factories
+  commentId: N:Kouki.Mugura.Factories
+  href: Kouki.html
+  name: Kouki.Mugura.Factories
+  nameWithType: Kouki.Mugura.Factories
+  fullName: Kouki.Mugura.Factories
+  spec.csharp:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Factories
+    name: Factories
+    href: Kouki.Mugura.Factories.html
+  spec.vb:
+  - uid: Kouki
+    name: Kouki
+    href: Kouki.html
+  - name: .
+  - uid: Kouki.Mugura
+    name: Mugura
+    href: Kouki.Mugura.html
+  - name: .
+  - uid: Kouki.Mugura.Factories
+    name: Factories
+    href: Kouki.Mugura.Factories.html
