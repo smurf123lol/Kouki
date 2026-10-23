@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Kouki — журнал задач</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="spine" aria-hidden="true">こ う き 帳</div>
+
+<header class="topbar">
+    <div class="brand">
+        <svg class="glyph" viewBox="0 0 44 44" aria-hidden="true">
+            <path d="M6 31c7-1 12-4 16-9" />
+            <path d="M11 12c5 4 8 9 9 15" />
+            <path d="M24 8c4 6 6 12 6 18" />
+            <circle cx="33" cy="33" r="3.2" class="dot" />
+        </svg>
+        <div class="brand-text">
+            <div class="brand-name">Kouki</div>
+            <div class="brand-sub" id="server-status">соединение…</div>
+        </div>
+    </div>
+
+    <div class="token">
+        <input id="token" type="password" placeholder="bearer-токен" autocomplete="off">
+        <button class="btn" id="save-token">сохранить</button>
+        <button class="btn icon" id="refresh" title="Обновить">↻</button>
+    </div>
+</header>
+
+<div class="banner" id="banner" hidden></div>
+
+<section class="tally" aria-label="Сводка">
+    <button class="tile is-active" data-tab="tasks">
+        <span class="tile-label">задачи</span>
+        <span class="tile-value" id="count-tasks">—</span>
+        <span class="tile-hint">список и статусы</span>
+    </button>
+    <button class="tile" data-tab="review">
+        <span class="tile-label">на разборе</span>
+        <span class="tile-value" id="count-review">—</span>
+        <span class="tile-hint">фразы без уверенности</span>
+    </button>
+    <button class="tile" data-tab="actions">
+        <span class="tile-label">действия</span>
+        <span class="tile-value" id="count-actions">—</span>
+        <span class="tile-hint">журнал приёма</span>
+    </button>
+    <button class="tile" data-tab="intake">
+        <span class="tile-label">приём</span>
+        <span class="tile-value">→</span>
+        <span class="tile-hint">проверить фразу</span>
+    </button>
+</section>
+
+<main class="layout">
+    <section class="panel" id="panel-tasks">
+        <div class="panel-head">
+            <h2>Задачи</h2>
+            <div class="chips" id="status-filter">
+                <button class="chip is-active" data-status="">все</button>
+                <button class="chip" data-status="new">новые</button>
+                <button class="chip" data-status="in_progress">в работе</button>
+                <button class="chip" data-status="needs_review">на разборе</button>
+                <button class="chip" data-status="done">выполнены</button>
+            </div>
+            <span class="meta" id="tasks-meta"></span>
+        </div>
+        <div class="list" id="task-list"></div>
+    </section>
+
+    <section class="panel" id="panel-review" hidden>
+        <div class="panel-head">
+            <h2>Разбор</h2>
+            <span class="meta">фразы, которые система поняла неуверенно</span>
+            <span class="meta" id="review-meta"></span>
+        </div>
+        <div class="list" id="review-list"></div>
+    </section>
+
+    <section class="panel" id="panel-intake" hidden>
+        <div class="panel-head">
+            <h2>Приём</h2>
+            <span class="meta">как будто фраза пришла из источника</span>
+        </div>
+        <form class="intake" id="intake-form">
+            <textarea id="intake-text" rows="3" placeholder="запиши задачу купить хлеб" required></textarea>
+            <div class="intake-row">
+                <label class="field">
+                    <span>источник</span>
+                    <select id="intake-source">
+                        <option value="dashboard">dashboard</option>
+                        <option value="api">api</option>
+                        <option value="telegram">telegram</option>
+                        <option value="voice">voice</option>
+                        <option value="mcp">mcp</option>
+                    </select>
+                </label>
+                <button class="btn primary" type="submit">отправить</button>
+                <span class="meta">Ctrl+Enter</span>
+            </div>
+        </form>
+        <pre class="result" id="intake-result" hidden></pre>
+    </section>
+
+    <section class="panel" id="panel-actions" hidden>
+        <div class="panel-head">
+            <h2>Действия</h2>
+            <span class="meta">одна строка на каждое действие</span>
+            <span class="meta" id="actions-meta"></span>
+        </div>
+        <div class="table-wrap">
+            <table class="grid" id="actions-table">
+                <thead>
+                <tr>
+                    <th>время</th><th>источник</th><th>итог</th><th>интент</th><th>команда</th><th>мс</th><th>задача</th>
+                </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </section>
+
+    <aside class="detail" id="detail" hidden>
+        <div class="detail-head">
+            <h2 id="detail-title">Задача</h2>
+            <button class="btn icon" id="detail-close" title="Закрыть">✕</button>
+        </div>
+        <div class="detail-body" id="detail-body"></div>
+    </aside>
+</main>
+
+<footer class="foot">
+    <span class="meta">Kagedama.api · дашборд без зависимостей</span>
+    <span class="meta">token: localStorage</span>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

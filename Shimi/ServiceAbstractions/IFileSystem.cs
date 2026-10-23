@@ -1,7 +1,8 @@
-﻿namespace Shimi.ServiceAbstractions;
+namespace Kouki.Shimi.ServiceAbstractions;
 
 /// <summary>
-/// TODO
+/// Базовый контракт файловой системы: байтовые операции, проверка существования и дерево каталогов.
+/// Реализации должны трактовать пути относительно своего корня (см. <c>ConsoleFileSystem</c>).
 /// </summary>
 public interface IFileSystem
 {

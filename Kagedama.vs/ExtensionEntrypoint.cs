@@ -1,7 +1,7 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.Extensibility;
 
-namespace Kouki.Mugura
+namespace Kouki.Kagedama.Vs
 {
     /// <summary>
     /// Extension entrypoint for the VisualStudio.Extensibility extension.
@@ -13,11 +13,11 @@ namespace Kouki.Mugura
         public override ExtensionConfiguration ExtensionConfiguration => new()
         {
             Metadata = new(
-                    id: "Kouki.Mugura.33a20ffb-2697-4ff9-84ea-3413db7d9807",
+                    id: "Kouki.Kagedama.Vs.33a20ffb-2697-4ff9-84ea-3413db7d9807",
                     version: this.ExtensionAssemblyVersion,
                     publisherName: "Publisher name",
-                    displayName: "Kouki.Mugura",
-                    description: "Extension description"),
+                    displayName: "Kagedama VS",
+                    description: "Оболочка Kouki для Visual Studio"),
         };
 
         /// <inheritdoc />

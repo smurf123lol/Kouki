@@ -1,8 +1,8 @@
-﻿using System.Text.Json.Nodes;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using Kouki.Mugura.Commands;
-using Shimi.Context;
+using Kouki.Shimi.Context;
 
 namespace Kouki.Mugura.Handlers;
 

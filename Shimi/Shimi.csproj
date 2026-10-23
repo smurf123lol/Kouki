@@ -1,9 +1,20 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AssemblyName>Kouki.Shimi</AssemblyName>
+    <RootNamespace>Kouki.Shimi</RootNamespace>
+    <PackageId>Kouki.Shimi</PackageId>
+    <Description>Абстракции среды выполнения Kouki: файловая система, терминал, состояние, контексты.</Description>
+    <PackageTags>kouki;commands;abstractions;execution-context</PackageTags>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

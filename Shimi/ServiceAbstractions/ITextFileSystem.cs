@@ -1,5 +1,5 @@
-﻿using System.Text;
-namespace Shimi.ServiceAbstractions;
+using System.Text;
+namespace Kouki.Shimi.ServiceAbstractions;
 
 public interface ITextFileSystem : IFileSystem
 {

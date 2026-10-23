@@ -1,44 +1,66 @@
-﻿namespace Shimi.Context;
+using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 
-public class ContextRegistry : IContextRegistry
+namespace Kouki.Shimi.Context;
+
+/// <summary>
+/// Потокобезопасный реестр контекстов: словарь на <see cref="ConcurrentDictionary{TKey,TValue}"/>,
+/// указатель на контекст по умолчанию — через <see cref="Volatile"/>.
+/// </summary>
+public sealed class ContextRegistry : IContextRegistry
 {
-    private readonly Dictionary<string, IExecutionContext> _contexts = new();
-    private IExecutionContext _defaultContext;
+    private readonly ConcurrentDictionary<string, IExecutionContext> _contexts =
+        new(StringComparer.Ordinal);
+
+    private IExecutionContext? _defaultContext;
 
     public ContextRegistry()
-    { }
+    {
+    }
 
-    public IExecutionContext GetDefaultContext() => _defaultContext;
+    public IExecutionContext? GetDefaultContext() => Volatile.Read(ref _defaultContext);
+
+    public bool TryGetDefaultContext([NotNullWhen(true)] out IExecutionContext? context)
+    {
+        context = Volatile.Read(ref _defaultContext);
+        return context is not null;
+    }
 
     public void SetDefaultContext(IExecutionContext context)
     {
-        if (context == null) throw new ArgumentNullException(nameof(context));
-        _defaultContext = context;
-        // Обновляем запись в реестре
+        ArgumentNullException.ThrowIfNull(context);
+        Volatile.Write(ref _defaultContext, context);
+        // Держим запись "default" в реестре, чтобы GetContext("default") работал
+        // без отдельной ветки.
         _contexts["default"] = context;
     }
 
-    public IExecutionContext GetContext(string name)
+    public IExecutionContext? GetContext(string name)
     {
-        if (string.IsNullOrEmpty(name)) return _defaultContext;
-        return _contexts.TryGetValue(name, out var ctx) ? ctx : _defaultContext;
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return GetDefaultContext();
+        }
+
+        return _contexts.TryGetValue(name, out var context) ? context : GetDefaultContext();
     }
 
     public void RegisterContext(string name, IExecutionContext context)
     {
-        if (string.IsNullOrEmpty(name)) throw new ArgumentException("Name cannot be null or empty.", nameof(name));
-        _contexts[name] = context ?? throw new ArgumentNullException(nameof(context));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(context);
+        _contexts[name] = context;
     }
 
     public void SetDefaultContext(string context)
     {
-        IExecutionContext c = null;
-        if (_contexts.TryGetValue(context, out c))
+        ArgumentException.ThrowIfNullOrWhiteSpace(context);
+
+        if (!_contexts.TryGetValue(context, out var registered))
         {
-            _defaultContext = c;
+            throw new ArgumentException($"Context '{context}' is not registered.", nameof(context));
         }
-        else {
-            throw new ArgumentException("context '"+context+"' not exist");
-        }
+
+        Volatile.Write(ref _defaultContext, registered);
     }
 }

@@ -361,3 +361,23 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# .NET build artifacts
+bin/
+obj/
+*.user
+*.suo
+
+# docfx build output and generated API metadata
+docfx_project/_site/
+docfx_project/api/
+_site/
+
+# Модели распознавания (скачиваются scripts/fetch-asr-model.ps1)
+models/
+
+# модели, базы стендов и сгенерированное — не коммитятся
+*.sqlite
+kouki.sqlite
+station-db/
+station-audio/
+audio/

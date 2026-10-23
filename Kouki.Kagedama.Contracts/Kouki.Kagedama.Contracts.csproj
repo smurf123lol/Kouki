@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Kouki.Kagedama.Contracts</RootNamespace>
+    <AssemblyName>Kouki.Kagedama.Contracts</AssemblyName>
+
+    <PackageId>Kouki.Kagedama.Contracts</PackageId>
+    <Description>Контракты хранения Kouki: задачи, журнал распознавания, журнал действий. Без зависимостей от SQLite.</Description>
+    <PackageTags>kouki;contracts;storage;tasks</PackageTags>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+</Project>

@@ -1,9 +1,31 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <AssemblyName>Kagedama.api</AssemblyName>
+    <RootNamespace>Kouki.Kagedama.Api</RootNamespace>
+    <Description>HTTP-хост Kouki: приём задач, MCP и дашборд (муси Кагэдама — сосуд для ядра).</Description>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
+
+  <ItemGroup>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Kouki.Mugura\Kouki.Mugura.csproj" />
+    <ProjectReference Include="..\Kouki.Kagedama.Data\Kouki.Kagedama.Data.csproj" />
+    <ProjectReference Include="..\Kouki.Kagedama\Kouki.Kagedama.csproj" />
+    <ProjectReference Include="..\Kouki.Un\Kouki.Un.csproj" />
+    <ProjectReference Include="..\Kouki.Yasabi\Kouki.Yasabi.csproj" />
+    <ProjectReference Include="..\Shimi\Shimi.csproj" />
+    <ProjectReference Include="..\Ubusuna\Ubusuna.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Дашборд — обычная статика: копируем в выходной каталог, чтобы работал и запуск из bin. -->
+    <Content Update="wwwroot\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 
 </Project>

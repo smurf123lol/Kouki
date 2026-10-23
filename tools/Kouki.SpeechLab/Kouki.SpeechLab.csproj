@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Kouki.SpeechLab</AssemblyName>
+    <RootNamespace>Kouki.SpeechLab</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- Тот же переключатель, что у Kouki.Un: без него инструмент собирается, но умеет только подсказывать. -->
+  <ItemGroup Condition="'$(KoukiEnableSherpa)' == 'true'">
+    <PackageReference Include="org.k2fsa.sherpa.onnx" Version="1.13.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Kouki.Un\Kouki.Un.csproj" />
+    <ProjectReference Include="..\..\Shimi\Shimi.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,7 +1,7 @@
-﻿namespace Shimi.ServiceAbstractions;
+namespace Kouki.Shimi.ServiceAbstractions;
 
 /// <summary>
-/// TODO
+/// Хранилище состояния «ключ — значение» для данных между вызовами команд.
 /// </summary>
 public interface IStateStore
 {

@@ -1,7 +1,7 @@
-﻿// Kouki.Ubusuna/Commands/PingHandler.cs
+// Kouki.Ubusuna/Commands/PingHandler.cs
 using Kouki.Mugura.Attributes;
 using Kouki.Mugura.Handlers;
-using Shimi.Context;
+using Kouki.Shimi.Context;
 using System.Text.Json.Nodes;
 
 namespace Kouki.Ubusuna.Commands;

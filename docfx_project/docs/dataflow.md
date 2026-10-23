@@ -1,229 +1,260 @@
-1. Базовые типы и форматы
-ICommand — маркерный интерфейс для DTO команд. Сам по себе не содержит свойств, служит для идентификации.
-
-JsonNode — универсальный тип из System.Text.Json.Nodes, представляющий структурированные данные (объект, массив, строка, число, null). Используется для:
-
-Входных аргументов команд (передаётся в IRouter.RouteAsync).
-
-Выходных результатов хендлеров.
-
-DTO команд — это record-классы, реализующие ICommand. Они содержат типизированные свойства (например, string Path, bool Recursive). Входной JsonNode десериализуется фабрикой в конкретный DTO.
-
-IExecutionContext — контейнер для сервисов окружения (IFileSystem, ITerminal, IStateStore и опциональных). Имеет имя (Name) и может предоставлять дополнительные сервисы через GetService<T>().
-
-IContextRegistry — реестр, хранящий предопределённые контексты по строковому ключу. Позволяет устанавливать и получать контекст по умолчанию.
-
-2. Регистрация команд
-CommandAttribute — применяется к классу хендлера. Содержит:
-
-Name (обязательно)
-
-Description (опционально)
-
-Category (битовые флаги, например, FileSystem, Terminal, VoiceUI, Internal)
-
-RequiresConfirmation
-
-Example
-
-CommandRegistry — сканирует сборки, находит все классы с атрибутом, определяет реализуемый ими интерфейс ICommandHandler<TCommand>, извлекает TCommand (тип DTO), собирает правила валидации из атрибутов свойств DTO (ValidationAttribute). Хранит записи CommandEntry в словарях по имени и по типу DTO.
-
-CommandEntry — record с полями:
-
-CommandType, HandlerType, Name, Description, RequiresConfirmation, Category (флаги), ValidationRules, Example.
-
-3. Создание команды (фабрика)
-ICommandFactory — интерфейс с методом ICommand? Create(CommandEntry entry, JsonNode? argument, out string? error).
-
-Реализация CommandFactory:
-
-Содержит generic-метод CreateCommand<TCommand>, который десериализует JsonNode в TCommand через JsonSerializer.Deserialize.
-
-Метод Create вызывает этот generic-метод через рефлексию (или кешированный делегат) для типа entry.CommandType.
-
-Если аргумент null, передаётся пустой объект new JsonObject().
-
-Возвращает созданный DTO или null с сообщением об ошибке.
-
-Фабрика не использует внутреннего кеша — кеширование вызовов возложено на роутер.
-
-4. Валидация команд
-ICommandValidator<TCommand> — интерфейс с методом bool TryValidate(TCommand command, out string? error).
-
-DataAnnotationsValidator<TCommand> — реализация по умолчанию:
-
-В конструкторе получает CommandRegistry и извлекает ValidationRules для TCommand.
-
-В TryValidate проверяет каждое свойство DTO на соответствие атрибутам ValidationAttribute.
-
-Возвращает false и сообщение об ошибке, если хотя бы одно правило нарушено.
-
-Валидатор регистрируется в DI как открытый generic (ICommandValidator<> → DataAnnotationsValidator<>).
-
-При необходимости для конкретной команды можно зарегистрировать собственную реализацию ICommandValidator<TCommand>.
-
-5. Управление скоупами
-IScopeManager — метод Task<T> RunInScopeAsync<T>(Func<IServiceProvider, Task<T>> action).
-
-ScopeManager — реализация, зависящая от IServiceScopeFactory. Создаёт AsyncServiceScope, выполняет action и уничтожает scope.
-
-6. Диспетчер команд
-ICommandDispatcher — метод Task<JsonNode> SendAsync<TCommand>(TCommand command, IExecutionContext? context = null, CancellationToken cancellationToken = default), где TCommand : ICommand.
-
-CommandDispatcher:
-
-Зависит от IScopeManager.
-
-Внутри вызывает _scopeManager.RunInScopeAsync, где получает ICommandHandler<TCommand> из IServiceProvider и вызывает HandleAsync, передавая ему контекст (если он был передан).
-
-7. Хендлер команд
-ICommandHandler<in TCommand> — метод Task<JsonNode> HandleAsync(TCommand command, IExecutionContext? context = null, CancellationToken cancellationToken = default).
-
-Конкретные хендлеры:
-
-Помечены атрибутом [Command].
-
-Реализуют ICommandHandler<TCommand>.
-
-В конструкторе получают глобальные зависимости (например, ILogger), но сервисы окружения получают через контекст (передаваемый параметром).
-
-Используют context.FileSystem, context.Terminal, context.StateStore и т.д. для выполнения бизнес-логики.
-
-8. Роутинг (статический и делегирующий)
-IRouter — метод Task<JsonNode> RouteAsync(string commandName, JsonNode? argument, IExecutionContext? context = null, CancellationToken cancellationToken = default).
-
-StaticRouter:
-
-Зависит от CommandRegistry, ICommandFactory, ICommandDispatcher, IContextRegistry.
-
-Алгоритм:
-
-Получает CommandEntry по имени.
-Если контекст не передан, получает дефолтный контекст из IContextRegistry.
-Создаёт DTO через фабрику.
-Получает валидатор (через DI и кеширование делегатов) и вызывает TryValidate.
-Вызывает диспетчер SendAsync, передавая контекст и команду.
-Кеширует делегаты для вызова валидатора и диспетчера по типу команды.
-
-DelegatingRouter — абстрактный базовый класс для роутеров-обёрток:
-
-Принимает IRouter innerRouter и IContextRegistry в конструкторе.
-
-Реализует RouteAsync, делегируя вызов внутреннему роутеру (с подстановкой дефолтного контекста, если не передан).
-
-Наследники могут переопределить RouteAsync для добавления своей логики (например, IntentRouter классифицирует фразу, а затем вызывает base.RouteAsync).
-
-MushiRouter — композитный роутер, принимает список IRouter и последовательно вызывает их до первого успеха.
-
-RemoteRouter — отправляет команды по сети, если не удаётся — делегирует внутреннему роутеру.
-
-9. Контексты и реестр
-IContextRegistry — синглтон, хранит словарь контекстов. Методы:
-
-IExecutionContext GetContext(string name) — возвращает контекст по имени, если не найден — дефолтный.
-
-void RegisterContext(string name, IExecutionContext context).
-
-void SetDefaultContext(IExecutionContext context) и void SetDefaultContext(string contextName) — устанавливают дефолтный контекст (по экземпляру или по имени).
-
-IExecutionContext GetDefaultContext() — возвращает дефолтный контекст.
-
-Реализация ContextRegistry выбрасывает исключение, если дефолтный контекст не установлен.
-
-BaseExecutionContext — абстрактный базовый класс, хранит имя и словарь дополнительных сервисов. Конкретные контексты переопределяют свойства FileSystem, Terminal, StateStore.
-
-10. Взаимодействие с Shimi (адаптеры)
-Интерфейсы окружения определены в Shimi.Abstractions:
-
-IFileSystem — базовый (байтовые операции): ReadBytesAsync, WriteBytesAsync, ExistsAsync, GetTreeAsync.
-
-ITextFileSystem — расширяет IFileSystem: ReadTextAsync, WriteTextAsync, AppendTextAsync с параметром Encoding.
-
-IJsonFileSystem — расширяет IFileSystem: ReadJsonAsync<T>, WriteJsonAsync<T> с параметрами JsonSerializerOptions.
-
-ITerminal — RunCommandAsync.
-
-IStateStore — GetAsync<T>, SetAsync<T>, RemoveAsync.
-
-ITelemetryLogger — LogEvent, LogError.
-
-Конкретные адаптеры (ConsoleFileSystem, ConsoleTerminal) поставляются в Kouki.Ubusuna и регистрируются через метод расширения AddUbusuna.
-
-11. Поток выполнения (полный цикл)
-
-```mermaid
-
-flowchart TD
-
-    Client[Внешний код / Клиент] -->|JsonNode + commandName + контекст| Router
-
-    Router["IRouter(StaticRouter / DelegatingRouter)"] --> Registry[(CommandRegistry)]
-
-    Router --> Factory[ICommandFactory]
-
-    Factory -->|десериализует| DTO[DTO команды]
-
-    Router --> Validator[ICommandValidator&lt;T&gt;]
-
-    Validator -->|проверяет| DTO
-
-    Router --> Dispatcher[ICommandDispatcher]
-
-    Dispatcher --> Scope[IScopeManager]
-
-    Scope -->|создаёт скоуп| Handler[ICommandHandler&lt;T&gt;]
-
-    Handler --> Context[IExecutionContext]
-
-    Context --> FS[IFileSystem / ITerminal / IStateStore]
-
-    Handler -->|возвращает JsonNode| Client
-
+### 1. Базовые типы и форматы
+
+- **`ICommand`** (`Kouki.Mugura.Commands`) — маркерный интерфейс без членов. DTO команды — `record`, реализующий `ICommand`.
+- **`JsonNode`** (`System.Text.Json.Nodes`) — универсальный тип аргумента и результата: объект, массив, скаляр, `null`.
+- **`IExecutionContext`** (`Kouki.Shimi.Context`) — контейнер окружения: `Name`, `FileSystem`, `Terminal`, `StateStore`, `GetService<T>()`.
+- **`IContextRegistry`** (`Kouki.Shimi.Context`) — реестр контекстов по имени + контекст по умолчанию; потокобезопасен.
+
+### 2. Регистрация команд
+
+```csharp
+[AttributeUsage(AttributeTargets.Class, Inherited = false)]
+public sealed class CommandAttribute : Attribute
+{
+    public CommandAttribute(string name);
+    public string Name { get; }
+    public string? Description { get; set; }
+    public bool RequiresConfirmation { get; set; }
+    public CommandCategory Category { get; set; } = CommandCategory.Uncategorized;
+    public string? Example { get; set; }
+}
 ```
 
-1. **Вход** — внешний код вызывает `IRouter.RouteAsync(commandName, argument, context?)`.
-2. **Роутер** (например, `StaticRouter`) получает `CommandEntry` из `CommandRegistry`.
-3. **Фабрика** создаёт DTO команды из `JsonNode` (через generic-метод `CreateCommand<TCommand>`).
-4. **Валидатор** (если зарегистрирован) проверяет DTO; при ошибке возвращается `JsonNode` с ошибкой.
-5. **Диспетчер** создаёт скоуп через `ScopeManager`, получает хендлер из DI и вызывает `HandleAsync`.
-6. **Хендлер** выполняет бизнес-логику, используя сервисы из контекста (`IFileSystem`, `ITerminal`, `IStateStore`).
-7. **Результат** (JsonNode) возвращается обратно вызывающему коду.
+Атрибут ставится на **класс-хендлер**. `CommandRegistry(IEnumerable<Assembly>)` в конструкторе перебирает типы, требует `[Command]` и реализацию `ICommandHandler<>`, берёт тип DTO из generic-аргумента и собирает `ValidationAttribute` с публичных свойств DTO. Итог — `CommandEntry`:
 
----
+```csharp
+public sealed record CommandEntry(
+    Type CommandType, Type HandlerType, string Name, string? Description,
+    bool RequiresConfirmation, CommandCategory Category,
+    IReadOnlyList<ValidationRule> ValidationRules, string? Example);
 
-12. Расширение роутинга (IntentRouter)
-IntentRouter (внешняя реализация) переопределяет RouteAsync:
+public sealed record ValidationRule(string PropertyName, ValidationAttribute Attribute);
+```
 
-Принимает commandName как голосовую фразу.
+`CommandCategory` — `[Flags]`, члены `1 << n` (`Navigation = 2`, …, `Integration = 256`), `Uncategorized = 0`.
 
-Классифицирует интент (через каскад ML.NET → BERT → LLM).
+### 3. Создание команды (фабрика)
 
-Извлекает слоты (аргументы).
+```csharp
+public interface ICommandFactory
+{
+    ICommand? Create(CommandEntry entry, JsonNode? argument);
+    bool TryCreate(CommandEntry entry, JsonNode? argument, out ICommand? command, out string? error);
+}
+```
 
-Формирует JsonNode с аргументами и вызывает base.RouteAsync с именем команды и аргументами.
+`CommandFactory`:
 
-При необходимости выбирает контекст на основе распознанного слота.
+- сериализует через `JsonSerializer.Deserialize(node, entry.CommandType, SerializerOptions)`, где `SerializerOptions = new(JsonSerializerDefaults.Web) { PropertyNameCaseInsensitive = true, ReadCommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true }`;
+- `null` нормализует в `new JsonObject()`, поэтому DTO без аргументов создаётся корректно;
+- ошибки формы (`JsonException`, `NotSupportedException`) превращает в `error`, а не в исключение;
+- `Create` — обёртка над `TryCreate`.
 
-13. Логирование и телеметрия
-ITelemetryLogger используется в роутерах, диспетчере и хендлерах для логирования событий, ошибок и метрик. Например:
+### 4. Валидация
 
-Успешные/неудачные выполнения команд.
+```csharp
+public interface ICommandValidator<TCommand> where TCommand : ICommand
+{
+    bool TryValidate(TCommand command, out string? error);
+}
+```
 
-Отказы интентов (для дообучения моделей).
+`DataAnnotationsValidator<TCommand>` получает `CommandRegistry`, берёт `ValidationRules` для `TCommand`, читает свойства через рефлексию и собирает сообщения (`string.Join("; ", errors)`). Регистрируется открытым generic'ом в `AddMugura`:
 
-Долгие вызовы.
+```csharp
+services.TryAddScoped(typeof(ICommandValidator<>), typeof(DataAnnotationsValidator<>));
+```
 
-14. Примечания
-Все асинхронные методы поддерживают CancellationToken.
+Пользовательская реализация для конкретной команды регистрируется после `AddMugura` и перекрывает умолчание.
 
-Входной аргумент всегда передаётся как JsonNode (может быть null, но нормализуется в пустой объект фабрикой).
+### 5. Управление скоупами
 
-Выход команды — JsonNode, что позволяет возвращать простые типы (string, int) или сложные объекты.
+```csharp
+public interface IScopeManager
+{
+    Task<T> RunInScopeAsync<T>(Func<IServiceProvider, Task<T>> action);
+}
+```
 
-Жизненный цикл: Registry, Factory, Dispatcher, Router, ScopeManager, ContextRegistry — синглтоны; хендлеры и валидаторы — Scoped (создаются на каждый вызов команды).
+`ScopeManager` создаёт `AsyncServiceScope` через `IServiceScopeFactory`, выполняет `action`, освобождает скоуп `await using`.
 
-Контекст (IExecutionContext) не является DI-сервисом и не привязан к скоупу; он передаётся явно как параметр.
+### 6. Диспетчер команд
 
-Для повышения производительности StaticRouter кеширует делегаты вызова валидатора и диспетчера по типу команды.
+```csharp
+public interface ICommandDispatcher
+{
+    Task<JsonNode> SendAsync<TCommand>(TCommand command, IExecutionContext context,
+        CancellationToken cancellationToken = default) where TCommand : ICommand;
+}
+```
 
-Генерация кода (Source Generators) планируется для автоматической регистрации команд и валидаторов, что позволит отказаться от рефлексии в рантайме.
+`CommandDispatcher.SendAsync`:
+
+1. `ArgumentNullException.ThrowIfNull(command)` / `ThrowIfNull(context)` — контекст обязателен;
+2. открывает скоуп через `IScopeManager`;
+3. резолвит `ICommandHandler<TCommand>` из скоупа и вызывает `HandleAsync(command, context, ct)`.
+
+### 7. Хендлер команд
+
+```csharp
+public interface ICommandHandler<in TCommand> where TCommand : ICommand
+{
+    Task<JsonNode> HandleAsync(TCommand command, IExecutionContext? context = null,
+        CancellationToken cancellationToken = default);
+}
+```
+
+Хендлер помечен `[Command]`, живёт в DI как Scoped, получает глобальные зависимости через конструктор, а окружение — через `context` (`context.FileSystem`, `context.Terminal`, `context.StateStore`). Параметр `context` в интерфейсе nullable, но диспетчер всегда передаёт не-null.
+
+### 8. Роутинг
+
+```csharp
+public interface IRouter
+{
+    Task<JsonNode> RouteAsync(string commandName, JsonNode? argument,
+        IExecutionContext? context = null, CancellationToken cancellationToken = default);
+}
+```
+
+`StaticRouter` (конструктор: `CommandRegistry`, `ICommandFactory`, `IServiceProvider`, `ICommandDispatcher`):
+
+1. `GetEntry(commandName)`; нет — `{"error": "Unknown command: ..."}`;
+2. `_factory.TryCreate(...)`; ошибка — `{"error": ...}`;
+3. `context ?? _services.GetService<IContextRegistry>()?.GetDefaultContext()`; нет контекста — `{"error": "No execution context: ..."}`;
+4. валидатор резолвится из `_services.CreateScope()` по `typeof(ICommandValidator<>).MakeGenericType(entry.CommandType)`; нарушение — `{"error": ...}`;
+5. вызов диспетчера через кешированный делегат `DispatchCore<TCommand>`;
+6. весь конвейер обёрнут в `try/catch`: исключение → `{"error": message, "type": TypeName}`, `OperationCanceledException` пробрасывается.
+
+`DelegatingRouter` — абстрактная обёртка над `IRouter` (логирование, метрики, авторизация, фолбэк). `MushiRouter` и `RemoteRouter` не реализованы.
+
+### 9. Контексты и реестр
+
+```csharp
+public interface IContextRegistry
+{
+    IExecutionContext? GetContext(string name);          // fallback → default
+    void RegisterContext(string name, IExecutionContext context);
+    void SetDefaultContext(IExecutionContext context);
+    void SetDefaultContext(string name);                // имя должно быть зарегистрировано
+    IExecutionContext? GetDefaultContext();
+    bool TryGetDefaultContext([NotNullWhen(true)] out IExecutionContext? context);
+}
+```
+
+- `ContextRegistry` — `ConcurrentDictionary` + `Volatile`-поле; неизвестное имя в `GetContext` откатывается на контекст по умолчанию; `TryGetDefaultContext` — предпочтительный способ проверки.
+- `BaseExecutionContext` — обычный класс; `GetService<T>()` берёт сервисы из переданного словаря.
+- `InMemoryStateStore` — `ConcurrentDictionary<string, object?>`, потокобезопасен.
+- `AddShimiContext()` — `TryAddSingleton<IContextRegistry, ContextRegistry>()` + `TryAddSingleton<IStateStore, InMemoryStateStore>()`.
+
+### 10. Адаптеры окружения
+
+Интерфейсы — `Kouki.Shimi.ServiceAbstractions`:
+
+- `IFileSystem` — `ReadBytesAsync`, `WriteBytesAsync`, `ExistsAsync`, `GetTreeAsync`;
+- `ITextFileSystem` — `ReadTextAsync`, `WriteTextAsync`, `AppendTextAsync`;
+- `IJsonFileSystem` — `ReadJsonAsync<T>`, `WriteJsonAsync<T>`;
+- `ITerminal` — `RunCommandAsync`;
+- `IStateStore` — `GetAsync<T>`, `SetAsync<T>`, `RemoveAsync`;
+- `ITelemetryLogger` — `LogEvent`, `LogError`.
+
+Реализации — `Kouki.Ubusuna.Adapters`: `ConsoleFileSystem` (корень + защита от выхода за него), `ConsoleTerminal` (`ArgumentList`, кроссплатформенный shell, код выхода и stderr в исключении). Регистрация — `AddUbusuna()` или `UbusunaBuilder`.
+
+### 11. Полный цикл
+
+```mermaid
+flowchart TD
+    Client[Внешний код / MCP / голос] -->|commandName + JsonNode + context?| Router
+    Router["IRouter (StaticRouter)"] --> Registry[(CommandRegistry)]
+    Router --> Factory[ICommandFactory.TryCreate]
+    Factory -->|JsonSerializer| DTO[DTO команды]
+    Router --> Context[IExecutionContext<br/>переданный или default]
+    Router --> Validator[ICommandValidator&lt;T&gt;]
+    Validator -->|проверяет| DTO
+    Router --> Dispatcher[ICommandDispatcher]
+    Dispatcher --> Scope[IScopeManager]
+    Scope -->|скоуп| Handler[ICommandHandler&lt;T&gt;]
+    Handler --> Env[IFileSystem / ITerminal / IStateStore]
+    Handler -->|JsonNode| Client
+```
+
+1. **Вход** — `IRouter.RouteAsync(commandName, argument, context?)`.
+2. **Реестр** — `CommandEntry` по имени команды.
+3. **Фабрика** — JSON → DTO (`TryCreate`).
+4. **Контекст** — переданный или из `IContextRegistry`.
+5. **Валидация** — `ICommandValidator<T>` из скоупа.
+6. **Диспетчер** — скоуп → хендлер → `HandleAsync`.
+7. **Ошибки** — любое исключение (кроме отмены) на границе `RouteAsync` → `{"error", "type"}`.
+
+### 12. Расширение роутинга (IntentRouter)
+
+`IntentRouter` — внешний наследник `DelegatingRouter`: принимает голосовую фразу, классифицирует интент (ML.NET → BERT → LLM), извлекает слоты, собирает `JsonNode` и вызывает `base.RouteAsync(commandName, argument, context)`. В репозитории его нет.
+
+### 13. Логирование и телеметрия
+
+`ITelemetryLogger` (`LogEvent`, `LogError`) предназначен для роутеров-декораторов и хендлеров: успешные и неудачные выполнения, отказы интентов, долгие вызовы. Через DI он не входит в `IExecutionContext`.
+
+### 14. Примечания
+
+- Все асинхронные методы принимают `CancellationToken`.
+- Входной аргумент — `JsonNode?`; `null` нормализуется фабрикой в `{}`.
+- Выход — `JsonNode`: скаляр, объект или `{"error": "..."}`.
+- Жизненные циклы: `CommandRegistry`, `ICommandFactory`, `IScopeManager`, `ICommandDispatcher`, `IRouter`, `IContextRegistry` — синглтоны; хендлеры и валидаторы — Scoped.
+- `IExecutionContext` не является DI-сервисом и не привязан к скоупу — передаётся явно.
+- `StaticRouter` кеширует делегаты валидатора и диспетчера по типу команды.
+- Source Generators (регистрация команд, кеш `JsonTypeInfo`) — план, в коде нет.
+
+### 15. Сервер, бот и дашборд: где что происходит
+
+```
+Telegram ─┐
+ESP32 ────┤→ Kagedama.api /api/intake ──→ TaskIntakeService.IntakeAsync
+дашборд ──┤                                    │
+агент ────┘ (через Kagedama.mcp → те же классы) ├→ IIntentClassifier (Kouki.Yasabi)
+                                                ├→ CommandRegistry / IRouter (Kouki.Mugura)
+                                                └→ ITaskStore / IClassificationJournal / IActionLog
+```
+
+- Хендлеры команд (`list_tasks`, `complete_task`) и приём живут в `Kouki.Kagedama`, а не в
+  веб-проекте: этим же классом пользуются MCP-сервер и тесты.
+- Все уверенные интенты идут в диспатчер; создание задачи — обычная команда `add_task`,
+  она помечает ответ `"created": true`. Задачу сам приём создаёт только для неуверенных фраз
+  (статус `needs_review`) — команды для них не существует.
+- MCP-сервер повторяет HTTP-путь без веба: те же сервисы, только транспорт stdio и лог в stderr.
+### 16. Контракты и состояние: что изменилось в типах
+
+```csharp
+// Kouki.Kagedama.Contracts — без зависимостей
+Task<T?> IStateStore.GetAsync<T>(string key, CancellationToken ct = default);
+Task    IStateStore.SetAsync<T>(string key, T value, CancellationToken ct = default);
+Task    IStateStore.RemoveAsync(string key, CancellationToken ct = default);
+
+IExecutionContext? context = registry.GetDefaultContext();
+var clock = context?.GetService<IClock>();        // null, если сервиса нет
+var must  = context!.GetRequiredService<IClock>("в логе"); // исключение с подсказкой
+```
+
+Порядок разрешения сервиса в `BaseExecutionContext`: словарь `AddService` → `IServiceProvider`
+из конструктора → `null`. «Железные» сервисы (`IFileSystem`, `ITerminal`, `IStateStore`)
+удалить нельзя.
+
+Хосты регистрируют `SqliteStateStore` как `IStateStore` **до** `AddShimiContext()`, иначе
+`TryAddSingleton` оставит `InMemoryStateStore`. Проверить, что получилось:
+`GET /api/context` или MCP `kouki_context`.
+### 17. Голос: путь одного WAV
+
+```
+POST /api/voice  (тело — WAV целиком)
+  WavReader.TryParse           → WavAudio (16 кГц, моно, 16 бит) | 415
+  ISpeechTranscriber           → TranscriptionResult (текст, уверенность или null)
+  FileAudioStore.SaveAsync     → audio/{source}/{yyyyMMdd}/{HHmmss}_{guid}.wav
+  journal.AnnotateAudioAsync   → classifications.asr_confidence / audio_path
+  VoiceIntakeService.AcceptAsync
+      intake.IntakeAsync(text, source, ct, asrConfidence, audioPath)
+  TaskIntakeService.IntakeAsync
+      classify → intent → (команда → IRouter → handler) | needs_review
+  IActionLog.RecordAsync       → actions(kind=intake, outcome, duration_ms)
+```
+
+Новые типы: `WavAudio`/`WavReader` (Kouki.Kagedama), `IAudioStore`/`FileAudioStore`, `VoiceIntakeResult(Transcription, Intake, AudioPath, Error)`, `VoiceResponse` в контрактах API, `IExecutionContext.GetRequiredService<T>()` и `AddService<T>()` для расширяемых контекстов, `AnnotateAudioAsync`/`ListLabeledAsync` в журнале.
+
+`IntakeAsync` вырос двумя необязательными параметрами (`asrConfidence`, `audioPath`), но остался единственной точкой приёма: текст из Telegram, дашборда и голоса проходит один и тот же путь, отличаются только источник и наличие аудио. Порога на уверенность распознавания нет — маршрут решает классификатор интента, а вероятность (если модель её отдаст) остаётся метаданными.

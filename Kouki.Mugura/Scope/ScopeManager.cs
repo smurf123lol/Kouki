@@ -1,15 +1,14 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Kouki.Mugura.Scope;
+
 /// <summary>
-/// Реализация <see cref="IScopeManager"/>, создающая DI-скоп для каждого вызова.
+/// Реализация <see cref="IScopeManager"/>, создающая DI-скоуп для каждого вызова.
 /// </summary>
 /// <remarks>
-/// Использует <see cref="IServiceScopeFactory"/> для создания скоупа.
-/// </remarks>
-/// <remarks>
-/// <strong>TODO:</strong> Добавить параметр configureScope для передачи контекста в скоуп.
-/// Это позволит роутерам настраивать Scoped-сервисы (например, IContext) до резолва хендлера.
+/// Использует <see cref="IServiceScopeFactory"/> для создания asynchronous-скоупа.
+/// Контекст выполнения (<c>IExecutionContext</c>) в скоуп не кладётся: он передаётся
+/// параметром в диспетчер команд и далее в хендлер.
 /// </remarks>
 public class ScopeManager : IScopeManager
 {
@@ -17,7 +16,7 @@ public class ScopeManager : IScopeManager
 
     public ScopeManager(IServiceScopeFactory scopeFactory)
     {
-        _scopeFactory = scopeFactory;
+        _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
     }
 
     public async Task<T> RunInScopeAsync<T>(Func<IServiceProvider, Task<T>> action)

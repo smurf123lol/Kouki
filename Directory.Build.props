@@ -1,0 +1,32 @@
+<Project>
+
+  <!-- Общие свойства для всех проектов решения Kouki. -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+
+    <!-- Метаданные пакетов (переопределяются в конкретных csproj). -->
+    <Authors>smurf123lol</Authors>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/smurf123lol/Kouki</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/smurf123lol/Kouki</PackageProjectUrl>
+  </PropertyGroup>
+
+  <!--
+    Распознавание речи (Kouki.Un) подключается пакетом org.k2fsa.sherpa.onnx.
+    Пакет большой (нативные библиотеки под все платформы), поэтому по умолчанию
+    он выключен: сборка без него остаётся быстрой и не требует модели.
+    Включение: dotnet build -p:KoukiEnableSherpa=true
+  -->
+  <PropertyGroup>
+    <KoukiEnableSherpa Condition="'$(KoukiEnableSherpa)' == ''">false</KoukiEnableSherpa>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(KoukiEnableSherpa)' == 'true'">
+    <DefineConstants>$(DefineConstants);KOUKI_SHERPA</DefineConstants>
+  </PropertyGroup>
+
+</Project>

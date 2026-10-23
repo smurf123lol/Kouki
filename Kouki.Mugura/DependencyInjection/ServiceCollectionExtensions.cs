@@ -1,9 +1,11 @@
-﻿using Kouki.Mugura.Dispatcher;
+using Kouki.Mugura.Dispatcher;
 using Kouki.Mugura.Factories;
 using Kouki.Mugura.Handlers;
 using Kouki.Mugura.Registry;
 using Kouki.Mugura.Scope;
+using Kouki.Mugura.Validators;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Reflection;
 
 namespace Kouki.Mugura.DependencyInjection;
@@ -42,40 +44,46 @@ public static class ServiceCollectionExtensions
     /// <returns>IServiceCollection для цепочки вызовов.</returns>
     public static IServiceCollection AddMugura(this IServiceCollection services, params Assembly[] commandHandlerAssemblies)
     {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(commandHandlerAssemblies);
+
         var assemblies = commandHandlerAssemblies.Length == 0
             ? new[] { Assembly.GetCallingAssembly() }
             : commandHandlerAssemblies;
 
         // Реестр команд (сканирует сборки)
-        services.AddSingleton(new CommandRegistry(assemblies));
+        services.TryAddSingleton(new CommandRegistry(assemblies));
 
         // Фабрика команд
-        services.AddSingleton<ICommandFactory, CommandFactory>();
+        services.TryAddSingleton<ICommandFactory, CommandFactory>();
 
         // Менеджер скоупов (управление временем жизни)
-        services.AddSingleton<IScopeManager, ScopeManager>();
+        services.TryAddSingleton<IScopeManager, ScopeManager>();
 
         // Диспетчер команд (вызывает хендлер через ScopeManager)
-        services.AddSingleton<ICommandDispatcher, CommandDispatcher>();
+        services.TryAddSingleton<ICommandDispatcher, CommandDispatcher>();
 
         // Роутер по имени команды (статический)
-        services.AddSingleton<IRouter, StaticRouter>();
+        services.TryAddSingleton<IRouter, StaticRouter>();
 
-        // Регистрация всех хендлеров команд (каждый как Scoped)
+        // Валидатор по умолчанию: открытый generic. TryAdd — чтобы приложение могло
+        // зарегистрировать свою реализацию ICommandValidator<T> раньше или позже вызова AddMugura.
+        services.TryAddScoped(typeof(ICommandValidator<>), typeof(DataAnnotationsValidator<>));
+
+        // Регистрация всех хендлеров команд (каждый как Scoped).
+        // TryAddEnumerable делает повторный AddMugura идемпотентным.
         foreach (var asm in assemblies)
         {
-            foreach (var type in asm.GetTypes())
+            foreach (var type in AssemblyScanning.GetLoadableTypes(asm))
             {
-                if (type.IsClass && !type.IsAbstract && !type.IsGenericTypeDefinition)
+                if (!type.IsClass || type.IsAbstract || type.IsGenericTypeDefinition) continue;
+
+                foreach (var iface in type.GetInterfaces())
                 {
-                    var interfaces = type.GetInterfaces();
-                    foreach (var iface in interfaces)
+                    if (iface.IsGenericType && iface.GetGenericTypeDefinition() == typeof(ICommandHandler<>))
                     {
-                        if (iface.IsGenericType && iface.GetGenericTypeDefinition() == typeof(ICommandHandler<>))
-                        {
-                            services.AddScoped(iface, type);
-                            break; // достаточно одного интерфейса, т.к. хендлер может реализовывать только один ICommandHandler<>
-                        }
+                        services.TryAddEnumerable(ServiceDescriptor.Scoped(iface, type));
+                        break; // хендлер реализует ровно один ICommandHandler<>
                     }
                 }
             }

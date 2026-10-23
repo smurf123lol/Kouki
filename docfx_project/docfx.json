@@ -2,7 +2,7 @@
   "metadata": [
     {
       "src": [
-        { "files": ["Shimi/*.csproj", "Kouki.Mugura/*.csproj"], "src": "../" }
+        { "files": ["Shimi/*.csproj", "Kouki.Mugura/*.csproj", "Ubusuna/*.csproj"], "src": "../" }
       ],
       "dest": "api"
     },

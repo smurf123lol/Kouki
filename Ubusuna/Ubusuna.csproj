@@ -1,9 +1,20 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AssemblyName>Kouki.Ubusuna</AssemblyName>
+    <RootNamespace>Kouki.Ubusuna</RootNamespace>
+    <PackageId>Kouki.Ubusuna</PackageId>
+    <Description>Платформенный слой Kouki: консольные адаптеры файловой системы и терминала, UbusunaBuilder.</Description>
+    <PackageTags>kouki;adapters;console;filesystem;terminal</PackageTags>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,10 +24,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Kouki.Mugura\Kouki.Mugura.csproj" />
     <ProjectReference Include="..\Shimi\Shimi.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Routers\" />
   </ItemGroup>
 
 </Project>

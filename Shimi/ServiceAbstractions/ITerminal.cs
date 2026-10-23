@@ -1,7 +1,7 @@
-﻿namespace Shimi.ServiceAbstractions;
+namespace Kouki.Shimi.ServiceAbstractions;
 
 /// <summary>
-/// TODO
+/// Запуск внешних процессов: возвращает stdout, при ненулевом коде выхода — ошибка.
 /// </summary>
 public interface ITerminal
 {

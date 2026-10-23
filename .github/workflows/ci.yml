@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # Решение целиком здесь не собирается: Kagedama.vs таргетит net8.0-windows8.0
+      # и требует Visual Studio Extensibility SDK (только Windows).
+      # Тестовый проект транзитивно собирает Kouki.Mugura, Kouki.Shimi и Kouki.Ubusuna.
+      - name: Restore
+        run: dotnet restore Kouki.Tests/Kouki.Tests.csproj
+
+      - name: Build
+        run: dotnet build Kouki.Tests/Kouki.Tests.csproj --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test Kouki.Tests/Kouki.Tests.csproj --no-build --configuration Release --logger "console;verbosity=normal"

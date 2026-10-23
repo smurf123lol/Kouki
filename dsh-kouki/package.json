@@ -1,0 +1,37 @@
+{
+  "name": "dsh-kouki",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Kouki для DeepSeek Harness: задачи и журнал разбора как MCP-инструменты (Kagedama — сосуд для ядра).",
+  "license": "MIT",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "mcp-client.js",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test test/"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "kouki",
+    "mcp",
+    "tasks"
+  ],
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.1 <5.0.0",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.1 || 0.2.0-rc.2 || 0.2.1-rc.1 || 0.2.1-rc.2",
+    "@deepseek-ai/schemastery": ">=3.18.2"
+  }
+}

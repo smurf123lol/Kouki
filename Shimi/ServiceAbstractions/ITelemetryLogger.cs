@@ -1,4 +1,4 @@
-﻿namespace Shimi.ServiceAbstractions;
+namespace Kouki.Shimi.ServiceAbstractions;
 
 public interface ITelemetryLogger
 {

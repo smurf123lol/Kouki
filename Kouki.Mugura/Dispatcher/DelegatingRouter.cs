@@ -1,4 +1,4 @@
-﻿using Shimi.Context;
+using Kouki.Shimi.Context;
 using System.Text.Json.Nodes;
 
 namespace Kouki.Mugura.Dispatcher;
@@ -13,21 +13,23 @@ namespace Kouki.Mugura.Dispatcher;
 /// </remarks>
 /// <example>
 /// <code>
-/// public class IntentRouter : DelegatingRouter
+/// public sealed class IntentRouter : DelegatingRouter
 /// {
 ///     private readonly IIntentClassifier _classifier;
-///     
-///     public IntentRouter(IRouter innerRouter, IIntentClassifier classifier) 
-///         : base(innerRouter) 
+///
+///     public IntentRouter(IRouter innerRouter, IIntentClassifier classifier)
+///         : base(innerRouter)
 ///     {
 ///         _classifier = classifier;
 ///     }
-///     
-///     public override async Task&lt;JsonNode&gt; RouteAsync(string commandName, JsonNode? argument, CancellationToken ct)
+///
+///     public override async Task&lt;JsonNode&gt; RouteAsync(
+///         string commandName, JsonNode? argument, IExecutionContext? context = null,
+///         CancellationToken cancellationToken = default)
 ///     {
 ///         // Преобразуем голосовую фразу в имя команды и аргументы
-///         var (name, args) = await _classifier.ClassifyAndExtract(commandName, ct);
-///         return await base.RouteAsync(name, args, ct);
+///         var (name, args) = await _classifier.ClassifyAndExtract(commandName, cancellationToken);
+///         return await base.RouteAsync(name, args, context, cancellationToken);
 ///     }
 /// }
 /// </code>
@@ -35,7 +37,7 @@ namespace Kouki.Mugura.Dispatcher;
 public abstract class DelegatingRouter : IRouter
 {
     /// <summary>
-    /// Внутренний роутер, которому делегируется выполнение. TODO: переписать комментарии под context
+    /// Внутренний роутер, которому делегируется выполнение (например, <see cref="StaticRouter"/>).
     /// </summary>
     protected readonly IRouter InnerRouter;
 
@@ -54,6 +56,7 @@ public abstract class DelegatingRouter : IRouter
     /// </summary>
     /// <param name="commandName">Имя команды (или фраза для IntentRouter).</param>
     /// <param name="argument">Аргументы команды в формате JsonNode.</param>
+    /// <param name="context">Контекст выполнения; <c>null</c> — взять контекст по умолчанию во внутреннем роутере.</param>
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <returns>Результат выполнения команды в виде JsonNode.</returns>
     public virtual async Task<JsonNode> RouteAsync(string commandName, JsonNode? argument, IExecutionContext? context = null, CancellationToken cancellationToken=default)

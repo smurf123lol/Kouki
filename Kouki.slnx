@@ -1,9 +1,22 @@
 <Solution>
   <Folder Name="/Kagedama/">
     <Project Path="Kagedama.api/Kagedama.api.csproj" Id="89706de5-0fa8-4291-be06-0a79cdaf224b" />
+    <Project Path="Kouki.Kagedama.Data/Kouki.Kagedama.Data.csproj" Id="3f3b4c2e-6a41-4d9e-b1ef-6c3d1e7a2c55" />
+    <Project Path="Kouki.Kagedama.Contracts/Kouki.Kagedama.Contracts.csproj" />
+    <Project Path="Kouki.Kagedama/Kouki.Kagedama.csproj" Id="8a1d6f43-2c5b-4f0e-9d7a-51c2b8e6f3a9" />
+    <Project Path="Kagedama.mcp/Kagedama.mcp.csproj" />
+    <Project Path="Kouki.Kagedama.Bot/Kouki.Kagedama.Bot.csproj" />
     <Project Path="Kagedama.vs/Kagedama.vs.csproj" />
   </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Kouki.Tests/Kouki.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Kouki.SpeechLab/Kouki.SpeechLab.csproj" />
+  </Folder>
   <Project Path="Kouki.Mugura/Kouki.Mugura.csproj" />
+  <Project Path="Kouki.Un/Kouki.Un.csproj" />
+  <Project Path="Kouki.Yasabi/Kouki.Yasabi.csproj" />
   <Project Path="Shimi/Shimi.csproj" />
   <Project Path="Ubusuna/Ubusuna.csproj" Id="59534aff-3df5-4886-a61f-ba65fd48b84d" />
 </Solution>

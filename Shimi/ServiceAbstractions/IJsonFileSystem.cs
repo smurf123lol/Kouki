@@ -1,6 +1,6 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 
-namespace Shimi.ServiceAbstractions;
+namespace Kouki.Shimi.ServiceAbstractions;
 
 /// <summary>
 /// Расширение для работы с JSON-файлами.

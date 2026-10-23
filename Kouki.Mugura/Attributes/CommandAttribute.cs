@@ -1,5 +1,8 @@
-﻿namespace Kouki.Mugura.Attributes;
+namespace Kouki.Mugura.Attributes;
 
+/// <summary>
+/// Помечает класс-хендлер как команду. Имя должно быть уникальным в пределах реестра.
+/// </summary>
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]
 public sealed class CommandAttribute : Attribute
 {
@@ -9,5 +12,9 @@ public sealed class CommandAttribute : Attribute
     public CommandCategory Category { get; set; } = CommandCategory.Uncategorized;
     public string? Example { get; set; }
 
-    public CommandAttribute(string name) => Name = name;
+    public CommandAttribute(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        Name = name;
+    }
 }

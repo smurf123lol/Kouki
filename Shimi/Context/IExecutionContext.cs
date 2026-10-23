@@ -1,13 +1,28 @@
-﻿using Shimi.ServiceAbstractions;
+using Kouki.Shimi.ServiceAbstractions;
 
-namespace Shimi.Context;
+namespace Kouki.Shimi.Context;
 
 /// <summary>
-/// Контекст выполнения, содержащий специфичные для окружения реализации сервисов.
+/// Контекст выполнения: специфичное для окружения «железо» — файловая система, терминал,
+/// хранилище состояния — и доступ к любым дополнительным сервисам по типу.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Четыре «железных» сервиса объявлены свойствами, потому что нужны почти всегда:
+/// <see cref="FileSystem"/>, <see cref="Terminal"/>, <see cref="StateStore"/>.
+/// Всё остальное — через <see cref="GetService{T}"/>:
+/// </para>
+/// <code>
+/// IStateStore store = context.GetRequiredService&lt;IStateStore&gt;("кэш последнего ответа");
+/// </code>
+/// <para>
+/// Если у контекста есть <see cref="Services"/>, поиск идёт сначала по объявленным сервисам,
+/// затем по провайдеру DI.
+/// </para>
+/// </remarks>
 public interface IExecutionContext
 {
-    /// <summary>Имя контекста (для идентификации).</summary>
+    /// <summary>Имя контекста (для идентификации и сообщений об ошибках).</summary>
     string Name { get; }
 
     /// <summary>Файловая система, специфичная для этого контекста.</summary>
@@ -19,6 +34,35 @@ public interface IExecutionContext
     /// <summary>Хранилище состояния, специфичное для этого контекста.</summary>
     IStateStore StateStore { get; }
 
-    /// <summary>Дополнительные сервисы можно получать по типу (опционально).</summary>
-    T? GetService<T>() where T : class;
+    /// <summary>
+    /// Провайдер DI, который использует контекст, если он ему известен.
+    /// По умолчанию <c>null</c>: контекст живёт и без контейнера.
+    /// </summary>
+    IServiceProvider? Services => null;
+
+    /// <summary>
+    /// Дополнительный сервис по типу: сначала объявленные сервисы, затем <see cref="Services"/>.
+    /// Возвращает <c>null</c>, если сервиса нет; если сервис обязателен — используйте
+    /// <see cref="ExecutionContextExtensions.GetRequiredService{T}"/>.
+    /// </summary>
+    /// <typeparam name="T">Тип сервиса.</typeparam>
+    T? GetService<T>() where T : class => null;
+
+    /// <summary>
+    /// Пробует получить сервис: удобно, когда отсутствие — нормальная ситуация.
+    /// </summary>
+    /// <param name="service">Найденный сервис или <c>null</c>.</param>
+    /// <typeparam name="T">Тип сервиса.</typeparam>
+    /// <returns>Найден ли сервис.</returns>
+    bool TryGetService<T>(out T? service) where T : class
+    {
+        service = GetService<T>();
+        return service is not null;
+    }
+
+    /// <summary>
+    /// Типы сервисов, которые контекст объявляет явно. Нужно для диагностики и для
+    /// <c>GET /api/context</c>.
+    /// </summary>
+    IReadOnlyCollection<Type> ServiceTypes => Array.Empty<Type>();
 }

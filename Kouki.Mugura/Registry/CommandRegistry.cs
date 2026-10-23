@@ -1,4 +1,4 @@
-﻿using Kouki.Mugura.Attributes;
+using Kouki.Mugura.Attributes;
 using Kouki.Mugura.Commands;
 using Kouki.Mugura.Handlers;
 using System.Collections.Immutable;
@@ -6,12 +6,13 @@ using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 
 namespace Kouki.Mugura.Registry;
+
 /// <summary>
 /// Реестр команд, построенный путём сканирования сборок.
 /// </summary>
 /// <remarks>
 /// Сканирование выполняется в конструкторе один раз. Находит классы с <see cref="CommandAttribute"/>,
-/// проверяет реализацию <see cref="ICommandHandler{ICommand}"/>, извлекает DTO и правила валидации.
+/// проверяет реализацию <see cref="ICommandHandler{TCommand}"/>, извлекает DTO и правила валидации.
 /// Предоставляет доступ к записям по имени команды и по типу DTO.
 /// </remarks>
 public sealed class CommandRegistry
@@ -19,16 +20,19 @@ public sealed class CommandRegistry
     private readonly ImmutableDictionary<string, CommandEntry> _entriesByName;
     private readonly ImmutableDictionary<Type, CommandEntry> _entriesByType;
 
-    public IReadOnlyCollection<string> Names => (IReadOnlyCollection<string>)_entriesByName.Keys;
+    /// <summary>Имена зарегистрированных команд (снимок, копия внутреннего словаря).</summary>
+    public IReadOnlyCollection<string> Names => _entriesByName.Keys.ToArray();
 
     public CommandRegistry(IEnumerable<Assembly> assemblies)
     {
-        var builderByName = ImmutableDictionary.CreateBuilder<string, CommandEntry>();
+        ArgumentNullException.ThrowIfNull(assemblies);
+
+        var builderByName = ImmutableDictionary.CreateBuilder<string, CommandEntry>(StringComparer.Ordinal);
         var builderByType = ImmutableDictionary.CreateBuilder<Type, CommandEntry>();
 
         foreach (var asm in assemblies)
         {
-            foreach (var type in asm.GetTypes())
+            foreach (var type in AssemblyScanning.GetLoadableTypes(asm))
             {
                 var attr = type.GetCustomAttribute<CommandAttribute>();
                 if (attr == null) continue;
@@ -39,6 +43,12 @@ public sealed class CommandRegistry
 
                 var commandType = handlerInterface.GetGenericArguments()[0];
                 if (!typeof(ICommand).IsAssignableFrom(commandType)) continue;
+
+                if (builderByName.TryGetValue(attr.Name, out var existing))
+                {
+                    throw new InvalidOperationException(
+                        $"Duplicate command name '{attr.Name}': {existing.HandlerType.FullName} and {type.FullName}.");
+                }
 
                 var entry = new CommandEntry(
                     CommandType: commandType,
@@ -64,6 +74,7 @@ public sealed class CommandRegistry
 
     public CommandEntry? GetEntryByCommandType(Type commandType) => _entriesByType.GetValueOrDefault(commandType);
 
+    /// <summary>Собирает правила валидации из свойств DTO команды.</summary>
     private static List<ValidationRule> ExtractValidationRules(Type commandType)
     {
         var rules = new List<ValidationRule>();
