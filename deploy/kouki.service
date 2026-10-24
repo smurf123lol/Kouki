@@ -1,0 +1,43 @@
+[Unit]
+Description=Kouki server (tasks, voice, MCP)
+Documentation=file:///opt/kouki/app/deploy/README.md
+# Ждём сеть, но не падаем, если её нет: сервер должен подняться и без неё.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=kouki
+Group=kouki
+WorkingDirectory=/opt/kouki/app
+SyslogIdentifier=kouki
+
+# Значения по умолчанию. Файл ниже их перекрывает, поэтому менять надо его,
+# а не этот юнит: обновление из репозитория не должно затирать настройки.
+Environment=ASPNETCORE_URLS=http://0.0.0.0:5300
+Environment=Kouki__RequireAbsolutePaths=true
+Environment=DOTNET_ENVIRONMENT=Production
+EnvironmentFile=/etc/kouki/kouki.env
+
+ExecStart=/usr/bin/dotnet /opt/kouki/app/Kagedama.api.dll
+
+# Сервер сам восстанавливается: падение — это повод перезапуститься, а не сдаться.
+Restart=on-failure
+RestartSec=5
+StartLimitIntervalSec=0
+TimeoutStopSec=20
+KillSignal=SIGINT
+
+# Права: только свои каталоги, без домашнего каталога и без записи в /usr.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+ReadWritePaths=/var/lib/kouki
+
+[Install]
+WantedBy=multi-user.target

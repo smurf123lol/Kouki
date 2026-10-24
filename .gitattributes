@@ -61,3 +61,9 @@
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+# --- Kouki: файлы развёртывания обязаны быть с LF ---
+# Без этого Windows-чекаут превращает install.sh в CRLF и он падает на сервере
+# с "bash^M: bad interpreter".
+*.sh            text eol=lf
+*.service       text eol=lf
+*.env.example   text eol=lf

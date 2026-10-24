@@ -26,6 +26,8 @@
   <ItemGroup>
     <!-- Дашборд — обычная статика: копируем в выходной каталог, чтобы работал и запуск из bin. -->
     <Content Update="wwwroot\**" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Установщик и юнит едут вместе с артефактом: на сервере не нужен второй архив. -->
+    <None Include="..\deploy\**\*" Link="deploy\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

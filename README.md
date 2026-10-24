@@ -301,12 +301,29 @@ dotnet build Kouki.Tests/Kouki.Tests.csproj -c Release
 dotnet test Kouki.Tests/Kouki.Tests.csproj --no-build -c Release
 ```
 
+## Развёртывание на сервере
+
+Сервер живёт как служба systemd; артефакт собирается под Linux, установка идемпотентна:
+
+```bash
+# на машине с .NET 10 SDK
+tools/publish-linux.ps1                   # publish/linux-x64: 33 МБ, sherpa внутри
+
+# на сервере
+sudo bash app/deploy/install.sh app       # пользователь, каталоги, юнит, токен
+```
+
+`deploy/` (юнит, `install.sh`, `kouki.env.example`, инструкция по шагам) уезжает внутрь
+артефакта публикации, поэтому второй архив на сервер не нужен. Подробности —
+`deploy/README.md`.
+
 ## Документация
 
 - `docfx_project/docs/architecture.md` — архитектура и слои.
 - `docfx_project/docs/dataflow.md` — путь команды от входной точки до хендлера.
 - `docfx_project/docs/guides/development.md` — как добавить команду и прогнать тесты.
 - `docfx_project/docs/guides/routers.md` — роутеры и декораторы.
+- `deploy/README.md` — установка на Linux, обновление, диагностика.
 
 ## Лицензия
 
