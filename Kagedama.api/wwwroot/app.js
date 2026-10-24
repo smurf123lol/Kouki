@@ -22,6 +22,8 @@ const state = {
     tab: 'tasks',
     status: '',
     taskId: null,
+    detailId: null,
+    detailSig: null,
     timer: null,
 };
 
@@ -94,6 +96,64 @@ async function refreshTally() {
     if (auth) throw new AuthError('нет токена');
 }
 
+/* ---------- точечное обновление списков ---------- */
+
+// Автообновление не должно перерисовывать всё: иначе сбрасывается ввод в поле
+// «своя метка», теряется фокус и прокрутка. Обновляем только изменившиеся узлы.
+function isUserBusy() {
+    const element = document.activeElement;
+    if (!element) return false;
+    if (element.isContentEditable) return true;
+    return ['INPUT', 'TEXTAREA', 'SELECT'].includes(element.tagName);
+}
+
+function applyList(container, items, keyOf, signatureOf, render, emptyHtml) {
+    if (!items.length) {
+        if (container.dataset.empty !== '1') {
+            container.innerHTML = emptyHtml;
+            container.dataset.empty = '1';
+        }
+        return;
+    }
+    delete container.dataset.empty;
+
+    const existing = new Map();
+    container.querySelectorAll('[data-list-key]').forEach((node) => existing.set(node.dataset.listKey, node));
+
+    const wanted = new Set();
+    const ordered = [];
+
+    items.forEach((item) => {
+        const key = String(keyOf(item));
+        const signature = String(signatureOf(item));
+        wanted.add(key);
+
+        let node = existing.get(key);
+        if (node && node.dataset.listSig === signature) {
+            ordered.push(node);
+            return;
+        }
+
+        const holder = document.createElement('template');
+        holder.innerHTML = render(item).trim();
+        const fresh = holder.content.firstElementChild;
+        fresh.dataset.listKey = key;
+        fresh.dataset.listSig = signature;
+        if (node) node.replaceWith(fresh);
+        else container.append(fresh);
+        ordered.push(fresh);
+    });
+
+    container.querySelectorAll('[data-list-key]').forEach((node) => {
+        if (!wanted.has(node.dataset.listKey)) node.remove();
+    });
+
+    const current = Array.from(container.children);
+    if (current.length !== ordered.length || current.some((node, index) => node !== ordered[index])) {
+        container.replaceChildren(...ordered);
+    }
+}
+
 /* ---------- задачи ---------- */
 
 async function loadTasks() {
@@ -103,12 +163,12 @@ async function loadTasks() {
     $('tasks-meta').textContent = tasks.length ? `${tasks.length} записей` : '';
     setCount('count-tasks', tasks.length);
 
-    if (!tasks.length) {
-        list.innerHTML = '<div class="empty">Пока пусто. Добавьте задачу через «Приём» или из Telegram.</div>';
-        return;
-    }
-
-    list.innerHTML = tasks.map((task) => `
+    applyList(
+        list,
+        tasks,
+        (task) => task.id,
+        (task) => [task.status, task.priority, task.title, task.source, task.updatedAt || task.createdAt].join('|'),
+        (task) => `
         <div class="card" data-task="${esc(task.id)}">
             <span class="status status-${esc(task.status)}">${esc(STATUS_RU[task.status] || task.status)}</span>
             <div class="card-main">
@@ -117,7 +177,8 @@ async function loadTasks() {
                     task.meta && task.meta.intent ? ' · ' + esc(task.meta.intent) : ''
                 }</div>
             </div>
-        </div>`).join('');
+        </div>`,
+        '<div class="empty">Пока пусто. Добавьте задачу через «Приём» или из Telegram.</div>');
 }
 
 /* ---------- разбор ---------- */
@@ -128,12 +189,12 @@ async function loadReview() {
     $('review-meta').textContent = items.length ? `${items.length} фраз` : '';
     setCount('count-review', items.length);
 
-    if (!items.length) {
-        list.innerHTML = '<div class="empty">Всё разобрано — неуверенных фраз нет.</div>';
-        return;
-    }
-
-    list.innerHTML = items.map((item) => `
+    applyList(
+        list,
+        items,
+        (item) => item.id,
+        (item) => [item.label, item.score, item.intent, item.error, item.hintedIntent].join('|'),
+        (item) => `
         <div class="card" style="cursor:default">
             <div class="card-main">
                 <div class="card-title">«${esc(item.inputText)}»</div>
@@ -149,7 +210,8 @@ async function loadReview() {
                     <button class="btn small" data-custom-save="${esc(item.id)}">пометить</button>
                 </div>
             </div>
-        </div>`).join('');
+        </div>`,
+        '<div class="empty">Всё разобрано — неуверенных фраз нет.</div>');
 }
 
 async function labelRecord(id, label) {
@@ -169,12 +231,12 @@ async function loadActions() {
     $('actions-meta').textContent = actions.length ? `${actions.length} записей` : '';
     setCount('count-actions', actions.length);
 
-    if (!actions.length) {
-        body.innerHTML = '<tr><td colspan="7" class="empty">Действий ещё не было.</td></tr>';
-        return;
-    }
-
-    body.innerHTML = actions.map((action) => `
+    applyList(
+        body,
+        actions,
+        (action) => action.id,
+        (action) => [action.outcome, action.durationMs, action.command, action.error, action.taskId].join('|'),
+        (action) => `
         <tr>
             <td class="mono">${esc(formatTime(action.createdAt))}</td>
             <td>${esc(action.source)}</td>
@@ -185,21 +247,35 @@ async function loadActions() {
             <td>${action.taskId
                 ? `<a href="#" class="mono" data-task="${esc(action.taskId)}">${esc(String(action.taskId).slice(0, 8))}</a>`
                 : '<span class="muted">—</span>'}</td>
-        </tr>`).join('');
+        </tr>`,
+        '<tr><td colspan="7" class="empty">Действий ещё не было.</td></tr>');
 }
 
 /* ---------- карточка задачи ---------- */
 
-async function openTask(id) {
+async function openTask(id, options = {}) {
+    const force = options.force === true;
+    const sameTask = state.detailId === id;
     state.taskId = id;
     $('detail').hidden = false;
-    $('detail-title').textContent = 'Загрузка…';
-    $('detail-body').innerHTML = '';
+
+    if (force || !sameTask) {
+        state.detailId = id;
+        $('detail-title').textContent = 'Загрузка…';
+        $('detail-body').innerHTML = '';
+        state.detailSig = null;
+    }
 
     const [task, actions] = await Promise.all([
         api(`/api/tasks/${id}`),
         api(`/api/actions?taskId=${id}&limit=100`),
     ]);
+
+    // Автообновление не должно перерисовывать карточку, если ничего не поменялось:
+    // иначе прокрутка таймлайна прыгает к началу каждые пять секунд.
+    const signature = [task.id, task.updatedAt, task.status, task.title, actions.length, actions[0]?.id ?? ''].join('|');
+    if (!force && state.detailSig === signature) return;
+    state.detailSig = signature;
 
     $('detail-title').textContent = task.title;
 
@@ -253,7 +329,7 @@ async function setTaskStatus(status) {
         method: 'PATCH',
         body: JSON.stringify({ status }),
     });
-    await Promise.all([loadTasks(), openTask(state.taskId), refreshTally()]);
+    await Promise.all([loadTasks(), openTask(state.taskId, { force: true }), refreshTally()]);
 }
 
 /* ---------- приём ---------- */
@@ -393,15 +469,21 @@ async function switchTab(tab) {
     await reload();
 }
 
-async function reload() {
+async function reload(options = {}) {
+    const force = options.force === true;
     try {
         showBanner('');
         await refreshTally();
+
+        // Пока в поле ввода печатают, списки не трогаем: обновим табло и статус,
+        // а разметку — когда фокус уйдёт (или нажали «обновить»).
+        if (!force && isUserBusy()) return;
+
         if (state.tab === 'tasks') await loadTasks();
         else if (state.tab === 'review') await loadReview();
         else if (state.tab === 'compare') await loadClassifiers();
         else if (state.tab === 'actions') await loadActions();
-        if (state.taskId) await openTask(state.taskId);
+        if (state.taskId) await openTask(state.taskId, { force });
     } catch (error) {
         if (error instanceof AuthError) {
             showBanner('Нужен bearer-токен: введите его справа и нажмите «сохранить».');
@@ -430,7 +512,7 @@ document.addEventListener('click', async (event) => {
     const target = event.target.closest('[data-task]');
     if (target) {
         event.preventDefault();
-        await openTask(target.dataset.task);
+        await openTask(target.dataset.task, { force: true });
         return;
     }
 
@@ -470,6 +552,8 @@ document.querySelectorAll('.tile[data-tab]').forEach((node) => {
 
 $('detail-close').addEventListener('click', () => {
     state.taskId = null;
+    state.detailId = null;
+    state.detailSig = null;
     $('detail').hidden = true;
 });
 
@@ -498,7 +582,7 @@ $('save-token').addEventListener('click', async () => {
     await reload();
 });
 
-$('refresh').addEventListener('click', reload);
+$('refresh').addEventListener('click', () => reload({ force: true }));
 
 document.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && state.tab === 'intake') {

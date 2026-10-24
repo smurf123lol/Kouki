@@ -73,4 +73,23 @@ public sealed class DashboardAssetsTests
         var missing = looked.Where(id => !declared.Contains(id)).ToArray();
         Assert.True(missing.Length == 0, "app.js обращается к отсутствующим id: " + string.Join(", ", missing));
     }
+
+    // Автообновление не должно перерисовывать разметку: иначе сбрасывается ввод
+    // в поле «своя метка» и прыгает прокрутка таймлайна. Проверяем, что механизм
+    // точечного обновления и защита «пока печатают — не трогать» на месте.
+    [Fact]
+    public void Script_updates_lists_in_place_and_respects_typing()
+    {
+        string app = File.ReadAllText(Path.Combine(WebRoot, "app.js"));
+
+        Assert.Contains("function applyList(", app, StringComparison.Ordinal);
+        Assert.Contains("data-list-key", app, StringComparison.Ordinal);
+        Assert.Contains("dataset.listSig", app, StringComparison.Ordinal);
+        Assert.Contains("function isUserBusy(", app, StringComparison.Ordinal);
+        Assert.Contains("replaceChildren(...ordered)", app, StringComparison.Ordinal);
+
+        // полная перерисовка списков через innerHTML не должна вернуться
+        Assert.DoesNotContain("list.innerHTML = tasks.map", app, StringComparison.Ordinal);
+        Assert.DoesNotContain("body.innerHTML = actions.map", app, StringComparison.Ordinal);
+    }
 }
