@@ -74,4 +74,16 @@ dotnet build <project> --no-restore -m:1 -nodeReuse:false
 ```
 
 `dotnet test` в такой песочнице может не запуститься (VSTest testhost вызывает
-`OpenProcess`); обходной путь — раннер, вызывающий `[Fact]`-методы через рефлексию.
+`OpenProcess`); обходной путь — раннер, вызывающий `[Fact]`-методы через рефлексию. Раннер
+живёт **вне репозитория** (в воркспейсе это `_scratch\testrun`) и запускается так:
+
+```powershell
+dotnet _scratch\testrun\bin\Debug\net10.0\Kouki.Tests.Runner.dll
+```
+
+Он исполняет только `[Fact]`; `[Theory]` не запускается — цикл пишите внутри `[Fact]`.
+
+## Правила репозитория
+
+Контракты и границы изменений описаны в `AGENTS.md` (для агентов и людей) и
+`CONTRIBUTING.md` (рабочий цикл, definition of done). Перед правкой контрактов — туда.
