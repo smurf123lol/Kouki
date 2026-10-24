@@ -10,6 +10,7 @@ using Kouki.Yasabi;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using System.Text.Json.Nodes;
 
 using Kouki.Kagedama.Contracts;
 
@@ -92,6 +93,43 @@ public sealed class IntakeTests
         Assert.Equal(IntakeOutcomes.Created, result.Outcome);
         TaskRecord task = Assert.IsType<TaskRecord>(result.Task);
         Assert.Equal("молоко и хлеб", task.Title);
+    }
+
+    [Fact]
+    public async Task Session_hint_rewrites_the_journal_entry()
+    {
+        using var server = new ServerFixture();
+
+        // Правила на такой фразе скажут unclassified; сессия знает точнее — и журнал должен это знать.
+        await server.Intake.IntakeAsync("молоко и хлеб", "station", intentHint: "add_task");
+
+        IReadOnlyList<ClassificationEntry> records = await server.Journal.ListAsync(5, onlyUnresolved: false);
+        ClassificationEntry record = Assert.Single(records);
+        Assert.Equal("add_task", record.Intent);
+        Assert.EndsWith("+session", record.Model, StringComparison.Ordinal);
+        Assert.True(record.Confident, "запись из сессии не должна попадать в фильтр «не разобрали»");
+    }
+
+    [Fact]
+    public async Task Ask_creates_a_task_record_with_the_answer()
+    {
+        using var server = new ServerFixture();
+
+        // «Спросить» на станции: ответ команды ask ложится в мету задачи-записи.
+        IntakeResult result = await server.Intake.IntakeAsync(
+            "Сколько минут варить пельмени?",
+            "station",
+            intentHint: "ask");
+
+        Assert.Equal(IntakeOutcomes.Executed, result.Outcome);
+        Assert.Equal("ask", result.Route.CommandName);
+
+        TaskRecord task = Assert.IsType<TaskRecord>(result.Task);
+        Assert.Equal(TaskStatuses.New, task.Status);
+
+        JsonNode meta = JsonNode.Parse(task.MetaJson)!;
+        Assert.Equal("ask", meta["intent"]!.GetValue<string>());
+        Assert.Contains("не умею", meta["answer"]!.GetValue<string>(), StringComparison.Ordinal);
     }
 
     [Fact]

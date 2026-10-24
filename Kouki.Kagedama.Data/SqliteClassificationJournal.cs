@@ -94,6 +94,25 @@ public sealed class SqliteClassificationJournal : IClassificationJournal
     }
 
     /// <inheritdoc />
+    public async Task<bool> AnnotateIntentAsync(Guid id, string intent, string model, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(intent);
+        ArgumentException.ThrowIfNullOrWhiteSpace(model);
+
+        await using SqliteConnection connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+
+        // Сессия знает интент точно, поэтому запись перестаёт быть «неуверенной»:
+        // фильтр onlyUnresolved не должен показывать удачную фразу как непонятую.
+        int affected = await connection.ExecuteAsync(
+            new CommandDefinition(
+                "UPDATE classifications SET intent = @intent, model = @model, confident = 1, score = 1 WHERE id = @id",
+                new { id = id.ToString(), intent, model },
+                cancellationToken: cancellationToken)).ConfigureAwait(false);
+
+        return affected > 0;
+    }
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<ClassificationEntry>> ListLabeledAsync(int limit, CancellationToken cancellationToken = default)
     {
         await using SqliteConnection connection = await OpenAsync(cancellationToken).ConfigureAwait(false);

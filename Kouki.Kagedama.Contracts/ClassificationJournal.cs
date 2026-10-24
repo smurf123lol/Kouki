@@ -60,6 +60,21 @@ public interface IClassificationJournal
     Task<bool> AnnotateAudioAsync(Guid id, double? asrConfidence, string? audioPath, CancellationToken cancellationToken = default, string? source = null);
 
     /// <summary>
+    /// Переписывает вердикт записи, когда интент пришёл не от классификатора, а из сессии
+    /// (кнопка «Записать»/«Спросить» на станции).
+    /// </summary>
+    /// <remarks>
+    /// Классификатор пишет свою догадку (часто <c>unclassified</c>), а сессия знает интент точно.
+    /// Без этой правки фильтр «что не распознали» показывал бы и удачные записи.
+    /// </remarks>
+    /// <param name="id">Запись журнала.</param>
+    /// <param name="intent">Интент сессии.</param>
+    /// <param name="model">Модель с пометкой сессии, например <c>rules-v1+session</c>.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <returns><c>true</c>, если запись нашлась.</returns>
+    Task<bool> AnnotateIntentAsync(Guid id, string intent, string model, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Записи, которые уже размечены вручную: их аудио можно считать отработанным.
     /// </summary>
     /// <param name="limit">Сколько вернуть.</param>
@@ -150,4 +165,8 @@ public sealed class NullClassificationJournal : IClassificationJournal
     /// <inheritdoc />
     public Task<IReadOnlyList<ClassificationEntry>> ListLabeledAsync(int limit, CancellationToken cancellationToken = default)
         => Task.FromResult<IReadOnlyList<ClassificationEntry>>(Array.Empty<ClassificationEntry>());
+
+    /// <inheritdoc />
+    public Task<bool> AnnotateIntentAsync(Guid id, string intent, string model, CancellationToken cancellationToken = default)
+        => Task.FromResult(false);
 }

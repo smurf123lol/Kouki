@@ -118,8 +118,8 @@ public sealed class TaskIntakeService
         IntentResult intent = await _classifier.ClassifyAsync(trimmed, cancellationToken).ConfigureAwait(false);
         Guid? classificationId = intent.JournalId;
 
-        // Сессия сама сообщает интент (кнопка «Записать» на станции): фраза — уже задача,
-        // вырезать из неё императив не нужно. Журнал при этом остаётся: классификатор уже написал запись.
+        // Сессия сама сообщает интент (кнопка «Записать»/«Спросить» на станции): фраза — уже задача
+        // или вопрос, вырезать из неё императив не нужно.
         if (!string.IsNullOrWhiteSpace(intentHint))
         {
             intent = intent with
@@ -128,6 +128,12 @@ public sealed class TaskIntakeService
                 Score = 1d,
                 Model = intent.Model + "+session",
             };
+
+            // Классификатор уже написал свою догадку (часто unclassified); сессия знает точнее.
+            if (classificationId is Guid hintedId)
+            {
+                await AnnotateJournalIntentAsync(hintedId, intent, cancellationToken).ConfigureAwait(false);
+            }
         }
 
         // Источник правды о том, откуда фраза, — приём: классификатор пишет значение по умолчанию.
@@ -152,8 +158,14 @@ public sealed class TaskIntakeService
             return new IntakeResult(task, review, false, IntakeOutcomes.NeedsReview, reviewAction);
         }
 
+        // Вопрос — не задача, но и не мусор: ему нужна запись, чтобы ответ было где искать.
+        // Задачу создаёт приём (а не команда), поэтому идентификатор сразу попадает в слоты.
+        TaskRecord? recorded = IsRecorded(intent.Intent)
+            ? await AddTaskAsync(trimmed, source, new IntentRoute(intent, null, null, false, null), TaskStatuses.New, IntakeOutcomes.Executed, asrConfidence, audioPath, cancellationToken).ConfigureAwait(false)
+            : null;
+
         // Уверенная фраза: всё уходит в роутер, он найдёт команду и вызовет диспатчер.
-        IntentResult enriched = await EnrichSlotsAsync(intent, trimmed, source, cancellationToken).ConfigureAwait(false);
+        IntentResult enriched = await EnrichSlotsAsync(intent, trimmed, source, recorded?.Id, cancellationToken).ConfigureAwait(false);
         IntentRoute route = await _router.RouteAsync(enriched, context, cancellationToken).ConfigureAwait(false);
 
         string? errorText = route.Error ?? PayloadError(route.Result);
@@ -181,12 +193,20 @@ public sealed class TaskIntakeService
             created.MetaJson = metaJson;
         }
 
+        // Запись под вопрос: ответ команды кладём в мету задачи — это и есть «result таска».
+        if (recorded is not null)
+        {
+            string metaJson = BuildMeta(route, route.Executed, outcome, asrConfidence, audioPath, ExtractAnswer(route.Result));
+            await _store.UpdateAsync(recorded.Id, null, null, null, metaJson, cancellationToken).ConfigureAwait(false);
+            recorded.MetaJson = metaJson;
+        }
+
         Guid action = await RecordActionAsync(
-            taskId, classificationId, source, intent.Intent, route.CommandName, outcome,
+            taskId ?? recorded?.Id, classificationId, source, intent.Intent, route.CommandName, outcome,
             enriched.Slots?.ToJsonString(), route.Result?.ToJsonString(), errorText,
             started, cancellationToken).ConfigureAwait(false);
 
-        return new IntakeResult(created, route, route.Executed && !failed, outcome, action);
+        return new IntakeResult(recorded ?? created, route, route.Executed && !failed, outcome, action);
     }
 
     /// <summary>
@@ -246,6 +266,20 @@ public sealed class TaskIntakeService
         double? asrConfidence,
         string? audioPath,
         CancellationToken cancellationToken)
+        => await AddTaskAsync(text, source, route, TaskStatuses.NeedsReview, IntakeOutcomes.NeedsReview, asrConfidence, audioPath, cancellationToken).ConfigureAwait(false);
+
+    /// <summary>
+    /// Создаёт задачу-запись: либо «на разборе» (фразу не поняли), либо запись вопроса.
+    /// </summary>
+    private async Task<TaskRecord> AddTaskAsync(
+        string text,
+        string source,
+        IntentRoute route,
+        string status,
+        string outcome,
+        double? asrConfidence,
+        string? audioPath,
+        CancellationToken cancellationToken)
     {
         DateTimeOffset now = DateTimeOffset.UtcNow;
         var record = new TaskRecord
@@ -256,9 +290,9 @@ public sealed class TaskIntakeService
             Source = source,
             RawText = text,
             Title = TaskTitles.Make(text),
-            Status = TaskStatuses.NeedsReview,
+            Status = status,
             Priority = 2,
-            MetaJson = BuildMeta(route, commandExecuted: false, IntakeOutcomes.NeedsReview, asrConfidence, audioPath),
+            MetaJson = BuildMeta(route, commandExecuted: false, outcome, asrConfidence, audioPath),
         };
 
         await _store.AddAsync(record, cancellationToken).ConfigureAwait(false);
@@ -266,7 +300,7 @@ public sealed class TaskIntakeService
     }
 
     /// <summary>
-    /// Дописывает к записи журнала уверенность ASR и путь к аудио.
+    /// Дописывает к записи журнала уверенность ASR, путь к аудио и настоящий источник.
     /// </summary>
     /// <remarks>
     /// Классификатор пишет запись до того, как ему станет известно про звук,
@@ -291,6 +325,37 @@ public sealed class TaskIntakeService
     }
 
     /// <summary>
+    /// Переписывает интент записи журнала, когда его сообщила сессия.
+    /// </summary>
+    private async Task AnnotateJournalIntentAsync(Guid journalId, IntentResult intent, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _journal.AnnotateIntentAsync(journalId, intent.Intent, intent.Model, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception) when (!_options.ActionFailuresAreFatal)
+        {
+            // Журнал — вспомогательный: его сбой не должен ронять приём фразы.
+        }
+    }
+
+    /// <summary>
+    /// Проверяет, надо ли завести запись под фразу, которую не создаёт команда.
+    /// </summary>
+    private bool IsRecorded(string intent)
+    {
+        foreach (string candidate in _options.RecordedIntents)
+        {
+            if (string.Equals(candidate, intent, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Подставляет слоты, которые знает только хост: текст фразы, источник и
     /// последнюю открытую задачу для <c>complete_task</c> без явного идентификатора.
     /// </summary>
@@ -298,8 +363,23 @@ public sealed class TaskIntakeService
         IntentResult intent,
         string text,
         string source,
+        Guid? recordId,
         CancellationToken cancellationToken)
     {
+        // Запись под вопросом: команде нужен и текст, и идентификатор задачи, чтобы ответ
+        // лёг в ту же строку.
+        if (recordId is Guid recordedId)
+        {
+            return intent with
+            {
+                Slots = new JsonObject
+                {
+                    ["text"] = text,
+                    ["taskId"] = recordedId.ToString(),
+                },
+            };
+        }
+
         if (string.Equals(intent.Intent, "add_task", StringComparison.OrdinalIgnoreCase))
         {
             return intent with
@@ -368,12 +448,23 @@ public sealed class TaskIntakeService
     private static string? PayloadError(JsonNode? result)
         => result is JsonObject payload && payload["error"] is JsonNode error ? error.ToJsonString() : null;
 
+    /// <summary>
+    /// Достаёт ответ команды: он попадает в мету задачи-записи.
+    /// </summary>
+    private static string? ExtractAnswer(JsonNode? result)
+        => result is JsonObject payload
+           && payload["answer"] is JsonValue value
+           && value.TryGetValue(out string? answer)
+            ? answer
+            : null;
+
     private static string BuildMeta(
         IntentRoute route,
         bool commandExecuted,
         string outcome,
         double? asrConfidence = null,
-        string? audioPath = null)
+        string? audioPath = null,
+        string? answer = null)
     {
         var meta = new JsonObject
         {
@@ -394,6 +485,11 @@ public sealed class TaskIntakeService
         if (audioPath is not null)
         {
             meta["audioPath"] = audioPath;
+        }
+
+        if (answer is not null)
+        {
+            meta["answer"] = answer;
         }
 
         return meta.ToJsonString();

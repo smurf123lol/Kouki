@@ -159,6 +159,9 @@ public sealed class YasabiTests
 
         public Task<IReadOnlyList<ClassificationEntry>> ListLabeledAsync(int limit, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<ClassificationEntry>>(Array.Empty<ClassificationEntry>());
+
+        public Task<bool> AnnotateIntentAsync(Guid id, string intent, string model, CancellationToken cancellationToken = default)
+            => Task.FromResult(true);
     }
 
     private sealed class ThrowingClassifier : IIntentClassifier
