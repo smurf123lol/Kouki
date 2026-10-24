@@ -74,9 +74,12 @@ Kagedama.api / .mcp / Kouki.Kagedama.Bot — хосты
 6. **Хосты собирают DI через `KoukiHosting.AddKoukiCore(new KoukiHostSettings { … })`** и
    инициализируются `KoukiHosting.InitializeKouki(provider, "api"|"mcp")`. Путь к базе по
    умолчанию — `KoukiHosting.DefaultDatabasePath()`, не свой.
-7. **Чтение и запись задач по HTTP — через команды** (`list_tasks`, `patch_task`,
-   `complete_task`), а не прямо в `ITaskStore` из эндпоинта. Прямое чтение одной задачи
-   (`GET /api/tasks/{id}`) допустимо, но пиши комментарий, почему.
+7. **Чтение и запись по HTTP и MCP — через команды** (`list_tasks`, `patch_task`,
+   `complete_task`, `list_actions`, `list_classifications`, `label_classification`),
+   а не прямо в хранилища из хоста. Единственное исключение — `GET /api/tasks/{id}`:
+   пиши рядом комментарий, почему это чтение одной записи мимо команды.
+   Хост MCP поэтому получает в конструктор только `TaskIntakeService`, `IRouter` и
+   `IContextRegistry`: если ему понадобилось хранилище, значит операция забыла команду.
 8. **Авторизация fail-closed.** Пустой `Kouki:Token` — это ошибка запуска, а не «без пароля».
    Открытый режим — только явный `Kouki:AllowAnonymous=true`.
 9. **Команды описываются атрибутом на классе-обработчике**, не на DTO:

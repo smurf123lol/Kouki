@@ -31,33 +31,20 @@ public sealed class KoukiMcpTools
     private readonly TaskIntakeService _intake;
     private readonly IRouter _router;
     private readonly IContextRegistry _contexts;
-    private readonly ITaskStore _store;
-    private readonly IClassificationJournal _journal;
-    private readonly IActionLog _actions;
-
     /// <summary>
     /// Создаёт набор инструментов.
     /// </summary>
     /// <param name="intake">Приём задач: распознаёт интент и отдаёт команду диспатчеру.</param>
     /// <param name="router">Маршрутизатор команд.</param>
     /// <param name="contexts">Реестр контекстов исполнения.</param>
-    /// <param name="store">Хранилище задач.</param>
-    /// <param name="journal">Журнал классификаций.</param>
-    /// <param name="actions">Журнал действий: история задачи и отладочная информация.</param>
     public KoukiMcpTools(
         TaskIntakeService intake,
         IRouter router,
-        IContextRegistry contexts,
-        ITaskStore store,
-        IClassificationJournal journal,
-        IActionLog actions)
+        IContextRegistry contexts)
     {
         _intake = intake ?? throw new ArgumentNullException(nameof(intake));
         _router = router ?? throw new ArgumentNullException(nameof(router));
         _contexts = contexts ?? throw new ArgumentNullException(nameof(contexts));
-        _store = store ?? throw new ArgumentNullException(nameof(store));
-        _journal = journal ?? throw new ArgumentNullException(nameof(journal));
-        _actions = actions ?? throw new ArgumentNullException(nameof(actions));
     }
 
     /// <summary>
@@ -249,25 +236,17 @@ public sealed class KoukiMcpTools
 
     private async Task<JsonNode> CompleteTaskAsync(JsonObject args, CancellationToken cancellationToken)
     {
-        string? taskId = OptionalString(args, "taskId");
+        var slots = new JsonObject();
 
-        if (string.IsNullOrWhiteSpace(taskId))
+        if (OptionalString(args, "taskId") is { Length: > 0 } taskId)
         {
-            TaskRecord? open = await FindLatestOpenAsync(cancellationToken).ConfigureAwait(false);
-            if (open is null)
-            {
-                return new JsonObject { ["error"] = "Открытых задач нет: закрывать нечего." };
-            }
-
-            taskId = open.Id.ToString();
+            slots["taskId"] = taskId;
         }
 
-        var slots = new JsonObject { ["taskId"] = taskId };
-
+        // Какую задачу закрывать, решает команда: у HTTP и MCP один и тот же порядок.
         return await _router.RouteAsync("complete_task", slots, _contexts.GetDefaultContext(), cancellationToken)
             .ConfigureAwait(false);
     }
-
     private async Task<JsonNode> TaskHistoryAsync(JsonObject args, CancellationToken cancellationToken)
     {
         string rawId = RequiredString(args, "taskId");
@@ -278,108 +257,58 @@ public sealed class KoukiMcpTools
         }
 
         int limit = Math.Clamp(OptionalInt(args, "limit") ?? 20, 1, 200);
-        IReadOnlyList<ActionRecord> records = await _actions.ListAsync(limit, taskId, cancellationToken)
-            .ConfigureAwait(false);
 
-        var array = new JsonArray();
-        foreach (ActionRecord record in records)
+        // История задачи — тоже команда: поля и порядок те же, что у HTTP.
+        JsonNode? result = await _router.RouteAsync(
+            "list_actions",
+            new JsonObject { ["taskId"] = taskId.ToString(), ["limit"] = limit },
+            _contexts.GetDefaultContext(),
+            cancellationToken).ConfigureAwait(false);
+
+        if (result is JsonObject payload && payload["actions"] is JsonArray actions)
         {
-            array.Add(new JsonObject
+            return new JsonObject
             {
-                ["id"] = record.Id.ToString(),
-                ["createdAt"] = record.CreatedAt,
-                ["kind"] = record.Kind,
-                ["source"] = record.Source,
-                ["intent"] = record.Intent,
-                ["command"] = record.Command,
-                ["outcome"] = record.Outcome,
-                ["classificationId"] = record.ClassificationId?.ToString(),
-                ["args"] = Parse(record.ArgsJson),
-                ["result"] = Parse(record.ResultJson),
-                ["error"] = record.Error,
-                ["durationMs"] = record.DurationMs,
-            });
+                ["taskId"] = taskId.ToString(),
+                ["count"] = actions.Count,
+                ["actions"] = actions.DeepClone(),
+            };
         }
 
-        return new JsonObject { ["taskId"] = taskId.ToString(), ["count"] = array.Count, ["actions"] = array };
-    }
-
-    private static JsonNode? Parse(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json))
+        return new JsonObject
         {
-            return null;
-        }
-
-        try
-        {
-            return JsonNode.Parse(json);
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
+            ["taskId"] = taskId.ToString(),
+            ["count"] = 0,
+            ["actions"] = new JsonArray(),
+        };
     }
     private async Task<JsonNode> UnresolvedAsync(JsonObject args, CancellationToken cancellationToken)
     {
         int limit = Math.Clamp(OptionalInt(args, "limit") ?? 20, 1, 200);
-        IReadOnlyList<ClassificationEntry> entries = await _journal.ListAsync(limit, onlyUnresolved: true, cancellationToken)
-            .ConfigureAwait(false);
 
-        var array = new JsonArray();
-        foreach (ClassificationEntry entry in entries)
-        {
-            array.Add(new JsonObject
-            {
-                ["id"] = entry.Id.ToString(),
-                ["createdAt"] = entry.CreatedAt,
-                ["source"] = entry.Source,
-                ["input"] = entry.InputText,
-                ["intent"] = entry.Intent,
-                ["score"] = entry.Score,
-                ["model"] = entry.Model,
-                ["confident"] = entry.Confident,
-                ["error"] = entry.Error,
-            });
-        }
-
-        return new JsonObject { ["count"] = array.Count, ["entries"] = array };
+        return await _router.RouteAsync(
+            "list_classifications",
+            new JsonObject { ["limit"] = limit, ["unresolved"] = true },
+            _contexts.GetDefaultContext(),
+            cancellationToken).ConfigureAwait(false);
     }
-
     private async Task<JsonNode> LabelAsync(JsonObject args, CancellationToken cancellationToken)
     {
         string rawId = RequiredString(args, "id");
-        string label = RequiredString(args, "label");
+        string label = OptionalString(args, "label") ?? string.Empty;
 
         if (!Guid.TryParse(rawId, out Guid id))
         {
             return new JsonObject { ["labeled"] = false, ["error"] = $"'{rawId}' — не идентификатор записи." };
         }
 
-        bool labeled = await _journal.LabelAsync(id, label, cancellationToken).ConfigureAwait(false);
-
-        return new JsonObject
-        {
-            ["labeled"] = labeled,
-            ["error"] = labeled ? null : $"Запись {id} не найдена.",
-        };
+        // Пустую метку отбивает команда, а не хост: правило одно для HTTP и MCP.
+        return await _router.RouteAsync(
+            "label_classification",
+            new JsonObject { ["id"] = id.ToString(), ["label"] = label },
+            _contexts.GetDefaultContext(),
+            cancellationToken).ConfigureAwait(false);
     }
-
-    private async Task<TaskRecord?> FindLatestOpenAsync(CancellationToken cancellationToken)
-    {
-        IReadOnlyList<TaskRecord> tasks = await _store.ListAsync(null, 50, cancellationToken).ConfigureAwait(false);
-
-        foreach (TaskRecord task in tasks)
-        {
-            if (TaskStatuses.IsOpen(task.Status))
-            {
-                return task;
-            }
-        }
-
-        return null;
-    }
-
     private static string RequiredString(JsonObject args, string name)
     {
         string? value = OptionalString(args, name);

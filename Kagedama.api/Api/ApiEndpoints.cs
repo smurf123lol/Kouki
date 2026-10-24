@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Kouki.Kagedama;
 using Kouki.Kagedama.Contracts;
+using Kouki.Kagedama.Commands;
 using Kouki.Kagedama.Data;
 using MuguraRouter = Kouki.Mugura.Dispatcher.IRouter;
 using Kouki.Shimi.Context;
@@ -397,40 +398,73 @@ public static class ApiEndpoints
     private static async Task<IResult> listActionsHandler(
         Guid? taskId,
         int? limit,
-        IActionLog actions,
+        MuguraRouter router,
         CancellationToken cancellationToken)
     {
-        int take = Math.Clamp(limit ?? 100, 1, 500);
-        IReadOnlyList<ActionRecord> records = await actions.ListAsync(take, taskId, cancellationToken);
+        // Журнал действий читается командой: у HTTP и MCP одна выдача и одна проверка.
+        int take = Math.Clamp(limit ?? ListActionsHandler.DefaultLimit, 1, ListActionsHandler.MaxLimit);
 
-        return Results.Ok(records.Select(ApiMapping.ToDto).ToList());
+        JsonNode? result = await router.RouteAsync(
+            "list_actions",
+            new JsonObject { ["taskId"] = taskId?.ToString(), ["limit"] = take },
+            context: null,
+            cancellationToken).ConfigureAwait(false);
+
+        return Results.Ok(ApiMapping.ToActionList(result));
     }
 
     private static async Task<IResult> listClassificationsHandler(
         int? limit,
         bool? unresolved,
-        IClassificationJournal journal,
+        MuguraRouter router,
         CancellationToken cancellationToken)
     {
-        int take = Math.Clamp(limit ?? 100, 1, 1000);
-        IReadOnlyList<ClassificationEntry> entries =
-            await journal.ListAsync(take, unresolved ?? false, cancellationToken);
+        int take = Math.Clamp(
+            limit ?? ListClassificationsHandler.DefaultLimit,
+            1,
+            ListClassificationsHandler.MaxLimit);
 
-        return Results.Ok(entries.Select(ApiMapping.ToDto).ToList());
+        JsonNode? result = await router.RouteAsync(
+            "list_classifications",
+            new JsonObject { ["limit"] = take, ["unresolved"] = unresolved ?? false },
+            context: null,
+            cancellationToken).ConfigureAwait(false);
+
+        return Results.Ok(ApiMapping.ToClassificationList(result));
     }
 
     private static async Task<IResult> labelClassificationHandler(
         Guid id,
         LabelRequest request,
-        IClassificationJournal journal,
+        MuguraRouter router,
         CancellationToken cancellationToken)
     {
-        if (request is null || string.IsNullOrWhiteSpace(request.Label))
+        if (request is null)
         {
-            return Results.BadRequest(new { error = "Поле 'label' обязательно." });
+            return Results.BadRequest(new { error = "Тело запроса обязательно." });
         }
 
-        bool labeled = await journal.LabelAsync(id, request.Label.Trim(), cancellationToken);
-        return labeled ? Results.Ok(new { id, label = request.Label.Trim() }) : Results.NotFound(new { error = "Запись не найдена." });
+        JsonNode? result = await router.RouteAsync(
+            "label_classification",
+            new JsonObject { ["id"] = id.ToString(), ["label"] = request.Label },
+            context: null,
+            cancellationToken).ConfigureAwait(false);
+
+        if (result is not JsonObject payload)
+        {
+            return Results.BadRequest(new { error = "Разметка не выполнена." });
+        }
+
+        if (payload["labeled"]?.GetValue<bool>() == true)
+        {
+            return Results.Ok(new { id, label = payload["label"]?.GetValue<string>() });
+        }
+
+        string error = payload["error"]?.GetValue<string>() ?? "Запись не найдена.";
+        string reason = payload["reason"]?.GetValue<string>() ?? "not-found";
+
+        return reason == "invalid"
+            ? Results.BadRequest(new { error })
+            : Results.NotFound(new { error });
     }
 }

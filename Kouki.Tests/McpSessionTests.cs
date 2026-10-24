@@ -42,10 +42,7 @@ public sealed class McpSessionTests : IDisposable
         _session = new McpSession(new KoukiMcpTools(
             _provider.GetRequiredService<TaskIntakeService>(),
             _provider.GetRequiredService<Kouki.Mugura.Dispatcher.IRouter>(),
-            _provider.GetRequiredService<IContextRegistry>(),
-            _provider.GetRequiredService<ITaskStore>(),
-            _provider.GetRequiredService<IClassificationJournal>(),
-            _provider.GetRequiredService<IActionLog>()));
+            _provider.GetRequiredService<IContextRegistry>()));
     }
 
     [Fact]

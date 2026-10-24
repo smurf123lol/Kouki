@@ -153,6 +153,34 @@ public static class ApiMapping
         return tasks;
     }
 
+    /// <summary>
+    /// Ответ команды <c>list_actions</c> → список DTO журнала действий.
+    /// </summary>
+    /// <param name="node">Объект вида <c>{count, actions[]}</c>.</param>
+    public static IReadOnlyList<ActionDto> ToActionList(JsonNode? node)
+    {
+        if (node is not JsonObject payload || payload["actions"] is not JsonArray array)
+        {
+            return Array.Empty<ActionDto>();
+        }
+
+        return array.Deserialize<List<ActionDto>>(WebJson) ?? new List<ActionDto>();
+    }
+
+    /// <summary>
+    /// Ответ команды <c>list_classifications</c> → список DTO журнала разбора.
+    /// </summary>
+    /// <param name="node">Объект вида <c>{count, entries[]}</c>.</param>
+    public static IReadOnlyList<ClassificationDto> ToClassificationList(JsonNode? node)
+    {
+        if (node is not JsonObject payload || payload["entries"] is not JsonArray array)
+        {
+            return Array.Empty<ClassificationDto>();
+        }
+
+        return array.Deserialize<List<ClassificationDto>>(WebJson) ?? new List<ClassificationDto>();
+    }
+
     /// <summary>Задача → DTO.</summary>
     public static TaskDto ToDto(TaskRecord record)
     {
