@@ -8,8 +8,17 @@ public sealed class KoukiServerOptions
     /// <summary>Имя секции в конфигурации.</summary>
     public const string SectionName = "Kouki";
 
-    /// <summary>Путь к файлу SQLite. Относительный разрешается от рабочего каталога.</summary>
+    /// <summary>
+    /// Путь к файлу SQLite. Относительный разрешается от каталога приложения
+    /// (<see cref="AppContext.BaseDirectory"/>), а не от текущего каталога процесса.
+    /// </summary>
     public string DatabasePath { get; set; } = "kouki.sqlite";
+
+    /// <summary>
+    /// Запретить относительные пути к базе, аудио и модели: на сервере «рядом с dll»
+    /// не должно быть сюрпризом. При включении относительный путь — ошибка запуска.
+    /// </summary>
+    public bool RequireAbsolutePaths { get; set; }
 
     /// <summary>
     /// Bearer-токен. Пустой токен закрывает API: открытый доступ включается только

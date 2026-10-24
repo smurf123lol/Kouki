@@ -35,7 +35,25 @@ builder.Logging.AddSimpleConsole(options =>
     options.TimestampFormat = "HH:mm:ss ";
 });
 
-builder.Services.Configure<KoukiServerOptions>(builder.Configuration.GetSection(KoukiServerOptions.SectionName));
+// Пути приводятся к абсолютным до регистрации: иначе база, аудио и модель окажутся там,
+// где их никто не искал (относительный путь раньше разрешался от текущего каталога процесса).
+KoukiServerOptions serverOptions = new();
+builder.Configuration.GetSection(KoukiServerOptions.SectionName).Bind(serverOptions);
+
+string configuredDatabase = serverOptions.DatabasePath;
+string configuredAudio = serverOptions.AudioDirectory;
+string configuredModel = serverOptions.SpeechModelDirectory;
+
+serverOptions.DatabasePath = KoukiPaths.Resolve(
+    serverOptions.DatabasePath, "kouki.sqlite", nameof(KoukiServerOptions.DatabasePath), serverOptions.RequireAbsolutePaths);
+serverOptions.AudioDirectory = KoukiPaths.Resolve(
+    serverOptions.AudioDirectory, "audio", nameof(KoukiServerOptions.AudioDirectory), serverOptions.RequireAbsolutePaths);
+serverOptions.SpeechModelDirectory = KoukiPaths.Resolve(
+    serverOptions.SpeechModelDirectory, "models", nameof(KoukiServerOptions.SpeechModelDirectory), serverOptions.RequireAbsolutePaths);
+
+// Один экземпляр настроек на всё приложение: и IOptions, и прямой резолв дают уже разрешённые пути.
+builder.Services.AddSingleton(serverOptions);
+builder.Services.AddSingleton<IOptions<KoukiServerOptions>>(Options.Create(serverOptions));
 
 // Необработанное исключение превращается в JSON-ответ с ProblemDetails и записью в лог,
 // иначе клиент видит пустой 500 без объяснения.
@@ -52,16 +70,8 @@ builder.Services.AddHttpLogging(options =>
 });
 
 // Порог живёт в одном месте: отсюда его получают и приём, и классификатор, и /api/classify.
-double threshold = builder.Configuration.GetValue<double?>(
-    $"{KoukiServerOptions.SectionName}:{nameof(KoukiServerOptions.ConfidenceThreshold)}")
-    ?? IntakeOptions.DefaultConfidenceThreshold;
-
-string configuredDatabase = builder.Configuration[
-    $"{KoukiServerOptions.SectionName}:{nameof(KoukiServerOptions.DatabasePath)}"] ?? string.Empty;
-
-string databasePath = string.IsNullOrWhiteSpace(configuredDatabase)
-    ? KoukiHosting.DefaultDatabasePath()
-    : Path.GetFullPath(configuredDatabase);
+double threshold = serverOptions.ConfidenceThreshold;
+string databasePath = serverOptions.DatabasePath;
 
 // Одна композиция домена на все хосты: хранилище, команды, контексты, классификатор, приём.
 builder.Services.AddKoukiCore(new KoukiHostSettings
@@ -79,10 +89,8 @@ Kouki.Un.Sherpa.ServiceCollectionExtensions.AddUnSherpa(
     builder.Services,
     sherpa =>
     {
-        sherpa.ModelDirectory = builder.Configuration[
-            $"{KoukiServerOptions.SectionName}:{nameof(KoukiServerOptions.SpeechModelDirectory)}"] ?? "models";
-        sherpa.Language = builder.Configuration[
-            $"{KoukiServerOptions.SectionName}:{nameof(KoukiServerOptions.SpeechLanguage)}"] ?? "ru";
+        sherpa.ModelDirectory = serverOptions.SpeechModelDirectory;
+        sherpa.Language = serverOptions.SpeechLanguage;
     });
 #else
 builder.Services.AddUn();
@@ -116,6 +124,17 @@ WebApplication app = builder.Build();
 KoukiServerOptions options = app.Services.GetRequiredService<IOptions<KoukiServerOptions>>().Value;
 string initializedDatabase = KoukiHosting.InitializeKouki(app.Services, "server");
 app.Logger.LogInformation("Kouki: база данных {Path}", initializedDatabase);
+app.Logger.LogInformation(
+    "Kouki: аудио {Audio}, модель {Model}, язык {Language}, порог {Threshold}",
+    options.AudioDirectory,
+    options.SpeechModelDirectory,
+    options.SpeechLanguage,
+    options.ConfidenceThreshold);
+
+// Относительный путь в конфигурации — не ошибка, но на сервере это почти всегда сюрприз.
+LogResolvedPath(app.Logger, nameof(KoukiServerOptions.DatabasePath), configuredDatabase, options.DatabasePath);
+LogResolvedPath(app.Logger, nameof(KoukiServerOptions.AudioDirectory), configuredAudio, options.AudioDirectory);
+LogResolvedPath(app.Logger, nameof(KoukiServerOptions.SpeechModelDirectory), configuredModel, options.SpeechModelDirectory);
 
 // Ловушка, на которую уже наступали: обычная сборка (без -p:KoukiEnableSherpa=true)
 // перезаписывает assets и тихо оставляет заглушку — станция получает 503 и сообщает
@@ -170,3 +189,17 @@ app.UseMiddleware<TokenAuthMiddleware>();
 app.MapKoukiApi();
 
 app.Run();
+
+static void LogResolvedPath(ILogger logger, string setting, string configured, string resolved)
+{
+    if (!string.IsNullOrWhiteSpace(configured) && !Path.IsPathRooted(configured))
+    {
+        logger.LogWarning(
+            "Путь {Setting} = '{Configured}' относительный: разрешён от каталога приложения как {Resolved}. " +
+            "На сервере задавайте абсолютный путь (Kouki__{Setting}) и включите Kouki:RequireAbsolutePaths.",
+            setting,
+            configured,
+            resolved,
+            setting);
+    }
+}

@@ -20,9 +20,15 @@ using Microsoft.Extensions.Logging;
 string? databaseArgument = FindArgument(args, "--database");
 string? thresholdArgument = FindArgument(args, "--threshold");
 
-string databasePath = databaseArgument
-    ?? Environment.GetEnvironmentVariable("KOUKI_DATABASE")
-    ?? Path.Combine(AppContext.BaseDirectory, "kouki.sqlite");
+// Путь к базе: аргумент, затем переменные окружения (и своя, и стиль конфигурации хоста),
+// затем файл рядом с приложением. Относительный путь разрешается от каталога приложения,
+// а не от текущего — иначе mcp и api смотрели бы в разные базы.
+string databasePath = KoukiPaths.Resolve(
+    databaseArgument
+        ?? Environment.GetEnvironmentVariable("KOUKI_DATABASE")
+        ?? Environment.GetEnvironmentVariable("Kouki__DatabasePath"),
+    "kouki.sqlite",
+    "DatabasePath");
 
 double threshold = double.TryParse(
     thresholdArgument ?? Environment.GetEnvironmentVariable("KOUKI_THRESHOLD"),
