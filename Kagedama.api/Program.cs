@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.Extensions.FileProviders;
 using Kouki.Kagedama.Api;
 using Kouki.Kagedama.Api.Api;
@@ -39,6 +40,16 @@ builder.Services.Configure<KoukiServerOptions>(builder.Configuration.GetSection(
 // Необработанное исключение превращается в JSON-ответ с ProblemDetails и записью в лог,
 // иначе клиент видит пустой 500 без объяснения.
 builder.Services.AddProblemDetails();
+
+// Каждый запрос — строка в логе (метод, путь, код, длительность). Без этого
+// «станция не отвечает» разбирается вслепую: запросы приходят, а в логе тишина.
+builder.Services.AddHttpLogging(options =>
+{
+    options.LoggingFields = HttpLoggingFields.RequestMethod
+        | HttpLoggingFields.RequestPath
+        | HttpLoggingFields.ResponseStatusCode
+        | HttpLoggingFields.Duration;
+});
 
 // Порог живёт в одном месте: отсюда его получают и приём, и классификатор, и /api/classify.
 double threshold = builder.Configuration.GetValue<double?>(
@@ -115,6 +126,9 @@ if (string.IsNullOrWhiteSpace(options.Token) && !options.AllowAnonymous)
 }
 
 app.UseExceptionHandler();
+
+// Лог запросов идёт первым: он должен видеть и 401, и 503, и статику.
+app.UseHttpLogging();
 
 // Дашборд — статика из wwwroot; API остаётся под токеном (см. TokenAuthMiddleware).
 string webRoot = new[]

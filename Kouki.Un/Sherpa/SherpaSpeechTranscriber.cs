@@ -1,3 +1,4 @@
+using System.Text;
 using Kouki.Shimi.ServiceAbstractions;
 using SherpaOnnx;
 
