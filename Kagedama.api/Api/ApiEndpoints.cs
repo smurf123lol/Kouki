@@ -95,11 +95,28 @@ public static class ApiEndpoints
 
         // Сессия может сообщить интент сама («ассистент, запись» на станции): тогда фраза
         // не разбирается, а сразу становится задачей — удалять слова из записи не нужно.
+        // Строка принимается только из закрытого списка: иначе клиент назвал бы любую
+        // команду в обход классификатора.
+        string? intentHint = string.IsNullOrWhiteSpace(request.Intent) ? null : request.Intent.Trim();
+
+        if (intentHint is not null && !SessionIntents.IsKnown(intentHint))
+        {
+            return Results.BadRequest(new
+            {
+                error = $"Неизвестный intent '{intentHint}'. Допустимые: {string.Join(", ", SessionIntents.All)}.",
+            });
+        }
+
+        if (request.Text.Length > options.Value.MaxTextLength)
+        {
+            return Results.BadRequest(new { error = $"Текст длиннее {options.Value.MaxTextLength} символов." });
+        }
+
         IntakeResult result = await intake.IntakeAsync(
             request.Text,
             source,
             cancellationToken,
-            intentHint: request.Intent);
+            intentHint: intentHint);
 
         return Results.Ok(ToResponse(result, options.Value.ConfidenceThreshold));
     }
@@ -149,6 +166,14 @@ public static class ApiEndpoints
         string? intentHint = string.IsNullOrWhiteSpace(request.Query["intent"])
             ? null
             : request.Query["intent"].ToString().Trim();
+
+        if (intentHint is not null && !SessionIntents.IsKnown(intentHint))
+        {
+            return Results.BadRequest(new
+            {
+                error = $"Неизвестный intent '{intentHint}'. Допустимые: {string.Join(", ", SessionIntents.All)}.",
+            });
+        }
 
         VoiceIntakeResult result = await voice.AcceptAsync(
             bytes,
@@ -206,6 +231,12 @@ public static class ApiEndpoints
         }
 
         KoukiServerOptions settings = options.Value;
+
+        if (body.Text.Length > settings.MaxTextLength)
+        {
+            return Results.BadRequest(new { error = $"Текст длиннее {settings.MaxTextLength} символов." });
+        }
+
         IReadOnlyList<ClassifierVerdict> verdicts = await catalog.ClassifyAsync(
             body.Text.Trim(),
             body.Classifiers,

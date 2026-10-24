@@ -38,6 +38,12 @@ public sealed class KoukiServerOptions
     /// </summary>
     public int AudioRetentionDays { get; set; } = 30;
 
+    /// <summary>
+    /// Максимальная длина текста во входных запросах (<c>text</c> у приёма и сравнения
+    /// классификаторов), символов. Длинный текст — это уже не фраза: обрезать молча нельзя,
+    /// поэтому такой запрос отклоняется.
+    /// </summary>
+    public int MaxTextLength { get; set; } = 2000;
     /// <summary>Максимальный размер голосовой записи, байт.</summary>
     public long MaxVoiceBytes { get; set; } = 5 * 1024 * 1024;
 
