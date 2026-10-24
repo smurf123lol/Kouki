@@ -117,6 +117,18 @@ KoukiServerOptions options = app.Services.GetRequiredService<IOptions<KoukiServe
 string initializedDatabase = KoukiHosting.InitializeKouki(app.Services, "server");
 app.Logger.LogInformation("Kouki: база данных {Path}", initializedDatabase);
 
+// Ловушка, на которую уже наступали: обычная сборка (без -p:KoukiEnableSherpa=true)
+// перезаписывает assets и тихо оставляет заглушку — станция получает 503 и сообщает
+// «распознавание не подключено». Предупреждаем сразу, в момент старта.
+if (app.Services.GetService<ISpeechTranscriber>() is Kouki.Un.UnavailableSpeechTranscriber)
+{
+    app.Logger.LogWarning(
+        "Kouki: распознавание речи не подключено — сервер собран без -p:KoukiEnableSherpa=true. " +
+        "/api/voice будет отвечать 503. Пересборка: dotnet restore Kagedama.api\\Kagedama.api.csproj " +
+        "-p:KoukiEnableSherpa=true && dotnet build Kagedama.api\\Kagedama.api.csproj " +
+        "-p:KoukiEnableSherpa=true --no-restore (или tools/run-server.ps1).");
+}
+
 // Защита выключена только явно: «забыли токен» — это не разрешение пускать всех.
 if (string.IsNullOrWhiteSpace(options.Token) && !options.AllowAnonymous)
 {
