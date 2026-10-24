@@ -76,7 +76,7 @@ public sealed class VoiceIntakeTests : IDisposable
             TestWav.Create(), "station", AudioFormat.Wav16KiloHertzMono);
 
         Assert.Null(result.Error);
-        Assert.Equal(IntakeOutcomes.Created, result.Intake!.Outcome);
+        Assert.Equal(ActionOutcomes.Created, result.Intake!.Outcome);
         Assert.NotNull(result.AudioPath);
         Assert.True(File.Exists(result.AudioPath));
 
@@ -101,7 +101,7 @@ public sealed class VoiceIntakeTests : IDisposable
         VoiceIntakeResult result = await fixture.Service.AcceptAsync(
             TestWav.Create(), "station", AudioFormat.Wav16KiloHertzMono);
 
-        Assert.Equal(IntakeOutcomes.Created, result.Intake!.Outcome);
+        Assert.Equal(ActionOutcomes.Created, result.Intake!.Outcome);
         Assert.Contains("asrConfidence", result.Intake.Task!.MetaJson);
     }
 

@@ -63,6 +63,11 @@ public static class ServiceCollectionExtensions
         // Диспетчер команд (вызывает хендлер через ScopeManager)
         services.TryAddSingleton<ICommandDispatcher, CommandDispatcher>();
 
+        // По умолчанию опасные команды не исполняются. Хост, который умеет спрашивать
+        // человека (диалог в интерфейсе, подтверждение в чате), регистрирует свою
+        // реализацию ICommandConfirmation до вызова AddMugura — TryAdd её сохранит.
+        services.TryAddSingleton<ICommandConfirmation, RejectAllConfirmation>();
+
         // Роутер по имени команды (статический)
         services.TryAddSingleton<IRouter, StaticRouter>();
 

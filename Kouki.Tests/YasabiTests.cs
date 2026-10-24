@@ -162,6 +162,14 @@ public sealed class YasabiTests
 
         public Task<bool> AnnotateHintAsync(Guid id, string? hintedIntent, CancellationToken cancellationToken = default)
             => Task.FromResult(true);
+
+        public Task<bool> LinkToTaskAsync(Guid id, Guid taskId, CancellationToken cancellationToken = default)
+        {
+            Linked.Add((id, taskId));
+            return Task.FromResult(true);
+        }
+
+        public List<(Guid Id, Guid TaskId)> Linked { get; } = new();
     }
 
     private sealed class ThrowingClassifier : IIntentClassifier

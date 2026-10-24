@@ -28,10 +28,15 @@ public static class ServiceCollectionExtensions
 
         string path = Path.GetFullPath(databasePath);
 
-        services.TryAddSingleton<ITaskStore>(_ => new SqliteTaskStore(path));
-        services.TryAddSingleton<IClassificationJournal>(_ => new SqliteClassificationJournal(path));
-        services.TryAddSingleton<IActionLog>(_ => new SqliteActionLog(path));
-        services.TryAddSingleton<IStateStore>(_ => new SqliteStateStore(path));
+        // Одна сессия на процесс: она включает busy_timeout и держит общую транзакцию,
+        // поэтому все хранилища обязаны ходить через неё, а не открывать свои соединения.
+        services.TryAddSingleton(_ => new SqliteSession(path));
+        services.TryAddSingleton<IUnitOfWork>(sp => new SqliteUnitOfWork(sp.GetRequiredService<SqliteSession>()));
+
+        services.TryAddSingleton<ITaskStore>(sp => new SqliteTaskStore(sp.GetRequiredService<SqliteSession>()));
+        services.TryAddSingleton<IClassificationJournal>(sp => new SqliteClassificationJournal(sp.GetRequiredService<SqliteSession>()));
+        services.TryAddSingleton<IActionLog>(sp => new SqliteActionLog(sp.GetRequiredService<SqliteSession>()));
+        services.TryAddSingleton<IStateStore>(sp => new SqliteStateStore(sp.GetRequiredService<SqliteSession>()));
 
         return services;
     }

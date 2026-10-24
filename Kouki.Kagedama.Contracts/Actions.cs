@@ -15,6 +15,11 @@ public static class ActionKinds
 /// <summary>
 /// Итоги действия — те же значения, что у приёма задач, чтобы отладка не переводила словари.
 /// </summary>
+/// <remarks>
+/// Словарь один на весь домен: приём фразы, журнал действий и ответ API используют
+/// эти строки. Второго «словаря исходов» быть не должно — иначе дашборд и MCP
+/// начинают сравнивать разные значения.
+/// </remarks>
 public static class ActionOutcomes
 {
     /// <summary>Задача создана.</summary>
@@ -28,6 +33,16 @@ public static class ActionOutcomes
 
     /// <summary>Действие завершилось ошибкой.</summary>
     public const string Failed = "failed";
+
+    /// <summary>Все известные исходы.</summary>
+    public static IReadOnlyList<string> All { get; } = new[] { Created, Executed, NeedsReview, Failed };
+
+    /// <summary>
+    /// Известен ли исход. Нужен при чтении чужих данных (журнал, база после обновления).
+    /// </summary>
+    /// <param name="outcome">Проверяемое значение.</param>
+    public static bool IsKnown(string? outcome)
+        => outcome is Created or Executed or NeedsReview or Failed;
 }
 
 /// <summary>

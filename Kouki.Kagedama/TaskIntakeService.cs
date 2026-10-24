@@ -14,27 +14,9 @@ namespace Kouki.Kagedama;
 /// <param name="Task">Задача, которую создала исполненная команда; <c>null</c>, если команда задачу не создавала.</param>
 /// <param name="Route">Вердикт распознавания.</param>
 /// <param name="AutoExecuted">Была ли команда исполнена сразу.</param>
-/// <param name="Outcome">Итог обработки фразы: см. <see cref="IntakeOutcomes"/>.</param>
+/// <param name="Outcome">Итог обработки фразы: см. <see cref="ActionOutcomes"/>.</param>
 /// <param name="ActionId">Запись журнала действий, по которой можно разобрать, что произошло.</param>
 public sealed record IntakeResult(TaskRecord? Task, IntentRoute Route, bool AutoExecuted, string Outcome, Guid? ActionId = null);
-
-/// <summary>
-/// Итоги обработки фразы. Значения стабильны — на них опираются бот, дашборд и MCP.
-/// </summary>
-public static class IntakeOutcomes
-{
-    /// <summary>Команда создала задачу.</summary>
-    public const string Created = "created";
-
-    /// <summary>Задача на разборе: уверенности распознавания не хватило.</summary>
-    public const string NeedsReview = "needs_review";
-
-    /// <summary>Команда исполнена успешно; задача не создавалась.</summary>
-    public const string Executed = "executed";
-
-    /// <summary>Команда вернула ошибку; задача не создавалась.</summary>
-    public const string Failed = "failed";
-}
 
 /// <summary>
 /// Точка входа для фраз с телефона, станции, дашборда и агента:
@@ -55,6 +37,7 @@ public sealed class TaskIntakeService
     private readonly IContextRegistry _contexts;
     private readonly IntakeOptions _options;
     private readonly IClassificationJournal? _journal;
+    private readonly IUnitOfWork? _work;
 
     /// <summary>
     /// Создаёт сервис приёма.
@@ -66,6 +49,7 @@ public sealed class TaskIntakeService
     /// <param name="contexts">Реестр контекстов исполнения.</param>
     /// <param name="options">Настройки приёма.</param>
     /// <param name="journal">Журнал распознавания: сюда дописываются источник фразы и данные ASR.</param>
+    /// <param name="work">Граница транзакции; без неё каждая запись идёт своим соединением.</param>
     public TaskIntakeService(
         IIntentClassifier classifier,
         IIntentRouter router,
@@ -73,7 +57,8 @@ public sealed class TaskIntakeService
         IActionLog actions,
         IContextRegistry contexts,
         IntakeOptions options,
-        IClassificationJournal journal)
+        IClassificationJournal journal,
+        IUnitOfWork? work = null)
     {
         ArgumentNullException.ThrowIfNull(classifier);
         ArgumentNullException.ThrowIfNull(router);
@@ -89,7 +74,14 @@ public sealed class TaskIntakeService
         _contexts = contexts;
         _options = options;
         _journal = journal ?? throw new ArgumentNullException(nameof(journal));
+        _work = work;
     }
+
+    /// <summary>
+    /// Выполняет записи одной транзакцией, если граница транзакции передана.
+    /// </summary>
+    private Task<T> InTransactionAsync<T>(Func<Task<T>> body, CancellationToken cancellationToken)
+        => _work is null ? body() : _work.RunAsync(_ => body(), cancellationToken);
 
     /// <summary>
     /// Принимает фразу: распознаёт интент, исполняет команду, при неясности отправляет на разбор.
@@ -154,20 +146,41 @@ public sealed class TaskIntakeService
             // Команды нет и не будет: непонятую фразу сохраняем как задачу на разбор —
             // это и есть датасет для будущей модели.
             var review = new IntentRoute(intent, null, null, false, null);
-            TaskRecord task = await AddReviewTaskAsync(trimmed, source, review, asrConfidence, audioPath, cancellationToken, classifierVerdict).ConfigureAwait(false);
 
-            Guid reviewAction = await RecordActionAsync(
-                task.Id, classificationId, source, intent.Intent, null, IntakeOutcomes.NeedsReview,
-                null, null, null, started, cancellationToken).ConfigureAwait(false);
+            // Задача, ссылка в журнале и запись действия — один набор: половину такого
+            // набора видеть в базе бессмысленно, поэтому пишем одной транзакцией.
+            (TaskRecord task, Guid reviewAction) = await InTransactionAsync(async () =>
+            {
+                TaskRecord created = await AddReviewTaskAsync(
+                    trimmed, source, review, asrConfidence, audioPath, cancellationToken, classifierVerdict).ConfigureAwait(false);
 
-            return new IntakeResult(task, review, false, IntakeOutcomes.NeedsReview, reviewAction);
+                await LinkJournalAsync(classificationId, created.Id, cancellationToken).ConfigureAwait(false);
+
+                Guid actionId = await RecordActionAsync(
+                    created.Id, classificationId, source, intent.Intent, null, ActionOutcomes.NeedsReview,
+                    null, null, null, started, cancellationToken).ConfigureAwait(false);
+
+                return (created, actionId);
+            }, cancellationToken).ConfigureAwait(false);
+
+            return new IntakeResult(task, review, false, ActionOutcomes.NeedsReview, reviewAction);
         }
 
         // Вопрос — не задача, но и не мусор: ему нужна запись, чтобы ответ было где искать.
         // Задачу создаёт приём (а не команда), поэтому идентификатор сразу попадает в слоты.
-        TaskRecord? recorded = IsRecorded(intent.Intent)
-            ? await AddTaskAsync(trimmed, source, new IntentRoute(intent, null, null, false, null), TaskStatuses.New, IntakeOutcomes.Executed, asrConfidence, audioPath, cancellationToken, classifierVerdict).ConfigureAwait(false)
-            : null;
+        TaskRecord? recorded = null;
+        if (IsRecorded(intent.Intent))
+        {
+            recorded = await InTransactionAsync(async () =>
+            {
+                TaskRecord question = await AddTaskAsync(
+                    trimmed, source, new IntentRoute(intent, null, null, false, null), TaskStatuses.New,
+                    ActionOutcomes.Executed, asrConfidence, audioPath, cancellationToken, classifierVerdict).ConfigureAwait(false);
+
+                await LinkJournalAsync(classificationId, question.Id, cancellationToken).ConfigureAwait(false);
+                return question;
+            }, cancellationToken).ConfigureAwait(false);
+        }
 
         // Уверенная фраза: всё уходит в роутер, он найдёт команду и вызовет диспатчер.
         IntentResult enriched = await EnrichSlotsAsync(intent, trimmed, source, recorded?.Id, cancellationToken).ConfigureAwait(false);
@@ -184,32 +197,37 @@ public sealed class TaskIntakeService
             : null;
 
         string outcome = failed
-            ? IntakeOutcomes.Failed
+            ? ActionOutcomes.Failed
             : createdTask
-                ? IntakeOutcomes.Created
-                : IntakeOutcomes.Executed;
+                ? ActionOutcomes.Created
+                : ActionOutcomes.Executed;
 
-        // Команда создала задачу, но про распознавание ничего не знает: дописываем мету здесь,
-        // иначе в tasks не останется следа, почему задача вообще появилась.
-        if (created is not null)
+        // Мета задачи и запись действия — тоже один набор: иначе в базе остаётся действие
+        // без задачи или задача, к которой нечем объяснить появление.
+        Guid action = await InTransactionAsync(async () =>
         {
-            string metaJson = BuildMeta(route, route.Executed, outcome, asrConfidence, audioPath, text: text, classifierVerdict: classifierVerdict);
-            await _store.UpdateAsync(created.Id, null, null, null, metaJson, cancellationToken).ConfigureAwait(false);
-            created.MetaJson = metaJson;
-        }
+            // Команда создала задачу, но про распознавание ничего не знает: дописываем мету здесь,
+            // иначе в tasks не останется следа, почему задача вообще появилась.
+            if (created is not null)
+            {
+                string metaJson = BuildMeta(route, route.Executed, outcome, asrConfidence, audioPath, text: text, classifierVerdict: classifierVerdict);
+                await _store.UpdateAsync(created.Id, null, null, null, metaJson, cancellationToken).ConfigureAwait(false);
+                created.MetaJson = metaJson;
+            }
 
-        // Запись под вопрос: ответ команды кладём в мету задачи — это и есть «result таска».
-        if (recorded is not null)
-        {
-            string metaJson = BuildMeta(route, route.Executed, outcome, asrConfidence, audioPath, ExtractAnswer(route.Result), text, classifierVerdict);
-            await _store.UpdateAsync(recorded.Id, null, null, null, metaJson, cancellationToken).ConfigureAwait(false);
-            recorded.MetaJson = metaJson;
-        }
+            // Запись под вопрос: ответ команды кладём в мету задачи — это и есть «result таска».
+            if (recorded is not null)
+            {
+                string metaJson = BuildMeta(route, route.Executed, outcome, asrConfidence, audioPath, ExtractAnswer(route.Result), text, classifierVerdict);
+                await _store.UpdateAsync(recorded.Id, null, null, null, metaJson, cancellationToken).ConfigureAwait(false);
+                recorded.MetaJson = metaJson;
+            }
 
-        Guid action = await RecordActionAsync(
-            taskId ?? recorded?.Id, classificationId, source, intent.Intent, route.CommandName, outcome,
-            enriched.Slots?.ToJsonString(), route.Result?.ToJsonString(), errorText,
-            started, cancellationToken).ConfigureAwait(false);
+            return await RecordActionAsync(
+                taskId ?? recorded?.Id, classificationId, source, intent.Intent, route.CommandName, outcome,
+                enriched.Slots?.ToJsonString(), route.Result?.ToJsonString(), errorText,
+                started, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken).ConfigureAwait(false);
 
         return new IntakeResult(recorded ?? created, route, route.Executed && !failed, outcome, action);
     }
@@ -277,7 +295,7 @@ public sealed class TaskIntakeService
         string? audioPath,
         CancellationToken cancellationToken,
         IntentResult? classifierVerdict = null)
-        => await AddTaskAsync(text, source, route, TaskStatuses.NeedsReview, IntakeOutcomes.NeedsReview, asrConfidence, audioPath, cancellationToken, classifierVerdict).ConfigureAwait(false);
+        => await AddTaskAsync(text, source, route, TaskStatuses.NeedsReview, ActionOutcomes.NeedsReview, asrConfidence, audioPath, cancellationToken, classifierVerdict).ConfigureAwait(false);
 
     /// <summary>
     /// Создаёт задачу-запись: либо «на разборе» (фразу не поняли), либо запись вопроса.
@@ -303,6 +321,29 @@ public sealed class TaskIntakeService
         return record;
     }
 
+    /// <summary>
+    /// Связывает запись журнала с задачей: «эта фраза стала этой задачей».
+    /// </summary>
+    /// <remarks>
+    /// Нужно для датасета: без ссылки нельзя выбрать все фразы, из которых родились задачи.
+    /// Сбой журнала не ломает приём.
+    /// </remarks>
+    private async Task LinkJournalAsync(Guid? journalId, Guid taskId, CancellationToken cancellationToken)
+    {
+        if (journalId is not Guid id)
+        {
+            return;
+        }
+
+        try
+        {
+            await _journal.LinkToTaskAsync(id, taskId, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception) when (!_options.ActionFailuresAreFatal)
+        {
+            // Журнал — вспомогательный: его сбой не должен ронять приём фразы.
+        }
+    }
     /// <summary>
     /// Дописывает к записи журнала уверенность ASR, путь к аудио и настоящий источник.
     /// </summary>
@@ -424,7 +465,7 @@ public sealed class TaskIntakeService
 
         foreach (TaskRecord task in tasks)
         {
-            if (task.Status is TaskStatuses.New or TaskStatuses.InProgress)
+            if (TaskStatuses.IsOpen(task.Status))
             {
                 return task;
             }

@@ -371,7 +371,7 @@ public sealed class KoukiMcpTools
 
         foreach (TaskRecord task in tasks)
         {
-            if (task.Status is TaskStatuses.New or TaskStatuses.InProgress)
+            if (TaskStatuses.IsOpen(task.Status))
             {
                 return task;
             }

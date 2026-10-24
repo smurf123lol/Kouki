@@ -18,16 +18,25 @@ public sealed class SqliteStateStore : IStateStore
 {
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
 
-    private readonly string _connectionString;
+    private readonly SqliteSession _session;
 
     /// <summary>
-    /// Создаёт хранилище.
+    /// Создаёт хранилище с собственной сессией (для тестов и утилит).
     /// </summary>
     /// <param name="databasePath">Путь к файлу базы <c>kouki.sqlite</c>.</param>
     public SqliteStateStore(string databasePath)
+        : this(new SqliteSession(databasePath))
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(databasePath);
-        _connectionString = DatabaseInitializer.BuildConnectionString(databasePath);
+    }
+
+    /// <summary>
+    /// Создаёт хранилище поверх общей сессии.
+    /// </summary>
+    /// <param name="session">Сессия базы.</param>
+    public SqliteStateStore(SqliteSession session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        _session = session;
     }
 
     /// <inheritdoc />
@@ -35,12 +44,14 @@ public sealed class SqliteStateStore : IStateStore
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
-        await using SqliteConnection connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using SqliteLease lease = await _session.OpenAsync(cancellationToken).ConfigureAwait(false);
+        SqliteConnection connection = lease.Connection;
 
         string? json = await connection.ExecuteScalarAsync<string?>(
             new CommandDefinition(
                 "SELECT value FROM state WHERE key = @key",
                 new { key },
+                transaction: lease.Transaction,
                 cancellationToken: cancellationToken)).ConfigureAwait(false);
 
         return json is null ? default : JsonSerializer.Deserialize<T>(json, SerializerOptions);
@@ -54,13 +65,15 @@ public sealed class SqliteStateStore : IStateStore
 
         string json = JsonSerializer.Serialize(value, SerializerOptions);
 
-        await using SqliteConnection connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using SqliteLease lease = await _session.OpenAsync(cancellationToken).ConfigureAwait(false);
+        SqliteConnection connection = lease.Connection;
 
         await connection.ExecuteAsync(
             new CommandDefinition(
                 "INSERT INTO state (key, value, updated_at) VALUES (@key, @json, @updatedAt) " +
                 "ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
                 new { key, json, updatedAt = DateTimeOffset.UtcNow.ToString("O") },
+                transaction: lease.Transaction,
                 cancellationToken: cancellationToken)).ConfigureAwait(false);
     }
 
@@ -69,19 +82,15 @@ public sealed class SqliteStateStore : IStateStore
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
-        await using SqliteConnection connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using SqliteLease lease = await _session.OpenAsync(cancellationToken).ConfigureAwait(false);
+        SqliteConnection connection = lease.Connection;
 
         await connection.ExecuteAsync(
             new CommandDefinition(
                 "DELETE FROM state WHERE key = @key",
                 new { key },
+                transaction: lease.Transaction,
                 cancellationToken: cancellationToken)).ConfigureAwait(false);
     }
 
-    private async Task<SqliteConnection> OpenAsync(CancellationToken cancellationToken)
-    {
-        var connection = new SqliteConnection(_connectionString);
-        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-        return connection;
-    }
 }

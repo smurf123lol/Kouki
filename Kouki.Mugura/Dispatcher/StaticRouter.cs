@@ -50,16 +50,20 @@ public class StaticRouter : IRouter
     private readonly ConcurrentDictionary<Type, ValidateDelegate> _validatorDelegates = new();
     private readonly ConcurrentDictionary<Type, InvokeDelegate> _dispatcherDelegates = new();
 
+    private readonly ICommandConfirmation? _confirmation;
+
     public StaticRouter(
         CommandRegistry registry,
         ICommandFactory factory,
         IServiceProvider services,
-        ICommandDispatcher dispatcher)
+        ICommandDispatcher dispatcher,
+        ICommandConfirmation? confirmation = null)
     {
         _registry = registry;
         _factory = factory;
         _services = services;
         _dispatcher = dispatcher;
+        _confirmation = confirmation;
     }
 
     /// <inheritdoc />
@@ -117,8 +121,41 @@ public class StaticRouter : IRouter
             }
         }
 
+        // Опасная команда без подтверждения не исполняется: фраза может быть понята верно,
+        // и всё равно удалять файлы «сама по себе» команда не должна.
+        if (entry.RequiresConfirmation && !await ConfirmAsync(entry, command, executionContext, cancellationToken).ConfigureAwait(false))
+        {
+            return ConfirmationRequired(entry);
+        }
+
         var dispatch = _dispatcherDelegates.GetOrAdd(entry.CommandType, CreateDispatcherDelegate);
         return await dispatch(_dispatcher, command, executionContext, cancellationToken);
+    }
+
+    private async Task<bool> ConfirmAsync(
+        CommandEntry entry,
+        ICommand command,
+        IExecutionContext context,
+        CancellationToken cancellationToken)
+    {
+        if (_confirmation is null)
+        {
+            return false;
+        }
+
+        try
+        {
+            return await _confirmation.ConfirmAsync(entry, command, context, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            // Сбой самого вопроса — это не согласие.
+            return false;
+        }
     }
 
     private IExecutionContext? GetDefaultContext()
@@ -159,4 +196,21 @@ public class StaticRouter : IRouter
 
     private static JsonNode Error(string message, string type)
         => new JsonObject { ["error"] = message, ["type"] = type };
+
+    /// <summary>
+    /// Ответ на опасную команду, которую не подтвердили.
+    /// </summary>
+    /// <remarks>
+    /// Это не ошибка исполнения: команда найдена и разобрана, но действие не начато.
+    /// Вызывающий (дашборд, бот, станция) по <c>requiresConfirmation</c> понимает,
+    /// что нужно спросить человека и повторить.
+    /// </remarks>
+    private static JsonNode ConfirmationRequired(CommandEntry entry)
+        => new JsonObject
+        {
+            ["error"] = $"Команда '{entry.Name}' изменяет состояние и требует подтверждения.",
+            ["requiresConfirmation"] = true,
+            ["command"] = entry.Name,
+            ["description"] = entry.Description,
+        };
 }

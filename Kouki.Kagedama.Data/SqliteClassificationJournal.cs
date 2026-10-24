@@ -14,18 +14,28 @@ public sealed class SqliteClassificationJournal : IClassificationJournal
         "id AS Id, created_at AS CreatedAt, source AS Source, input_kind AS InputKind, " +
         "input_text AS InputText, intent AS Intent, score AS Score, confident AS Confident, " +
         "model AS Model, error AS Error, label AS Label, labeled_at AS LabeledAt, " +
-        "asr_confidence AS AsrConfidence, audio_path AS AudioPath, hinted_intent AS HintedIntent";
+        "asr_confidence AS AsrConfidence, audio_path AS AudioPath, hinted_intent AS HintedIntent, task_id AS TaskId";
 
-    private readonly string _connectionString;
+    private readonly SqliteSession _session;
 
     /// <summary>
-    /// Создаёт журнал.
+    /// Создаёт журнал с собственной сессией (для тестов и утилит).
     /// </summary>
     /// <param name="databasePath">Путь к файлу базы.</param>
     public SqliteClassificationJournal(string databasePath)
+        : this(new SqliteSession(databasePath))
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(databasePath);
-        _connectionString = DatabaseInitializer.BuildConnectionString(databasePath);
+    }
+
+    /// <summary>
+    /// Создаёт журнал поверх общей сессии: тогда запись журнала попадает в ту же транзакцию,
+    /// что и задача.
+    /// </summary>
+    /// <param name="session">Сессия базы.</param>
+    public SqliteClassificationJournal(SqliteSession session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        _session = session;
     }
 
     /// <inheritdoc />
@@ -36,7 +46,8 @@ public sealed class SqliteClassificationJournal : IClassificationJournal
         var id = Guid.NewGuid();
         DateTimeOffset createdAt = record.CreatedAt ?? DateTimeOffset.UtcNow;
 
-        await using SqliteConnection connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using SqliteLease lease = await _session.OpenAsync(cancellationToken).ConfigureAwait(false);
+        SqliteConnection connection = lease.Connection;
 
         await connection.ExecuteAsync(
             new CommandDefinition(
@@ -58,6 +69,7 @@ public sealed class SqliteClassificationJournal : IClassificationJournal
                     error = record.Error,
                     audioPath = record.AudioPath,
                 },
+                transaction: lease.Transaction,
                 cancellationToken: cancellationToken)).ConfigureAwait(false);
 
         return id;
@@ -66,7 +78,8 @@ public sealed class SqliteClassificationJournal : IClassificationJournal
     /// <inheritdoc />
     public async Task<IReadOnlyList<ClassificationEntry>> ListAsync(int limit, bool onlyUnresolved, CancellationToken cancellationToken = default)
     {
-        await using SqliteConnection connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using SqliteLease lease = await _session.OpenAsync(cancellationToken).ConfigureAwait(false);
+        SqliteConnection connection = lease.Connection;
 
         IEnumerable<ClassificationEntry> rows = await connection.QueryAsync<ClassificationEntry>(
             new CommandDefinition(
@@ -74,6 +87,7 @@ public sealed class SqliteClassificationJournal : IClassificationJournal
                 (onlyUnresolved ? "WHERE label IS NULL AND hinted_intent IS NULL AND (confident = 0 OR error IS NOT NULL) " : string.Empty) +
                 "ORDER BY created_at DESC LIMIT @limit",
                 new { limit },
+                transaction: lease.Transaction,
                 cancellationToken: cancellationToken)).ConfigureAwait(false);
 
         return rows.ToList();
@@ -82,12 +96,14 @@ public sealed class SqliteClassificationJournal : IClassificationJournal
     /// <inheritdoc />
     public async Task<bool> AnnotateAudioAsync(Guid id, double? asrConfidence, string? audioPath, CancellationToken cancellationToken = default, string? source = null)
     {
-        await using SqliteConnection connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using SqliteLease lease = await _session.OpenAsync(cancellationToken).ConfigureAwait(false);
+        SqliteConnection connection = lease.Connection;
 
         int affected = await connection.ExecuteAsync(
             new CommandDefinition(
                 "UPDATE classifications SET asr_confidence = @asrConfidence, audio_path = @audioPath, source = COALESCE(@source, source) WHERE id = @id",
                 new { id = id.ToString(), asrConfidence, audioPath, source },
+                transaction: lease.Transaction,
                 cancellationToken: cancellationToken)).ConfigureAwait(false);
 
         return affected > 0;
@@ -96,7 +112,8 @@ public sealed class SqliteClassificationJournal : IClassificationJournal
     /// <inheritdoc />
     public async Task<bool> AnnotateHintAsync(Guid id, string? hintedIntent, CancellationToken cancellationToken = default)
     {
-        await using SqliteConnection connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using SqliteLease lease = await _session.OpenAsync(cancellationToken).ConfigureAwait(false);
+        SqliteConnection connection = lease.Connection;
 
         // Подсказка сессии пишется отдельно: вердикт правил и его score остаются в записи,
         // иначе по журналу нельзя понять, насколько хорошо работает классификатор.
@@ -104,6 +121,7 @@ public sealed class SqliteClassificationJournal : IClassificationJournal
             new CommandDefinition(
                 "UPDATE classifications SET hinted_intent = @hintedIntent WHERE id = @id",
                 new { id = id.ToString(), hintedIntent },
+                transaction: lease.Transaction,
                 cancellationToken: cancellationToken)).ConfigureAwait(false);
 
         return affected > 0;
@@ -112,13 +130,15 @@ public sealed class SqliteClassificationJournal : IClassificationJournal
     /// <inheritdoc />
     public async Task<IReadOnlyList<ClassificationEntry>> ListLabeledAsync(int limit, CancellationToken cancellationToken = default)
     {
-        await using SqliteConnection connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using SqliteLease lease = await _session.OpenAsync(cancellationToken).ConfigureAwait(false);
+        SqliteConnection connection = lease.Connection;
 
         IEnumerable<ClassificationEntry> rows = await connection.QueryAsync<ClassificationEntry>(
             new CommandDefinition(
                 $"SELECT {SelectColumns} FROM classifications WHERE label IS NOT NULL " +
                 "ORDER BY labeled_at DESC LIMIT @limit",
                 new { limit },
+                transaction: lease.Transaction,
                 cancellationToken: cancellationToken)).ConfigureAwait(false);
 
         return rows.ToList();
@@ -129,21 +149,34 @@ public sealed class SqliteClassificationJournal : IClassificationJournal
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(label);
 
-        await using SqliteConnection connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using SqliteLease lease = await _session.OpenAsync(cancellationToken).ConfigureAwait(false);
+        SqliteConnection connection = lease.Connection;
 
         int affected = await connection.ExecuteAsync(
             new CommandDefinition(
                 "UPDATE classifications SET label = @label, labeled_at = @labeledAt WHERE id = @id",
                 new { id = id.ToString(), label, labeledAt = DateTimeOffset.UtcNow.ToString("O") },
+                transaction: lease.Transaction,
                 cancellationToken: cancellationToken)).ConfigureAwait(false);
 
         return affected > 0;
     }
 
-    private async Task<SqliteConnection> OpenAsync(CancellationToken cancellationToken)
+    /// <inheritdoc />
+    public async Task<bool> LinkToTaskAsync(Guid id, Guid taskId, CancellationToken cancellationToken = default)
     {
-        var connection = new SqliteConnection(_connectionString);
-        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-        return connection;
+        await using SqliteLease lease = await _session.OpenAsync(cancellationToken).ConfigureAwait(false);
+        SqliteConnection connection = lease.Connection;
+
+        // Ссылка «фраза → задача»: без неё нельзя ни связать запись журнала с задачей
+        // в дашборде, ни собрать датасет по задачам.
+        int affected = await connection.ExecuteAsync(
+            new CommandDefinition(
+                "UPDATE classifications SET task_id = @taskId WHERE id = @id",
+                new { id = id.ToString(), taskId = taskId.ToString() },
+                transaction: lease.Transaction,
+                cancellationToken: cancellationToken)).ConfigureAwait(false);
+
+        return affected > 0;
     }
 }

@@ -29,7 +29,7 @@ public sealed class IntakeTests
         // Приём не создаёт задачу сам: он только распознаёт интент и подставляет слоты.
         Assert.True(result.AutoExecuted, $"error={result.Route.Error}; intent={result.Route.Intent.Intent}@{result.Route.Intent.Score}");
         Assert.Equal("add_task", result.Route.CommandName);
-        Assert.Equal(IntakeOutcomes.Created, result.Outcome);
+        Assert.Equal(ActionOutcomes.Created, result.Outcome);
 
         TaskRecord task = Assert.IsType<TaskRecord>(result.Task);
         Assert.Equal(TaskStatuses.New, task.Status);
@@ -76,7 +76,7 @@ public sealed class IntakeTests
             intentHint: "add_task");
 
         Assert.Equal("add_task", result.Route.Intent.Intent);
-        Assert.Equal(IntakeOutcomes.Created, result.Outcome);
+        Assert.Equal(ActionOutcomes.Created, result.Outcome);
 
         TaskRecord task = Assert.IsType<TaskRecord>(result.Task);
         Assert.Equal("Запиши задачу купить хлеб", task.Title);
@@ -90,7 +90,7 @@ public sealed class IntakeTests
         // Свободный текст в сессии записи становится задачей, даже если правилам он не знаком.
         IntakeResult result = await server.Intake.IntakeAsync("молоко и хлеб", "station", intentHint: "add_task");
 
-        Assert.Equal(IntakeOutcomes.Created, result.Outcome);
+        Assert.Equal(ActionOutcomes.Created, result.Outcome);
         TaskRecord task = Assert.IsType<TaskRecord>(result.Task);
         Assert.Equal("молоко и хлеб", task.Title);
     }
@@ -127,7 +127,7 @@ public sealed class IntakeTests
             "station",
             intentHint: "ask");
 
-        Assert.Equal(IntakeOutcomes.Executed, result.Outcome);
+        Assert.Equal(ActionOutcomes.Executed, result.Outcome);
         Assert.Equal("ask", result.Route.CommandName);
 
         TaskRecord task = Assert.IsType<TaskRecord>(result.Task);
@@ -148,7 +148,7 @@ public sealed class IntakeTests
 
         Assert.True(result.AutoExecuted, $"error={result.Route.Error}; intent={result.Route.Intent.Intent}@{result.Route.Intent.Score}");
         Assert.Equal("list_tasks", result.Route.CommandName);
-        Assert.Equal(IntakeOutcomes.Executed, result.Outcome);
+        Assert.Equal(ActionOutcomes.Executed, result.Outcome);
         Assert.Null(result.Task);
 
         var payload = Assert.IsType<System.Text.Json.Nodes.JsonObject>(result.Route.Result);
@@ -234,7 +234,7 @@ public sealed class IntakeTests
         IntakeResult result = await server.Intake.IntakeAsync("погода сегодня хорошая", "api");
 
         Assert.False(result.AutoExecuted);
-        Assert.Equal(IntakeOutcomes.NeedsReview, result.Outcome);
+        Assert.Equal(ActionOutcomes.NeedsReview, result.Outcome);
 
         TaskRecord task = Assert.IsType<TaskRecord>(result.Task);
         Assert.Equal(TaskStatuses.NeedsReview, task.Status);

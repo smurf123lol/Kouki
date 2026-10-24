@@ -10,8 +10,10 @@ namespace Kouki.Un.Sherpa;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Подключает <see cref="SherpaSpeechTranscriber"/> и убирает заглушку,
-    /// зарегистрированную <c>AddUn()</c>.
+    /// Подключает <see cref="SherpaSpeechTranscriber"/>, убирая только заглушку
+    /// из <c>AddUn()</c>. Чужой трансcriber (например, HTTP-адаптер к внешнему
+    /// сервису) остаётся на месте: подключать sherpa поверх него — ошибка хоста,
+    /// а не повод молча стереть регистрацию.
     /// </summary>
     /// <param name="services">Коллекция сервисов.</param>
     /// <param name="configure">Настройки: каталог модели, язык, размерность признаков.</param>
@@ -29,9 +31,17 @@ public static class ServiceCollectionExtensions
         var options = new SherpaOptions();
         configure?.Invoke(options);
 
-        services.RemoveAll<ISpeechTranscriber>();
-        services.AddSingleton(options);
-        services.AddSingleton<ISpeechTranscriber>(sp => new SherpaSpeechTranscriber(
+        ServiceDescriptor? placeholder = services.FirstOrDefault(descriptor =>
+            descriptor.ServiceType == typeof(ISpeechTranscriber) &&
+            descriptor.ImplementationType == typeof(UnavailableSpeechTranscriber));
+
+        if (placeholder is not null)
+        {
+            services.Remove(placeholder);
+        }
+
+        services.TryAddSingleton(options);
+        services.TryAddSingleton<ISpeechTranscriber>(sp => new SherpaSpeechTranscriber(
             sp.GetRequiredService<SherpaOptions>()));
 
         return services;

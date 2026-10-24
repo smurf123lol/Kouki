@@ -13,7 +13,7 @@ namespace Kouki.Kagedama;
 public static class TaskFactory
 {
     /// <summary>Приоритет задачи по умолчанию: 2 — обычный.</summary>
-    public const int DefaultPriority = 2;
+    public const int DefaultPriority = TaskPriorities.Default;
 
     /// <summary>
     /// Создаёт запись задачи из текста фразы.

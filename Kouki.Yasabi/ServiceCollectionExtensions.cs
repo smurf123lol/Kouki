@@ -44,11 +44,12 @@ public static class ServiceCollectionExtensions
 
         services.TryAddSingleton<IIntentRouter, IntentRouter>();
 
-        // Каталог для сравнения «роутеров» на одной фразе: правила и правила с журналом.
+        // Каталог для сравнения роутеров на одной фразе: только настоящие движки.
+        // Журналирующая обёртка — не отдельный движок: она классифицирует теми же правилами,
+        // а побочно пишет запись в журнал, из-за чего сравнение ещё и портило датасет.
         // Будущая BERT-модель добавляется сюда же одной строкой, дашборд её увидит сам.
         services.TryAddSingleton<IClassifierCatalog>(sp => new ClassifierCatalog()
-            .Add("rules", sp.GetRequiredService<RuleIntentClassifier>())
-            .Add("rules+journal", sp.GetRequiredService<IIntentClassifier>()));
+            .Add("rules", sp.GetRequiredService<RuleIntentClassifier>()));
 
         return services;
     }

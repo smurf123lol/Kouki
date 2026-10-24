@@ -164,7 +164,6 @@ public sealed record CompleteTaskCommand(string? TaskId = null) : ICommand;
     "complete_task",
     Description = "Закрывает задачу по идентификатору",
     Category = CommandCategory.Navigation,
-    RequiresConfirmation = true,
     Example = "готово, закрывай задачу")]
 public sealed class CompleteTaskHandler : ICommandHandler<CompleteTaskCommand>
 {
@@ -241,7 +240,7 @@ public sealed class CompleteTaskHandler : ICommandHandler<CompleteTaskCommand>
 
         foreach (TaskRecord task in tasks)
         {
-            if (task.Status is TaskStatuses.New or TaskStatuses.InProgress)
+            if (TaskStatuses.IsOpen(task.Status))
             {
                 return task;
             }
@@ -303,9 +302,9 @@ public sealed class PatchTaskHandler : ICommandHandler<PatchTaskCommand>
             return new JsonObject { ["error"] = $"Неизвестный статус '{command.Status}'." };
         }
 
-        if (command.Priority is < 1 or > 3)
+        if (command.Priority is int priority && !TaskPriorities.IsValid(priority))
         {
-            return new JsonObject { ["error"] = "Приоритет: 1, 2 или 3." };
+            return new JsonObject { ["error"] = $"Приоритет: {TaskPriorities.Min}, {TaskPriorities.Default} или {TaskPriorities.Max}." };
         }
 
         bool updated = await _store

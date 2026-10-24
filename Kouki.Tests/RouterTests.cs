@@ -121,4 +121,68 @@ public class RouterTests
         Assert.Contains("boom!", error);
         Assert.Equal("InvalidOperationException", result["type"]!.GetValue<string>());
     }
+
+    [Fact]
+    public async Task Dangerous_command_is_not_executed_without_confirmation()
+    {
+        DangerHandler.Calls = 0;
+
+        using var provider = TestHost.Build();
+        var router = provider.GetRequiredService<IRouter>();
+
+        var result = await router.RouteAsync("danger", null, TestHost.Context());
+
+        var payload = Assert.IsType<JsonObject>(result);
+        Assert.True(payload["requiresConfirmation"]!.GetValue<bool>());
+        Assert.Equal("danger", payload["command"]!.GetValue<string>());
+        Assert.Contains("требует подтверждения", payload["error"]!.GetValue<string>(), StringComparison.Ordinal);
+        Assert.Equal(0, DangerHandler.Calls);
+    }
+
+    [Fact]
+    public async Task Dangerous_command_runs_when_confirmation_allows()
+    {
+        DangerHandler.Calls = 0;
+
+        var services = new ServiceCollection();
+        services.AddSingleton<ICommandConfirmation, AllowAllConfirmation>();
+        services.AddMugura(TestHost.Assemblies);
+
+        using var provider = services.BuildServiceProvider();
+        var router = provider.GetRequiredService<IRouter>();
+
+        var result = await router.RouteAsync("danger", null, TestHost.Context());
+
+        Assert.Equal("done", result["danger"]!.GetValue<string>());
+        Assert.Equal(1, DangerHandler.Calls);
+    }
+
+    [Fact]
+    public async Task Failing_confirmation_is_treated_as_refusal()
+    {
+        DangerHandler.Calls = 0;
+
+        var services = new ServiceCollection();
+        services.AddSingleton<ICommandConfirmation, ThrowingConfirmation>();
+        services.AddMugura(TestHost.Assemblies);
+
+        using var provider = services.BuildServiceProvider();
+        var router = provider.GetRequiredService<IRouter>();
+
+        var result = await router.RouteAsync("danger", null, TestHost.Context());
+
+        Assert.True(result["requiresConfirmation"]!.GetValue<bool>());
+        Assert.Equal(0, DangerHandler.Calls);
+    }
+
+    /// <summary>Подтверждение, которое падает: согласием это считаться не должно.</summary>
+    private sealed class ThrowingConfirmation : ICommandConfirmation
+    {
+        public Task<bool> ConfirmAsync(
+            Kouki.Mugura.Registry.CommandEntry entry,
+            Kouki.Mugura.Commands.ICommand command,
+            IExecutionContext? context,
+            CancellationToken cancellationToken = default)
+            => throw new InvalidOperationException("спросить некого");
+    }
 }

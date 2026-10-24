@@ -76,6 +76,19 @@ public interface IClassificationJournal
     Task<bool> AnnotateHintAsync(Guid id, string? hintedIntent, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Связывает запись журнала с задачей, которую из неё создали.
+    /// </summary>
+    /// <remarks>
+    /// Раньше <c>classifications.task_id</c> всегда оставался <c>NULL</c>: связать фразу
+    /// с задачей было нельзя ни в дашборде, ни в выборке для датасета.
+    /// </remarks>
+    /// <param name="id">Запись журнала.</param>
+    /// <param name="taskId">Созданная задача.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <returns><c>true</c>, если запись нашлась.</returns>
+    Task<bool> LinkToTaskAsync(Guid id, Guid taskId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Записи, которые уже размечены вручную: их аудио можно считать отработанным.
     /// </summary>
     /// <param name="limit">Сколько вернуть.</param>
@@ -143,6 +156,9 @@ public sealed class ClassificationEntry
     /// остаётся в <see cref="Intent"/> и <see cref="Score"/> — так журнал годится для датасета.
     /// </summary>
     public string? HintedIntent { get; set; }
+
+    /// <summary>Задача, созданная из этой фразы, если она была.</summary>
+    public Guid? TaskId { get; set; }
 }
 
 /// <summary>
@@ -175,5 +191,9 @@ public sealed class NullClassificationJournal : IClassificationJournal
 
     /// <inheritdoc />
     public Task<bool> AnnotateHintAsync(Guid id, string? hintedIntent, CancellationToken cancellationToken = default)
+        => Task.FromResult(false);
+
+    /// <inheritdoc />
+    public Task<bool> LinkToTaskAsync(Guid id, Guid taskId, CancellationToken cancellationToken = default)
         => Task.FromResult(false);
 }

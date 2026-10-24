@@ -27,17 +27,25 @@ public sealed class SqliteActionLog : IActionLog
         duration_ms AS DurationMs
         """;
 
-    private readonly string _connectionString;
+    private readonly SqliteSession _session;
 
     /// <summary>
-    /// Создаёт журнал действий для файла базы.
+    /// Создаёт журнал действий с собственной сессией (для тестов и утилит).
     /// </summary>
     /// <param name="databasePath">Путь к файлу базы.</param>
     public SqliteActionLog(string databasePath)
+        : this(new SqliteSession(databasePath))
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(databasePath);
+    }
 
-        _connectionString = DatabaseInitializer.BuildConnectionString(databasePath);
+    /// <summary>
+    /// Создаёт журнал действий поверх общей сессии.
+    /// </summary>
+    /// <param name="session">Сессия базы.</param>
+    public SqliteActionLog(SqliteSession session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        _session = session;
     }
 
     /// <inheritdoc />
@@ -45,10 +53,9 @@ public sealed class SqliteActionLog : IActionLog
     {
         ArgumentNullException.ThrowIfNull(record);
 
-        await using var connection = new SqliteConnection(_connectionString);
-        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using SqliteLease lease = await _session.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-        await connection.ExecuteAsync(
+        await lease.Connection.ExecuteAsync(
             new CommandDefinition(
                 """
                 INSERT INTO actions (
@@ -74,6 +81,7 @@ public sealed class SqliteActionLog : IActionLog
                     ["error"] = record.Error,
                     ["durationMs"] = record.DurationMs,
                 }),
+                transaction: lease.Transaction,
                 cancellationToken: cancellationToken)).ConfigureAwait(false);
 
         return record.Id;
@@ -84,10 +92,9 @@ public sealed class SqliteActionLog : IActionLog
     {
         int take = Math.Clamp(limit, 1, 500);
 
-        await using var connection = new SqliteConnection(_connectionString);
-        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using SqliteLease lease = await _session.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-        IEnumerable<ActionRecord> rows = await connection.QueryAsync<ActionRecord>(
+        IEnumerable<ActionRecord> rows = await lease.Connection.QueryAsync<ActionRecord>(
             new CommandDefinition(
                 $"""
                 SELECT {SelectColumns}
@@ -97,6 +104,7 @@ public sealed class SqliteActionLog : IActionLog
                 LIMIT @limit;
                 """,
                 new { taskId = taskId?.ToString(), limit = take },
+                transaction: lease.Transaction,
                 cancellationToken: cancellationToken)).ConfigureAwait(false);
 
         return rows.ToList();

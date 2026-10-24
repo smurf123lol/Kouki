@@ -93,6 +93,26 @@ public sealed class BoomHandler : ICommandHandler<BoomCommand>
         => throw new InvalidOperationException("boom!");
 }
 
+/// <summary>Команда, которая меняет состояние: без подтверждения исполняться не должна.</summary>
+public sealed record DangerCommand : ICommand;
+
+[Command("danger", Description = "Опасное действие для проверки подтверждения", RequiresConfirmation = true, Category = CommandCategory.Dangerous)]
+public sealed class DangerHandler : ICommandHandler<DangerCommand>
+{
+    /// <summary>Сколько раз хендлер реально вызвали.</summary>
+    public static int Calls;
+
+    /// <inheritdoc />
+    public Task<JsonNode> HandleAsync(
+        DangerCommand command,
+        IExecutionContext? context = null,
+        CancellationToken cancellationToken = default)
+    {
+        Interlocked.Increment(ref Calls);
+        return Task.FromResult<JsonNode>(new JsonObject { ["danger"] = "done" });
+    }
+}
+
 /// <summary>Команда с именем в стиле интента — проверяет маршрутизацию из «Ясаби».</summary>
 public sealed record AddTaskCommand(string? Text) : ICommand;
 

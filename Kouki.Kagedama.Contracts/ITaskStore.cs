@@ -28,6 +28,45 @@ public static class TaskStatuses
     /// </summary>
     /// <param name="status">Проверяемое значение.</param>
     public static bool IsKnown(string? status) => status is not null && All.Contains(status);
+
+    /// <summary>
+    /// Открыта ли задача: новая или в работе.
+    /// </summary>
+    /// <remarks>
+    /// «Открытость» — одно правило на весь домен: по нему ищется задача для
+    /// <c>complete_task</c>, по нему же считается, что показывать в списке «мои задачи».
+    /// </remarks>
+    /// <param name="status">Статус задачи.</param>
+    public static bool IsOpen(string? status) => status is New or InProgress;
+}
+
+/// <summary>
+/// Приоритет задачи: 1 — низкий, 2 — обычный, 3 — высокий.
+/// </summary>
+/// <remarks>
+/// Раньше число 2 было литералом в фабрике, миграции и валидации. Один словарь
+/// с границами избавляет от расхождений.
+/// </remarks>
+public static class TaskPriorities
+{
+    /// <summary>Низкий приоритет.</summary>
+    public const int Low = 1;
+
+    /// <summary>Обычный приоритет (по умолчанию).</summary>
+    public const int Default = 2;
+
+    /// <summary>Высокий приоритет.</summary>
+    public const int High = 3;
+
+    /// <summary>Минимально допустимый приоритет.</summary>
+    public const int Min = Low;
+
+    /// <summary>Максимально допустимый приоритет.</summary>
+    public const int Max = High;
+
+    /// <summary>Проверяет, что приоритет в допустимых границах.</summary>
+    /// <param name="priority">Проверяемое значение.</param>
+    public static bool IsValid(int priority) => priority is >= Min and <= Max;
 }
 
 /// <summary>

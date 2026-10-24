@@ -15,34 +15,42 @@ public sealed class SqliteTaskStore : ITaskStore
         "raw_text AS RawText, title AS Title, status AS Status, priority AS Priority, " +
         "workspace AS Workspace, meta_json AS MetaJson";
 
-    private readonly string _connectionString;
+    private readonly SqliteSession _session;
 
     /// <summary>
-    /// Создаёт хранилище.
+    /// Создаёт хранилище с собственной сессией (для тестов и утилит).
     /// </summary>
     /// <param name="databasePath">Путь к файлу базы.</param>
     public SqliteTaskStore(string databasePath)
+        : this(new SqliteSession(databasePath))
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(databasePath);
+    }
 
-        DatabasePath = Path.GetFullPath(databasePath);
-        _connectionString = DatabaseInitializer.BuildConnectionString(DatabasePath);
+    /// <summary>
+    /// Создаёт хранилище поверх общей сессии: тогда транзакция приёма охватывает все хранилища.
+    /// </summary>
+    /// <param name="session">Сессия базы.</param>
+    public SqliteTaskStore(SqliteSession session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        _session = session;
     }
 
     /// <summary>Абсолютный путь к файлу базы.</summary>
-    public string DatabasePath { get; }
+    public string DatabasePath => _session.DatabasePath;
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<TaskRecord>> ListAsync(string? status, int limit, CancellationToken cancellationToken = default)
     {
-        await using SqliteConnection connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using SqliteLease lease = await _session.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-        IEnumerable<TaskRecord> rows = await connection.QueryAsync<TaskRecord>(
+        IEnumerable<TaskRecord> rows = await lease.Connection.QueryAsync<TaskRecord>(
             new CommandDefinition(
                 $"SELECT {SelectColumns} FROM tasks " +
                 "WHERE (@status IS NULL OR status = @status) " +
                 "ORDER BY created_at DESC LIMIT @limit",
                 new { status, limit },
+                transaction: lease.Transaction,
                 cancellationToken: cancellationToken)).ConfigureAwait(false);
 
         return rows.ToList();
@@ -51,12 +59,13 @@ public sealed class SqliteTaskStore : ITaskStore
     /// <inheritdoc />
     public async Task<TaskRecord?> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        await using SqliteConnection connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using SqliteLease lease = await _session.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-        return await connection.QuerySingleOrDefaultAsync<TaskRecord>(
+        return await lease.Connection.QuerySingleOrDefaultAsync<TaskRecord>(
             new CommandDefinition(
                 $"SELECT {SelectColumns} FROM tasks WHERE id = @id",
                 new { id = id.ToString() },
+                transaction: lease.Transaction,
                 cancellationToken: cancellationToken)).ConfigureAwait(false);
     }
 
@@ -65,9 +74,9 @@ public sealed class SqliteTaskStore : ITaskStore
     {
         ArgumentNullException.ThrowIfNull(record);
 
-        await using SqliteConnection connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using SqliteLease lease = await _session.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-        await connection.ExecuteAsync(
+        await lease.Connection.ExecuteAsync(
             new CommandDefinition(
                 "INSERT INTO tasks (id, created_at, updated_at, source, raw_text, title, status, priority, workspace, meta_json) " +
                 "VALUES (@id, @createdAt, @updatedAt, @source, @rawText, @title, @status, @priority, @workspace, @metaJson)",
@@ -84,6 +93,7 @@ public sealed class SqliteTaskStore : ITaskStore
                     ["workspace"] = record.Workspace,
                     ["metaJson"] = record.MetaJson,
                 }),
+                transaction: lease.Transaction,
                 cancellationToken: cancellationToken)).ConfigureAwait(false);
     }
 
@@ -96,9 +106,9 @@ public sealed class SqliteTaskStore : ITaskStore
         string? metaJson = null,
         CancellationToken cancellationToken = default)
     {
-        await using SqliteConnection connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using SqliteLease lease = await _session.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-        int affected = await connection.ExecuteAsync(
+        int affected = await lease.Connection.ExecuteAsync(
             new CommandDefinition(
                 "UPDATE tasks SET " +
                 "status = COALESCE(@status, status), " +
@@ -116,15 +126,9 @@ public sealed class SqliteTaskStore : ITaskStore
                     metaJson,
                     updatedAt = DateTimeOffset.UtcNow.ToString("O"),
                 },
+                transaction: lease.Transaction,
                 cancellationToken: cancellationToken)).ConfigureAwait(false);
 
         return affected > 0;
-    }
-
-    private async Task<SqliteConnection> OpenAsync(CancellationToken cancellationToken)
-    {
-        var connection = new SqliteConnection(_connectionString);
-        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-        return connection;
     }
 }
