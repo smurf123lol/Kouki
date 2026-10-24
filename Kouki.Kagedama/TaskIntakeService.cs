@@ -188,7 +188,7 @@ public sealed class TaskIntakeService
         // иначе в tasks не останется следа, почему задача вообще появилась.
         if (created is not null)
         {
-            string metaJson = BuildMeta(route, route.Executed, outcome, asrConfidence, audioPath);
+            string metaJson = BuildMeta(route, route.Executed, outcome, asrConfidence, audioPath, text: text);
             await _store.UpdateAsync(created.Id, null, null, null, metaJson, cancellationToken).ConfigureAwait(false);
             created.MetaJson = metaJson;
         }
@@ -196,7 +196,7 @@ public sealed class TaskIntakeService
         // Запись под вопрос: ответ команды кладём в мету задачи — это и есть «result таска».
         if (recorded is not null)
         {
-            string metaJson = BuildMeta(route, route.Executed, outcome, asrConfidence, audioPath, ExtractAnswer(route.Result));
+            string metaJson = BuildMeta(route, route.Executed, outcome, asrConfidence, audioPath, ExtractAnswer(route.Result), text);
             await _store.UpdateAsync(recorded.Id, null, null, null, metaJson, cancellationToken).ConfigureAwait(false);
             recorded.MetaJson = metaJson;
         }
@@ -464,7 +464,8 @@ public sealed class TaskIntakeService
         string outcome,
         double? asrConfidence = null,
         string? audioPath = null,
-        string? answer = null)
+        string? answer = null,
+        string? text = null)
     {
         var meta = new JsonObject
         {
@@ -476,6 +477,14 @@ public sealed class TaskIntakeService
             ["outcome"] = outcome,
             ["error"] = route.Error,
         };
+
+        // Помечаем запись, если фраза пришла не по-русски: распознавание может
+        // перевести её или записать латиницей, и такую запись потом видно в мете.
+        if (TextLanguage.Detect(text) is string languageHint)
+        {
+            meta["textLanguage"] = languageHint;
+            meta["textSample"] = TextLanguage.Describe(text, languageHint);
+        }
 
         if (asrConfidence is not null)
         {
