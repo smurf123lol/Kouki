@@ -44,6 +44,12 @@ public static class ServiceCollectionExtensions
 
         services.TryAddSingleton<IIntentRouter, IntentRouter>();
 
+        // Каталог для сравнения «роутеров» на одной фразе: правила и правила с журналом.
+        // Будущая BERT-модель добавляется сюда же одной строкой, дашборд её увидит сам.
+        services.TryAddSingleton<IClassifierCatalog>(sp => new ClassifierCatalog()
+            .Add("rules", sp.GetRequiredService<RuleIntentClassifier>())
+            .Add("rules+journal", sp.GetRequiredService<IIntentClassifier>()));
+
         return services;
     }
 }

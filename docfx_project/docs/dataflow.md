@@ -243,18 +243,20 @@ var must  = context!.GetRequiredService<IClock>("в логе"); // исключ�
 ### 17. Голос: путь одного WAV
 
 ```
-POST /api/voice  (тело — WAV целиком)
+POST /api/voice?source=station&intent=add_task  (тело — WAV целиком)
   WavReader.TryParse           → WavAudio (16 кГц, моно, 16 бит) | 415
   ISpeechTranscriber           → TranscriptionResult (текст, уверенность или null)
   FileAudioStore.SaveAsync     → audio/{source}/{yyyyMMdd}/{HHmmss}_{guid}.wav
-  journal.AnnotateAudioAsync   → classifications.asr_confidence / audio_path
-  VoiceIntakeService.AcceptAsync
-      intake.IntakeAsync(text, source, ct, asrConfidence, audioPath)
+  journal.AnnotateAudioAsync   → classifications.asr_confidence / audio_path / source
+  VoiceIntakeService.AcceptAsync(..., intentHint)
+      intake.IntakeAsync(text, source, ct, asrConfidence, audioPath, intentHint)
   TaskIntakeService.IntakeAsync
-      classify → intent → (команда → IRouter → handler) | needs_review
+      classify → intent → (команда → IRouter → handler) | add_task | needs_review
   IActionLog.RecordAsync       → actions(kind=intake, outcome, duration_ms)
 ```
 
-Новые типы: `WavAudio`/`WavReader` (Kouki.Kagedama), `IAudioStore`/`FileAudioStore`, `VoiceIntakeResult(Transcription, Intake, AudioPath, Error)`, `VoiceResponse` в контрактах API, `IExecutionContext.GetRequiredService<T>()` и `AddService<T>()` для расширяемых контекстов, `AnnotateAudioAsync`/`ListLabeledAsync` в журнале.
+Новые типы: `WavAudio`/`WavReader` (Kouki.Kagedama), `IAudioStore`/`FileAudioStore`, `VoiceIntakeResult(Transcription, Intake, AudioPath, Error)`, `VoiceResponse` в контрактах API, `IExecutionContext.GetRequiredService<T>()` и `AddService<T>()` для расширяемых контекстов, `AnnotateAudioAsync`/`ListLabeledAsync` в журнале, `TaskTitles.Make` (чистит только края фразы).
 
-`IntakeAsync` вырос двумя необязательными параметрами (`asrConfidence`, `audioPath`), но остался единственной точкой приёма: текст из Telegram, дашборда и голоса проходит один и тот же путь, отличаются только источник и наличие аудио. Порога на уверенность распознавания нет — маршрут решает классификатор интента, а вероятность (если модель её отдаст) остаётся метаданными.
+`IntakeAsync` вырос необязательными параметрами (`asrConfidence`, `audioPath`, `intentHint`), но остался единственной точкой приёма: текст из Telegram, дашборда и голоса проходит один и тот же путь, отличаются только источник и наличие аудио. Порога на уверенность распознавания нет — маршрут решает классификатор интента, а вероятность (если модель её отдаст) остаётся метаданными.
+
+`intentHint` — это сессия, а не разбор текста: станция присылает `intent=add_task` вместе с записью, и подсказка перекрывает классификатор (`Model += "+session"`). Из фразы при этом ничего не вырезается: `rawText` и заголовок содержат её целиком, потому что отдельного слоя, отличающего «Запиши задачу купить хлеб» от «Задача проекта — сдать отчёт», нет.

@@ -54,6 +54,11 @@
         <span class="tile-value">→</span>
         <span class="tile-hint">проверить фразу</span>
     </button>
+    <button class="tile" data-tab="compare">
+        <span class="tile-label">проверка</span>
+        <span class="tile-value">⇄</span>
+        <span class="tile-hint">сравнить роутеры</span>
+    </button>
 </section>
 
 <main class="layout">
@@ -104,6 +109,44 @@
             </div>
         </form>
         <pre class="result" id="intake-result" hidden></pre>
+    </section>
+
+    <section class="panel" id="panel-compare" hidden>
+        <div class="panel-head">
+            <h2>Проверка</h2>
+            <span class="meta">одна фраза — все классификаторы: где ответы расходятся</span>
+        </div>
+
+        <form class="intake" id="compare-form">
+            <textarea id="compare-text" rows="3" placeholder="покажи мои задачи"></textarea>
+            <div class="intake-row">
+                <div class="chips" id="classifier-list"></div>
+                <button class="btn primary" type="submit">сравнить</button>
+            </div>
+        </form>
+
+        <div class="intake-row">
+            <label class="field">
+                <span>WAV-файл (16 кГц моно)</span>
+                <input type="file" id="transcribe-file" accept=".wav,audio/wav">
+            </label>
+            <button class="btn" type="button" id="transcribe-btn">распознать</button>
+            <span class="meta" id="transcribe-meta"></span>
+        </div>
+
+        <div class="table-wrap">
+            <table class="grid" id="compare-table">
+                <thead>
+                <tr>
+                    <th>классификатор</th><th>интент</th><th>уверенность</th><th>порог</th><th>модель</th><th>ошибка</th>
+                </tr>
+                </thead>
+                <tbody id="compare-body">
+                <tr><td colspan="6" class="meta">—</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <pre class="result" id="compare-result" hidden></pre>
     </section>
 
     <section class="panel" id="panel-actions" hidden>

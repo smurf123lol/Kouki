@@ -8,7 +8,7 @@ Kouki — это набор библиотек для создания авто�
 - **Kouki.Shimi** (`Shimi.csproj`) — абстракции окружения (`IFileSystem`, `ITerminal`, `IStateStore`, `ITelemetryLogger`) и подсистема контекстов выполнения.
 - **Kouki.Ubusuna** — готовые адаптеры (`ConsoleFileSystem`, `ConsoleTerminal`), `UbusunaBuilder` и DI-расширения.
 - **Kouki.Tests** — xUnit-тесты (реестр, фабрика, валидация, роутер, адаптеры, потокобезопасность).
-- **Kagedama.api / Kagedama.vs** — примеры-заготовки точек входа (MCP-сервер и VS-расширение).
+- **Kagedama.api / Kagedama.mcp / Kouki.Kagedama.Bot** — точки входа: HTTP-хост с дашбордом, MCP-сервер для агента, Telegram-бот.
 
 ## Документация
 

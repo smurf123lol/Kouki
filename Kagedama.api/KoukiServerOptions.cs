@@ -23,6 +23,12 @@ public sealed class KoukiServerOptions
     /// <summary>Каталог для аудиозаписей.</summary>
     public string AudioDirectory { get; set; } = "audio";
 
+    /// <summary>
+    /// Срок хранения аудиозаписей в днях. По умолчанию 30.
+    /// <c>0</c> или отрицательное значение — не удалять по возрасту (удаление по разметке остаётся).
+    /// </summary>
+    public int AudioRetentionDays { get; set; } = 30;
+
     /// <summary>Максимальный размер голосовой записи, байт.</summary>
     public long MaxVoiceBytes { get; set; } = 5 * 1024 * 1024;
 

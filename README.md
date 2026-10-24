@@ -19,7 +19,6 @@
 | `Kagedama.mcp` | MCP-сервер stdio: семь инструментов `kouki_*` для агента DeepSeek Harness. |
 | `Kouki.Kagedama.Bot` | Telegram-бот: длинный опрос Bot API, отправка фраз в приём, ответ в чат. |
 | `dsh-kouki/` | Плагин DeepSeek Harness (JS, без внешних зависимостей): MCP-клиент и те же инструменты. |
-| `Kagedama.vs` | Заготовка расширения Visual Studio. |
 | `Kouki.Tests` | xUnit-тесты ядра, роутера, адаптеров, «Ясаби», сервера и бота. |
 
 ## Быстрый старт
@@ -69,7 +68,8 @@ curl -X POST http://localhost:5000/api/intake \
 
 Эндпоинты: `GET /api/health` (публичный), `POST /api/intake`, `GET /api/tasks`,
 `GET|PATCH /api/tasks/{id}`, `GET /api/classifications`, `POST /api/classifications/{id}/label`,
-`GET /api/actions?taskId=&limit=`, `GET /api/context`, `POST /api/voice` (WAV, см. раздел «Голос»).
+`GET /api/actions?taskId=&limit=`, `GET /api/context`, `POST /api/voice` (WAV, см. раздел «Голос»),
+`GET /api/classifiers`, `POST /api/classify` (сравнение роутеров), `POST /api/transcribe` (только WAV → текст).
 Авторизация — `Authorization: Bearer <Kouki:Token>`; пустой токен отключает проверку.
 
 Настройки — секция `Kouki` в `appsettings.json`: `DatabasePath` (`kouki.sqlite`), `Token`,
@@ -174,7 +174,11 @@ dotnet Kagedama.api/bin/Debug/net10.0/Kagedama.api.dll --urls http://127.0.0.1:5
 
 Что есть на экране: счётчики задач/разбора/действий, список задач с фильтрами по статусу,
 карточка задачи с таймлайном действий (кто, когда, сколько миллисекунд), разбор уверенности
-с разметкой прямо из браузера, ручной приём фразы как «будто из источника» и журнал действий.
+с разметкой прямо из браузера, ручной приём фразы как «будто из источника», журнал действий
+и вкладка «Проверка»: одна фраза через все классификаторы (таблица «интент / уверенность /
+порог / модель») плюс загрузка WAV — файл распознаётся через `POST /api/transcribe` и сразу
+уходит в сравнение. Это и есть «прогон через разные роутеры»: новый классификатор появляется
+в списке сам, как только его зарегистрировали в `AddYasabi`.
 
 Токен закрывает `/api/*` (кроме `/api/health`), страница и статика открыты — иначе браузер
 не смог бы загрузить сам дашборд. Токен хранится в `localStorage`.
@@ -192,11 +196,16 @@ dotnet Kagedama.api/bin/Debug/net10.0/Kagedama.api.dll --urls http://127.0.0.1:5
 curl -X POST --data-binary "@phrase.wav" \
      -H "Authorization: Bearer $KOUKI_TOKEN" \
      -H "Content-Type: audio/wav" \
-     http://127.0.0.1:5199/api/voice?source=station
+     "http://127.0.0.1:5199/api/voice?source=station&intent=add_task"
 ```
 
+Параметр `intent` — это **сессия**: станция сообщает, что пользователь открыл режим записи, и фраза
+становится задачей целиком, без попыток вырезать из неё «запиши задачу». Из фразы ничего не удаляется
+никогда: без подсказки её разбирает классификатор, а если он не уверен — фраза целиком уходит на разбор.
+`/api/intake` принимает то же самое полем `"intent"` в теле.
+
 Порядок внутри: сохранить аудио (если `StoreAudio`) → распознать (`ISpeechTranscriber`) →
-`TaskIntakeService.IntakeAsync(text, "voice")` → запись в `actions` с длительностью.
+`TaskIntakeService.IntakeAsync(text, "voice", intentHint)` → запись в `actions` с длительностью.
 Порога на уверенность распознавания нет: sherpa-onnx вероятность не отдаёт, да и решать
 «на разбор или нет» должен классификатор интента — он отвечает за смысл фразы.
 Если модель всё же отдаст вероятность, она сохранится в `meta.asrConfidence` и в журнале,
@@ -273,9 +282,9 @@ dotnet test Kouki.Tests/Kouki.Tests.csproj
 доступа к nuget.org сборка возможна только из локального кеша пакетов; при многонодовом
 MSBuild в песочнице используйте `-m:1 -nodeReuse:false` для `restore` и `build`.
 
-`Kouki.slnx` целиком собирается только на Windows с установленным Visual Studio и доступом к
-nuget.org: проект `Kagedama.vs` таргетит `net8.0-windows8.0` и тянет Visual Studio
-Extensibility SDK. Библиотеки и тесты собираются без него:
+`Kouki.slnx` собирается целиком: `Kagedama.vs` (расширение Visual Studio) из решения убрано —
+оно таргетило `net8.0-windows8.0` и тянуло VS SDK, из-за чего решение не собиралось ни на
+Linux, ни офлайн. Библиотеки и тесты собираются отдельно:
 
 ```bash
 dotnet restore Kouki.Tests/Kouki.Tests.csproj

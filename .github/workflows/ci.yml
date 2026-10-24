@@ -19,8 +19,8 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      # Решение целиком здесь не собирается: Kagedama.vs таргетит net8.0-windows8.0
-      # и требует Visual Studio Extensibility SDK (только Windows).
+      # Решение целиком здесь не собирается: бывший Kagedama.vs (VS-расширение) убран
+      # из решения и вернётся отдельным проектом в MVP.
       # Тестовый проект транзитивно собирает Kouki.Mugura, Kouki.Shimi и Kouki.Ubusuna.
       - name: Restore
         run: dotnet restore Kouki.Tests/Kouki.Tests.csproj

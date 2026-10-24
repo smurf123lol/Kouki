@@ -3,6 +3,7 @@ using Microsoft.Extensions.FileProviders;
 using Kouki.Kagedama.Api;
 using Kouki.Kagedama.Api.Api;
 using Kouki.Kagedama.Api.Auth;
+using Kouki.Kagedama.Api.Services;
 using Kouki.Kagedama;
 using Kouki.Kagedama.Contracts;
 using Kouki.Kagedama.Data;
@@ -85,6 +86,15 @@ builder.Services.AddSingleton(sp =>
 builder.Services.AddSingleton<TaskIntakeService>();
 
 // Голос: распознавание приходит из Kouki.Un (пока заглушка), склейка — VoiceIntakeService.
+builder.Services.AddSingleton<IAudioStore>(sp =>
+{
+    KoukiServerOptions serverOptions = sp.GetRequiredService<IOptions<KoukiServerOptions>>().Value;
+    return new FileAudioStore(
+        serverOptions.AudioDirectory,
+        sp.GetRequiredService<IClassificationJournal>(),
+        sp.GetRequiredService<ILogger<FileAudioStore>>());
+});
+
 builder.Services.AddSingleton(sp =>
 {
     KoukiServerOptions serverOptions = sp.GetRequiredService<IOptions<KoukiServerOptions>>().Value;
@@ -92,13 +102,11 @@ builder.Services.AddSingleton(sp =>
         sp.GetRequiredService<ISpeechTranscriber>(),
         sp.GetRequiredService<TaskIntakeService>(),
         sp.GetRequiredService<ILogger<VoiceIntakeService>>(),
-        serverOptions.StoreAudio
-            ? new FileAudioStore(
-                serverOptions.AudioDirectory,
-                sp.GetRequiredService<IClassificationJournal>(),
-                sp.GetRequiredService<ILogger<FileAudioStore>>())
-            : null);
+        serverOptions.StoreAudio ? sp.GetRequiredService<IAudioStore>() : null);
 });
+
+// Срок хранения аудио — настройка (Kouki:AudioRetentionDays, по умолчанию 30 дней).
+builder.Services.AddHostedService<AudioRetentionService>();
 
 WebApplication app = builder.Build();
 

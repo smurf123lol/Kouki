@@ -8,7 +8,7 @@
     },
     {
       "src": [
-        { "files": ["Kagedama.api/*.csproj", "Kagedama.vs/*.csproj"], "src": "../" }
+        { "files": ["Kagedama.api/*.csproj", "Kagedama.mcp/*.csproj"], "src": "../" }
       ],
       "dest": "examples/kagedama/api"
     }

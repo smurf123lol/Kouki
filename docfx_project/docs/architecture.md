@@ -7,7 +7,7 @@ Kouki — модульная платформа для оркестрации к
 - **Kouki.Mugura** (сборка `Kouki.Mugura.dll`) — чистое ядро: реестр команд, фабрика DTO, валидация, диспетчер, роутеры. Не зависит от окружения.
 - **Kouki.Shimi** (проект `Shimi.csproj`, `AssemblyName`/`RootNamespace` = `Kouki.Shimi`) — абстракции окружения и подсистема контекстов выполнения.
 - **Kouki.Ubusuna** (`Kouki.Ubusuna.dll`) — готовые адаптеры, `UbusunaBuilder` и DI-расширения.
-- **Kagedama.api / Kagedama.vs** — примеры-заготовки (MCP-сервер и VS-расширение), пока шаблоны Visual Studio.
+- **Kagedama.api / Kagedama.mcp / Kouki.Kagedama.Bot** — точки входа: HTTP-хост с дашбордом, MCP-сервер для агента и Telegram-бот.
 
 Такое разделение даёт чистое, тестируемое ядро, подменяемые адаптеры и независимые точки входа.
 
@@ -97,8 +97,11 @@ Kouki — модульная платформа для оркестрации к
 
 ### 5. Приложения (Kagedama)
 
-- **Kagedama.api** — заготовка MCP-сервера: пока пустой шаблон, не ссылается на ядро. Целевой вид: MCP-сервер, который принимает `tools/call`, превращает в `IRouter.RouteAsync` и возвращает JSON.
-- **Kagedama.vs** — шаблон VS-расширения (`net8.0-windows8.0`, `Microsoft.VisualStudio.Extensibility`); требует VS SDK с nuget.org, поэтому офлайн не собирается. Namespace внутри — `Kouki.Mugura`, его стоит привести к `Kouki.Kagedama.Vs`.
+- **Kagedama.api** — HTTP-хост: приём текста и голоса, задачи, журнал классификаций, действия, `/api/context`, дашборд (`wwwroot`, без сборки фронтенда).
+- **Kagedama.mcp** — MCP-сервер stdio (семь инструментов `kouki_*`) для агента DeepSeek Harness; лог идёт в stderr, чтобы не мешать JSON-RPC.
+- **Kouki.Kagedama.Bot** — Telegram-бот: long polling, фраза уходит в приём, ответ возвращается в чат.
+
+Расширение Visual Studio (`Kagedama.vs`) из решения убрано: проект таргетил `net8.0-windows8.0` и требовал VS SDK, то есть ломал сборку на Linux. Возвращается отдельной задачей в MVP.
 
 ---
 
@@ -194,7 +197,9 @@ Kouki — модульная платформа для оркестрации к
 
 `POST /api/voice` принимает WAV целиком — так его отдаёт станция на ESP32-S3 (фраза по кнопке, без wake-word). Формат один: PCM 16 бит, моно, 16 кГц; всё остальное — `415` с перечислением того, что пришло, потому что молчаливое пересэмплирование скрыло бы ошибку клиента.
 
-Порядок: `WavReader.TryParse` → `ISpeechTranscriber.TranscribeAsync` → `FileAudioStore.SaveAsync` (если `StoreAudio`) → `VoiceIntakeService.AcceptAsync` → `TaskIntakeService.IntakeAsync(text, "voice", asrConfidence, audioPath)` → запись в `actions`. Коды: `413` больше `MaxVoiceBytes` (5 МБ) или `MaxVoiceSeconds` (30 с), `415` не тот формат, `422` речь не распознана, `503` распознавание не подключено.
+Порядок: `WavReader.TryParse` → `ISpeechTranscriber.TranscribeAsync` → `FileAudioStore.SaveAsync` (если `StoreAudio`) → `VoiceIntakeService.AcceptAsync` → `TaskIntakeService.IntakeAsync(text, "voice", asrConfidence, audioPath, intentHint)` → запись в `actions`. Коды: `413` больше `MaxVoiceBytes` (5 МБ) или `MaxVoiceSeconds` (30 с), `415` не тот формат, `422` речь не распознана, `503` распознавание не подключено.
+
+Интент сообщает сессия, а не текст. Станция шлёт `POST /api/voice?source=station&intent=add_task` — это значит «открыт режим записи», и фраза становится задачей целиком: из неё ничего не вырезается. Отдельного «слоя понимания императива» нет намеренно — регулярка не отличает «Запиши задачу купить хлеб» от «Задача проекта — сдать отчёт», а вычитание слов без этого слоя портит фразу необратимо. `TaskIntakeService.IntakeAsync(..., string? intentHint)` перекрывает результат классификатора (`intent with { Intent = hint, Score = 1, Model += "+session" }`), журнал классификации всё равно пишется. Без подсказки фраза идёт через классификатор, а если он не уверен — уходит в разбор целиком. То же поле (`"intent"`) принимает `/api/intake`.
 
 Порог один, и он про смысл. `IntakeOptions.ConfidenceThreshold` (0.75) отвечает на вопрос «поняли ли фразу»; отдельного порога на уверенность распознавания нет. Причин две: sherpa-onnx вероятность не отдаёт (в `TranscriptionResult.Confidence` приходит `null`), а решение «на разбор или нет» всё равно должен принимать классификатор интента — плохо расслышанная, но понятая команда полезнее, чем разбор ради самой уверенности. Если модель когда-нибудь начнёт отдавать вероятность, она попадёт в `meta.asrConfidence` и `classifications.asr_confidence` как метаданные, но маршрут не изменит.
 

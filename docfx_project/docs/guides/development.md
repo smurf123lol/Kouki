@@ -8,12 +8,14 @@
 ## Структура решения
 
 ```
-Kouki.Mugura/   ядро команд: атрибуты, реестр, фабрика, валидаторы, диспетчер, роутеры
-Shimi/          абстракции среды выполнения и контексты
-Ubusuna/        консольные адаптеры и UbusunaBuilder
-Kagedama.api/   заготовка MCP-сервера
-Kagedama.vs/    заготовка расширения Visual Studio
-Kouki.Tests/    xUnit-тесты
+Kouki.Mugura/          ядро команд: атрибуты, реестр, фабрика, валидаторы, диспетчер, роутеры
+Shimi/                 абстракции среды выполнения и контексты
+Ubusuna/               консольные адаптеры и UbusunaBuilder
+Kouki.Kagedama*/       прикладной слой, контракты, SQLite-хранилище
+Kagedama.api/          HTTP-хост: приём, задачи, журнал, голос, дашборд
+Kagedama.mcp/          MCP-сервер stdio для агента
+Kouki.Kagedama.Bot/    Telegram-бот
+Kouki.Tests/           xUnit-тесты
 ```
 
 ## Как добавить команду

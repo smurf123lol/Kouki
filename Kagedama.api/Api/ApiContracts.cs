@@ -12,6 +12,11 @@ namespace Kouki.Kagedama.Api.Api;
 /// <param name="Source">Источник: telegram, voice, dashboard, mcp, api. По умолчанию api.</param>
 public sealed record IntakeRequest(string Text, string? Source = null, string? Intent = null);
 
+/// <summary>Запрос на сравнение классификаторов: одна фраза, все «роутеры».</summary>
+/// <param name="Text">Фраза.</param>
+/// <param name="Classifiers">Имена классификаторов; <c>null</c> — все зарегистрированные.</param>
+public sealed record ClassifyRequest(string Text, List<string>? Classifiers = null);
+
 /// <summary>Задача в ответах API.</summary>
 public sealed record TaskDto(
     Guid Id,

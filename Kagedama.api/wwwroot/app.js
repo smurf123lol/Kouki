@@ -15,7 +15,7 @@ const OUTCOME_RU = {
     failed: 'ошибка',
 };
 
-const TAB_IN_RU = { tasks: 'задачи', review: 'разбор', intake: 'приём', actions: 'действия' };
+const TAB_IN_RU = { tasks: 'задачи', review: 'разбор', intake: 'приём', compare: 'проверка', actions: 'действия' };
 
 const state = {
     token: localStorage.getItem('kouki.token') || '',
@@ -280,6 +280,103 @@ async function submitIntake(event) {
     }
 }
 
+/* ---------- проверка: сравнение классификаторов и распознавание файла ---------- */
+
+const selectedClassifiers = new Set();
+
+async function loadClassifiers() {
+    const list = $('classifier-list');
+    if (list.dataset.loaded === 'true') return;
+
+    const response = await api('/api/classifiers');
+    const names = response.classifiers || [];
+
+    list.innerHTML = names.map((name) => {
+        /* «+journal» пишет в журнал при каждом прогоне — по умолчанию выключен. */
+        const checked = !name.includes('+journal');
+        if (checked) selectedClassifiers.add(name);
+        return `<button type="button" class="chip${checked ? ' is-active' : ''}" data-classifier="${esc(name)}">${esc(name)}</button>`;
+    }).join('');
+
+    list.dataset.loaded = 'true';
+}
+
+function renderCompare(response) {
+    const body = $('compare-body');
+    const results = response.results || [];
+
+    if (results.length === 0) {
+        body.innerHTML = '<tr><td colspan="6" class="meta">нет выбранных классификаторов</td></tr>';
+        return;
+    }
+
+    body.innerHTML = results.map((item) => `<tr>
+        <td>${esc(item.classifier)}</td>
+        <td>${esc(item.intent)}</td>
+        <td>${(item.score * 100).toFixed(0)} %</td>
+        <td>${item.confident ? 'да' : 'нет'} (${(response.threshold * 100).toFixed(0)} %)</td>
+        <td>${esc(item.model)}</td>
+        <td class="err">${esc(item.error || '')}</td>
+    </tr>`).join('');
+}
+
+async function compareText(event) {
+    if (event) event.preventDefault();
+    const text = $('compare-text').value.trim();
+    const result = $('compare-result');
+    if (!text) return;
+
+    try {
+        const body = { text, classifiers: Array.from(selectedClassifiers) };
+        const response = await api('/api/classify', { method: 'POST', body: JSON.stringify(body) });
+        renderCompare(response);
+        result.hidden = true;
+    } catch (error) {
+        result.hidden = false;
+        result.textContent = 'Ошибка: ' + error.message;
+    }
+}
+
+async function transcribeFile() {
+    const input = $('transcribe-file');
+    const meta = $('transcribe-meta');
+    const file = input.files && input.files[0];
+
+    if (!file) {
+        meta.textContent = 'выберите WAV-файл';
+        return;
+    }
+
+    meta.textContent = 'распознаю…';
+
+    try {
+        const buffer = await file.arrayBuffer();
+        const response = await fetch('/api/transcribe', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'audio/wav',
+                ...(state.token ? { Authorization: `Bearer ${state.token}` } : {}),
+            },
+            body: buffer,
+        });
+
+        if (response.status === 401) throw new AuthError('401');
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            meta.textContent = payload.error || `код ${response.status}`;
+            return;
+        }
+
+        meta.textContent = `услышано за ${payload.durationSec.toFixed(2)} с`;
+        $('compare-text').value = payload.transcript || '';
+        await compareText(null);
+    } catch (error) {
+        meta.textContent = error instanceof AuthError ? 'нужен токен' : 'ошибка: ' + error.message;
+    }
+}
+
 /* ---------- переключение вкладок ---------- */
 
 async function switchTab(tab) {
@@ -290,6 +387,7 @@ async function switchTab(tab) {
     $('panel-tasks').hidden = tab !== 'tasks';
     $('panel-review').hidden = tab !== 'review';
     $('panel-intake').hidden = tab !== 'intake';
+    $('panel-compare').hidden = tab !== 'compare';
     $('panel-actions').hidden = tab !== 'actions';
 
     await reload();
@@ -301,6 +399,7 @@ async function reload() {
         await refreshTally();
         if (state.tab === 'tasks') await loadTasks();
         else if (state.tab === 'review') await loadReview();
+        else if (state.tab === 'compare') await loadClassifiers();
         else if (state.tab === 'actions') await loadActions();
         if (state.taskId) await openTask(state.taskId);
     } catch (error) {
@@ -375,6 +474,22 @@ $('detail-close').addEventListener('click', () => {
 });
 
 $('intake-form').addEventListener('submit', submitIntake);
+$('compare-form').addEventListener('submit', compareText);
+$('transcribe-btn').addEventListener('click', transcribeFile);
+
+$('classifier-list').addEventListener('click', (event) => {
+    const chip = event.target.closest('[data-classifier]');
+    if (!chip) return;
+
+    const name = chip.dataset.classifier;
+    if (selectedClassifiers.has(name)) {
+        selectedClassifiers.delete(name);
+        chip.classList.remove('is-active');
+    } else {
+        selectedClassifiers.add(name);
+        chip.classList.add('is-active');
+    }
+});
 
 $('save-token').addEventListener('click', async () => {
     state.token = $('token').value.trim();

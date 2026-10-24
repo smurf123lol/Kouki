@@ -7,7 +7,8 @@ namespace Kouki.Kagedama;
 /// </summary>
 /// <remarks>
 /// Записи нужны как материал для будущего обучения: пока разметки нет — аудио лежит,
-/// после разметки <see cref="RemoveLabeledAsync"/> может его удалить.
+/// после разметки <see cref="RemoveLabeledAsync"/> может его удалить. Отдельно работает
+/// срок хранения (<see cref="RemoveOlderThanAsync"/>): это настройка, а не константа.
 /// </remarks>
 public interface IAudioStore
 {
@@ -25,6 +26,14 @@ public interface IAudioStore
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <returns>Сколько файлов удалено.</returns>
     Task<int> RemoveLabeledAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Удаляет записи старше <paramref name="cutoff"/>.
+    /// </summary>
+    /// <param name="cutoff">Всё, что записано раньше этого момента, удаляется.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <returns>Сколько файлов удалено.</returns>
+    Task<int> RemoveOlderThanAsync(DateTimeOffset cutoff, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -102,6 +111,54 @@ public sealed class FileAudioStore : IAudioStore
             {
                 _logger.LogWarning(ex, "Не удалось удалить аудио {Path}", entry.AudioPath);
             }
+        }
+
+        return removed;
+    }
+
+    /// <inheritdoc />
+    public async Task<int> RemoveOlderThanAsync(
+        DateTimeOffset cutoff,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Directory.Exists(_root))
+        {
+            return 0;
+        }
+
+        int removed = 0;
+
+        foreach (string path in Directory.EnumerateFiles(_root, "*.wav", SearchOption.AllDirectories))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            DateTime lastWrite = File.GetLastWriteTimeUtc(path);
+            if (lastWrite >= cutoff.UtcDateTime)
+            {
+                continue;
+            }
+
+            try
+            {
+                File.Delete(path);
+                removed++;
+            }
+            catch (IOException ex)
+            {
+                _logger.LogWarning(ex, "Не удалось удалить просроченное аудио {Path}", path);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogWarning(ex, "Не удалось удалить просроченное аудио {Path}", path);
+            }
+        }
+
+        if (removed > 0)
+        {
+            _logger.LogInformation(
+                "Срок хранения аудио: удалено {Count} записей старше {Cutoff:yyyy-MM-dd}",
+                removed,
+                cutoff);
         }
 
         return removed;

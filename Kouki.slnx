@@ -6,7 +6,6 @@
     <Project Path="Kouki.Kagedama/Kouki.Kagedama.csproj" Id="8a1d6f43-2c5b-4f0e-9d7a-51c2b8e6f3a9" />
     <Project Path="Kagedama.mcp/Kagedama.mcp.csproj" />
     <Project Path="Kouki.Kagedama.Bot/Kouki.Kagedama.Bot.csproj" />
-    <Project Path="Kagedama.vs/Kagedama.vs.csproj" />
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="Kouki.Tests/Kouki.Tests.csproj" />

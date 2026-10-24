@@ -31,6 +31,9 @@ public static class ApiEndpoints
 
         endpoints.MapPost("/api/intake", intakeHandler);
         endpoints.MapPost("/api/voice", voiceHandler);
+        endpoints.MapPost("/api/classify", classifyHandler);
+        endpoints.MapPost("/api/transcribe", transcribeHandler);
+        endpoints.MapGet("/api/classifiers", (IClassifierCatalog catalog) => Results.Ok(new { classifiers = catalog.Names }));
         endpoints.MapGet("/api/tasks", listTasksHandler);
         endpoints.MapGet("/api/tasks/{id:guid}", getTaskHandler);
         endpoints.MapPatch("/api/tasks/{id:guid}", patchTaskHandler);
@@ -119,39 +122,11 @@ public static class ApiEndpoints
                 statusCode: StatusCodes.Status413PayloadTooLarge);
         }
 
-        using var buffer = new MemoryStream();
-        byte[] chunk = new byte[81920];
-        int read;
+        (IResult? wavFailure, byte[] bytes, WavAudio? audio) = await ReadWavAsync(request, settings, cancellationToken);
 
-        while ((read = await request.Body.ReadAsync(chunk, cancellationToken)) > 0)
+        if (wavFailure is not null)
         {
-            if (buffer.Length + read > settings.MaxVoiceBytes)
-            {
-                return Results.Json(
-                    new { error = $"Запись больше {settings.MaxVoiceBytes} байт." },
-                    statusCode: StatusCodes.Status413PayloadTooLarge);
-            }
-
-            buffer.Write(chunk, 0, read);
-        }
-
-        byte[] bytes = buffer.ToArray();
-
-        if (bytes.Length == 0)
-        {
-            return Results.BadRequest(new { error = "Пустое тело запроса: ожидался WAV." });
-        }
-
-        if (!WavReader.TryParse(bytes, out WavAudio? audio, out string? wavError) || audio is null)
-        {
-            return Results.Json(new { error = wavError }, statusCode: StatusCodes.Status415UnsupportedMediaType);
-        }
-
-        if (audio.Duration > TimeSpan.FromSeconds(settings.MaxVoiceSeconds))
-        {
-            return Results.Json(
-                new { error = $"Запись длиннее {settings.MaxVoiceSeconds} с." },
-                statusCode: StatusCodes.Status413PayloadTooLarge);
+            return wavFailure;
         }
 
         string source = string.IsNullOrWhiteSpace(request.Query["source"])
@@ -202,6 +177,139 @@ public static class ApiEndpoints
             result.Outcome,
             result.Route.Error,
             result.Route.Result);
+
+    /// <summary>
+    /// Одна фраза — несколько классификаторов. Ничего не исполняет и не создаёт задачу:
+    /// это сравнение «роутеров» для отладки и для выбора модели.
+    /// </summary>
+    private static async Task<IResult> classifyHandler(
+        ClassifyRequest body,
+        IClassifierCatalog catalog,
+        IOptions<KoukiServerOptions> options,
+        CancellationToken cancellationToken)
+    {
+        if (body is null || string.IsNullOrWhiteSpace(body.Text))
+        {
+            return Results.BadRequest(new { error = "Пустой текст: нечего классифицировать." });
+        }
+
+        KoukiServerOptions settings = options.Value;
+        IReadOnlyList<ClassifierVerdict> verdicts = await catalog.ClassifyAsync(
+            body.Text.Trim(),
+            body.Classifiers,
+            settings.ConfidenceThreshold,
+            cancellationToken);
+
+        return Results.Ok(new
+        {
+            text = body.Text.Trim(),
+            threshold = settings.ConfidenceThreshold,
+            classifiers = catalog.Names,
+            results = verdicts,
+        });
+    }
+
+    /// <summary>
+    /// Только распознавание: WAV на входе, текст на выходе. Без маршрутизации и задач —
+    /// чтобы проверять качество ASR отдельно от понимания фразы.
+    /// </summary>
+    private static async Task<IResult> transcribeHandler(
+        HttpRequest request,
+        ISpeechTranscriber transcriber,
+        IOptions<KoukiServerOptions> options,
+        CancellationToken cancellationToken)
+    {
+        KoukiServerOptions settings = options.Value;
+
+        if (transcriber is Kouki.Un.UnavailableSpeechTranscriber)
+        {
+            return Results.Json(
+                new { error = Kouki.Un.UnavailableSpeechTranscriber.Reason },
+                statusCode: StatusCodes.Status503ServiceUnavailable);
+        }
+
+        (IResult? error, byte[] bytes, WavAudio? audio) = await ReadWavAsync(request, settings, cancellationToken);
+
+        if (error is not null)
+        {
+            return error;
+        }
+
+        TranscriptionResult transcription = await transcriber.TranscribeAsync(
+            new MemoryStream(bytes, writable: false),
+            new AudioFormat(audio!.SampleRate, audio.Channels, AudioEncoding.Wav),
+            cancellationToken);
+
+        if (string.IsNullOrWhiteSpace(transcription.Text))
+        {
+            return Results.Json(
+                new { error = "Речь не распознана.", durationSec = audio.Duration.TotalSeconds },
+                statusCode: StatusCodes.Status422UnprocessableEntity);
+        }
+
+        return Results.Ok(new
+        {
+            transcript = transcription.Text,
+            confidence = transcription.Confidence,
+            durationSec = audio.Duration.TotalSeconds,
+        });
+    }
+
+    /// <summary>
+    /// Читает WAV из тела запроса с теми же ограничениями, что и голосовой приём.
+    /// Ошибка возвращается готовым результатом, чтобы вызывающий не дублировал проверки.
+    /// </summary>
+    private static async Task<(IResult? Error, byte[] Bytes, WavAudio? Audio)> ReadWavAsync(
+        HttpRequest request,
+        KoukiServerOptions settings,
+        CancellationToken cancellationToken)
+    {
+        if (request.ContentLength is long declared && declared > settings.MaxVoiceBytes)
+        {
+            return (Results.Json(
+                new { error = $"Запись больше {settings.MaxVoiceBytes} байт." },
+                statusCode: StatusCodes.Status413PayloadTooLarge), [], null);
+        }
+
+        using var buffer = new MemoryStream();
+        byte[] chunk = new byte[81920];
+        int read;
+
+        while ((read = await request.Body.ReadAsync(chunk, cancellationToken)) > 0)
+        {
+            if (buffer.Length + read > settings.MaxVoiceBytes)
+            {
+                return (Results.Json(
+                    new { error = $"Запись больше {settings.MaxVoiceBytes} байт." },
+                    statusCode: StatusCodes.Status413PayloadTooLarge), [], null);
+            }
+
+            buffer.Write(chunk, 0, read);
+        }
+
+        byte[] bytes = buffer.ToArray();
+
+        if (bytes.Length == 0)
+        {
+            return (Results.BadRequest(new { error = "Пустое тело запроса: ожидался WAV." }), [], null);
+        }
+
+        if (!WavReader.TryParse(bytes, out WavAudio? audio, out string? wavError) || audio is null)
+        {
+            return (Results.Json(
+                new { error = wavError },
+                statusCode: StatusCodes.Status415UnsupportedMediaType), bytes, null);
+        }
+
+        if (audio.Duration > TimeSpan.FromSeconds(settings.MaxVoiceSeconds))
+        {
+            return (Results.Json(
+                new { error = $"Запись длиннее {settings.MaxVoiceSeconds} с." },
+                statusCode: StatusCodes.Status413PayloadTooLarge), bytes, audio);
+        }
+
+        return (null, bytes, audio);
+    }
 
     private static async Task<IResult> listTasksHandler(
         string? status,
