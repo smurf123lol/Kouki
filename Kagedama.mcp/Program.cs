@@ -12,6 +12,7 @@ using Kouki.Un;
 using Kouki.Ubusuna;
 using Kouki.Ubusuna.DependencyInjection;
 using Kouki.Yasabi;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -20,21 +21,34 @@ using Microsoft.Extensions.Logging;
 string? databaseArgument = FindArgument(args, "--database");
 string? thresholdArgument = FindArgument(args, "--threshold");
 
-// Путь к базе: аргумент, затем переменные окружения (и своя, и стиль конфигурации хоста),
-// затем файл рядом с приложением. Относительный путь разрешается от каталога приложения,
+// Настройки как у api: файл appsettings.json рядом с приложением, поверх него
+// переменные окружения (Kouki__DatabasePath), поверх — аргументы командной строки.
+// Раньше файл лежал в проекте, но не читался: это был мёртвый конфиг.
+IConfiguration configuration = new ConfigurationBuilder()
+    .SetBasePath(AppContext.BaseDirectory)
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+    .AddEnvironmentVariables()
+    .Build();
+
+string section = KoukiHostSettings.SectionName;
+
+// Путь к базе: аргумент, затем переменные окружения (своя и стиль конфигурации хоста),
+// затем appsettings.json. Относительный путь разрешается от каталога приложения,
 // а не от текущего — иначе mcp и api смотрели бы в разные базы.
 string databasePath = KoukiPaths.Resolve(
     databaseArgument
         ?? Environment.GetEnvironmentVariable("KOUKI_DATABASE")
-        ?? Environment.GetEnvironmentVariable("Kouki__DatabasePath"),
+        ?? configuration[$"{section}:DatabasePath"],
     "kouki.sqlite",
     "DatabasePath");
 
 double threshold = double.TryParse(
-    thresholdArgument ?? Environment.GetEnvironmentVariable("KOUKI_THRESHOLD"),
-    out double parsedThreshold)
+        thresholdArgument ?? Environment.GetEnvironmentVariable("KOUKI_THRESHOLD"),
+        out double parsedThreshold)
     ? parsedThreshold
-    : IntakeOptions.DefaultConfidenceThreshold;
+    : double.TryParse(configuration[$"{section}:ConfidenceThreshold"], out double configuredThreshold)
+        ? configuredThreshold
+        : IntakeOptions.DefaultConfidenceThreshold;
 
 var services = new ServiceCollection();
 

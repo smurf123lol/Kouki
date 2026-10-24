@@ -132,6 +132,16 @@ dotnet build Kagedama.mcp/Kagedama.mcp.csproj -m:1 -nodeReuse:false
 dotnet Kagedama.mcp/bin/Debug/net10.0/Kagedama.mcp.dll --database=С:\kouki\kouki.sqlite
 ```
 
+Настройки MCP-хоста читаются в том же порядке, что у HTTP-хоста: аргументы (`--database`,
+`--threshold`) → переменные окружения (`KOUKI_DATABASE`, `KOUKI_THRESHOLD`, `Kouki__*`) →
+`appsettings.json` рядом с бинарником (секция `Kouki`). Файл копируется при сборке — это
+боевой конфиг, а не заготовка.
+
+Правила приёма фразы (`text` пустой/слишком длинный, неизвестный `source`) у API и MCP общие:
+`Kouki.Kagedama/IntakeRequestPolicy.cs`. При отказе API отвечает `400` с машиночитаемым
+`code` (`missing-text`, `text-too-long`, `unknown-source`, `unknown-intent`), MCP —
+`isError: true` с тем же текстом.
+
 Плагин `dsh-kouki` поднимает этот процесс как MCP-клиент и регистрирует эти инструменты
 в агенте:
 

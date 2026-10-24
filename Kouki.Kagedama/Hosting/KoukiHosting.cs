@@ -16,6 +16,9 @@ namespace Kouki.Kagedama.Hosting;
 /// </summary>
 public sealed record KoukiHostSettings
 {
+    /// <summary>Имя секции настроек в конфигурации хоста.</summary>
+    public const string SectionName = "Kouki";
+
     /// <summary>Путь к файлу SQLite.</summary>
     public required string DatabasePath { get; init; }
 

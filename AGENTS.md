@@ -88,10 +88,14 @@ Kagedama.api / .mcp / Kouki.Kagedama.Bot — хосты
 10. **Фразу не режем.** Интент либо распознан целиком, либо фраза уходит в разбор как есть.
     Убирать «запиши задачу» из текста нельзя — это часть текста, который человек сказал.
 11. **Никаких магических чисел.** Порог — `IntakeOptions.ConfidenceThreshold` (дефолт 0.75),
-    лимиты — из конфигурации (`AnalysisConstants`), приоритет — `TaskPriorities.Default`.
+    лимиты — из `KoukiServerOptions`/`IntakeRequestPolicy`, приоритет — `TaskPriorities.Default`.
 12. **Человеку — человеческий текст.** Внешние ошибки (Telegram, HTTP, SQL) не уходят
     в чат как `ex.Message`: хост разбирает код ответа и берёт текст из
     `IntakeReplyFormatter`/`Describe`; сам `ex.Message` остаётся в логах.
+13. **Правила приёма живут в `Kouki.Kagedama/IntakeRequestPolicy.cs`.** Пустой текст,
+    лимит длины, источник по умолчанию и закрытый список интентов (`SessionIntents`)
+    проверяются там, а не в эндпоинте, MCP-инструменте или боте; порог для поля
+    `confident` берётся из `TaskIntakeService.ConfidenceThreshold`, а не из `IOptions`.
 
 ## Где что менять
 
@@ -103,7 +107,7 @@ Kagedama.api / .mcp / Kouki.Kagedama.Bot — хосты
 | новый HTTP-эндпоинт | `Kagedama.api/Api/ApiEndpoints.cs` + DTO в `ApiContracts.cs` |
 | новый MCP-инструмент | `Kagedama.mcp/KoukiMcpTools.cs` + дескриптор в `Tools` |
 | правило классификации | `Kouki.Yasabi/RuleIntentClassifier.cs` (`DefaultRules`) |
-| конфигурация | `AnalysisConstants.cs` + `appsettings.json` + `KoukiServerOptions` |
+| конфигурация | `KoukiServerOptions` (+ `appsettings.json`), секция `Kouki` одна на все хосты |
 | схема БД | `Kouki.Kagedama.Data/DatabaseInitializer.cs` (схема идемпотентна) |
 
 ## Сборка и тесты

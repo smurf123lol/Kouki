@@ -3,8 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Kouki.Kagedama.Contracts;
 using Kouki.Kagedama.Data;
-using Kouki.Mugura.Dispatcher;
-using Kouki.Shimi.Context;
+using Kouki.Mugura.Dispatcher;using Kouki.Shimi.Context;
 using Kouki.Yasabi;
 
 namespace Kouki.Kagedama.Mcp;
@@ -189,7 +188,22 @@ public sealed class KoukiMcpTools
     private async Task<JsonNode> AddTaskAsync(JsonObject args, CancellationToken cancellationToken)
     {
         string text = RequiredString(args, "text");
-        IntakeResult result = await _intake.IntakeAsync(text, "mcp", cancellationToken).ConfigureAwait(false);
+
+        // Те же правила границы, что у api: лимит длины и источник по умолчанию хоста.
+        // Хост — транспорт; если правила повторять здесь, они разойдутся.
+        if (!IntakeRequestPolicy.TryPrepare(
+                text,
+                null,
+                null,
+                _intake.DefaultSource,
+                IntakeRequestPolicy.DefaultMaxTextLength,
+                out IntakeSpec? spec,
+                out IntakeRejection? rejection))
+        {
+            throw new ArgumentException(rejection!.Message, nameof(args));
+        }
+
+        IntakeResult result = await _intake.IntakeAsync(spec!.Text, spec.Source, cancellationToken).ConfigureAwait(false);
 
         return new JsonObject
         {

@@ -78,47 +78,27 @@ public static class ApiEndpoints
         IOptions<KoukiServerOptions> options,
         CancellationToken cancellationToken)
     {
-        if (request is null || string.IsNullOrWhiteSpace(request.Text))
+        // Правила границы («источник по умолчанию», закрытый список интентов, лимит длины)
+        // живут в одном месте — IntakeRequestPolicy, а не в эндпоинте и не в MCP по копии.
+        if (!IntakeRequestPolicy.TryPrepare(
+                request?.Text,
+                request?.Source,
+                request?.Intent,
+                intake.DefaultSource,
+                options.Value.MaxTextLength,
+                out IntakeSpec? spec,
+                out IntakeRejection? rejection))
         {
-            return Results.BadRequest(new { error = "Поле 'text' обязательно." });
-        }
-
-        string source = string.IsNullOrWhiteSpace(request.Source) ? intake.DefaultSource : request.Source.Trim();
-
-        if (!TaskSources.IsKnown(source))
-        {
-            return Results.BadRequest(new
-            {
-                error = $"Неизвестный источник '{source}'. Допустимые: {string.Join(", ", TaskSources.All)}.",
-            });
-        }
-
-        // Сессия может сообщить интент сама («ассистент, запись» на станции): тогда фраза
-        // не разбирается, а сразу становится задачей — удалять слова из записи не нужно.
-        // Строка принимается только из закрытого списка: иначе клиент назвал бы любую
-        // команду в обход классификатора.
-        string? intentHint = string.IsNullOrWhiteSpace(request.Intent) ? null : request.Intent.Trim();
-
-        if (intentHint is not null && !SessionIntents.IsKnown(intentHint))
-        {
-            return Results.BadRequest(new
-            {
-                error = $"Неизвестный intent '{intentHint}'. Допустимые: {string.Join(", ", SessionIntents.All)}.",
-            });
-        }
-
-        if (request.Text.Length > options.Value.MaxTextLength)
-        {
-            return Results.BadRequest(new { error = $"Текст длиннее {options.Value.MaxTextLength} символов." });
+            return Results.BadRequest(new { code = rejection!.Code, error = rejection.Message });
         }
 
         IntakeResult result = await intake.IntakeAsync(
-            request.Text,
-            source,
+            spec!.Text,
+            spec.Source,
             cancellationToken,
-            intentHint: intentHint);
+            intentHint: spec.IntentHint);
 
-        return Results.Ok(ToResponse(result, options.Value.ConfidenceThreshold));
+        return Results.Ok(ToResponse(result, intake.ConfidenceThreshold));
     }
 
     /// <summary>
@@ -131,6 +111,7 @@ public static class ApiEndpoints
     private static async Task<IResult> voiceHandler(
         HttpRequest request,
         VoiceIntakeService voice,
+        TaskIntakeService intake,
         ISpeechTranscriber transcriber,
         IOptions<KoukiServerOptions> options,
         CancellationToken cancellationToken)
@@ -158,21 +139,15 @@ public static class ApiEndpoints
             return wavFailure;
         }
 
-        string source = string.IsNullOrWhiteSpace(request.Query["source"])
-            ? "station"
-            : request.Query["source"].ToString().Trim();
+        if (!IntakeRequestPolicy.TryResolveSource(request.Query["source"], TaskSources.Station, out string source, out IntakeRejection? sourceRejection))
+        {
+            return Results.BadRequest(new { code = sourceRejection!.Code, error = sourceRejection.Message });
+        }
 
         // Станция присылает интент сессии: нажатие кнопки — это «запись», а не свободный текст.
-        string? intentHint = string.IsNullOrWhiteSpace(request.Query["intent"])
-            ? null
-            : request.Query["intent"].ToString().Trim();
-
-        if (intentHint is not null && !SessionIntents.IsKnown(intentHint))
+        if (!IntakeRequestPolicy.TryResolveIntentHint(request.Query["intent"], out string? intentHint, out IntakeRejection? intentRejection))
         {
-            return Results.BadRequest(new
-            {
-                error = $"Неизвестный intent '{intentHint}'. Допустимые: {string.Join(", ", SessionIntents.All)}.",
-            });
+            return Results.BadRequest(new { code = intentRejection!.Code, error = intentRejection.Message });
         }
 
         VoiceIntakeResult result = await voice.AcceptAsync(
@@ -200,7 +175,7 @@ public static class ApiEndpoints
             result.Transcription?.Confidence,
             audio.Duration.TotalSeconds,
             result.AudioPath,
-            ToResponse(result.Intake, settings.ConfidenceThreshold));
+            ToResponse(result.Intake, intake.ConfidenceThreshold));
 
         return Results.Ok(response);
     }

@@ -238,6 +238,15 @@ public sealed class TaskIntakeService
     public string DefaultSource => _options.DefaultSource;
 
     /// <summary>
+    /// Порог уверенности, по которому приём решает «понятно / в разбор».
+    /// </summary>
+    /// <remarks>
+    /// Хостам нужен тот же порог, что и сервису: иначе поле <c>confident</c> в ответе
+    /// и решение о разборе считались бы по разным числам.
+    /// </remarks>
+    public double ConfidenceThreshold => _options.ConfidenceThreshold;
+
+    /// <summary>
     /// Проверяет, что распознавание достаточной уверенности для автономного исполнения.
     /// </summary>
     /// <param name="route">Вердикт.</param>

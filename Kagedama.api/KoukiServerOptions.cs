@@ -1,3 +1,6 @@
+using Kouki.Kagedama;
+using Kouki.Kagedama.Hosting;
+
 namespace Kouki.Kagedama.Api;
 
 /// <summary>
@@ -5,8 +8,8 @@ namespace Kouki.Kagedama.Api;
 /// </summary>
 public sealed class KoukiServerOptions
 {
-    /// <summary>Имя секции в конфигурации.</summary>
-    public const string SectionName = "Kouki";
+    /// <summary>Имя секции в конфигурации (общее с остальными хостами).</summary>
+    public const string SectionName = KoukiHostSettings.SectionName;
 
     /// <summary>
     /// Путь к файлу SQLite. Относительный разрешается от каталога приложения
@@ -52,7 +55,7 @@ public sealed class KoukiServerOptions
     /// классификаторов), символов. Длинный текст — это уже не фраза: обрезать молча нельзя,
     /// поэтому такой запрос отклоняется.
     /// </summary>
-    public int MaxTextLength { get; set; } = 2000;
+    public int MaxTextLength { get; set; } = IntakeRequestPolicy.DefaultMaxTextLength;
     /// <summary>Максимальный размер голосовой записи, байт.</summary>
     public long MaxVoiceBytes { get; set; } = 5 * 1024 * 1024;
 
