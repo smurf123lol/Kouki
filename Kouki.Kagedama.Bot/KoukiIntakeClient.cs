@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Encodings.Web;
@@ -24,11 +25,69 @@ public sealed record IntakeResponseDto(
     string? Outcome = null,
     System.Text.Json.Nodes.JsonNode? Result = null);
 
+/// <summary>Почему обращение к серверу не удалось: по этому выбирается текст ответа человеку.</summary>
+public enum IntakeFailure
+{
+    /// <summary>Ошибки нет.</summary>
+    None,
+
+    /// <summary>401/403: сервер не принял токен.</summary>
+    Unauthorized,
+
+    /// <summary>Сервер недоступен: сеть, таймаут, отказ в соединении.</summary>
+    ServerUnavailable,
+
+    /// <summary>5xx: сервер ответил ошибкой.</summary>
+    ServerError,
+
+    /// <summary>400/413/415/422: сервер отказал по существу запроса.</summary>
+    BadRequest,
+
+    /// <summary>200, но тело не разобрать.</summary>
+    InvalidResponse,
+}
+
+/// <summary>Итог отправки фразы в приём задач.</summary>
+/// <param name="Ok">Задача принята.</param>
+/// <param name="StatusCode">HTTP-код (0 — сеть не дала ответа).</param>
+/// <param name="Response">Ответ сервера при успехе.</param>
+/// <param name="Failure">Причина отказа при неудаче.</param>
+/// <param name="Detail">Подробность для лога (не для человека).</param>
+public sealed record IntakeAttempt(
+    bool Ok,
+    int StatusCode,
+    IntakeResponseDto? Response,
+    IntakeFailure Failure,
+    string? Detail = null)
+{
+    /// <summary>Успешный приём.</summary>
+    public static IntakeAttempt Success(IntakeResponseDto response)
+        => new(true, 200, response, IntakeFailure.None);
+
+    /// <summary>Отказ: код и причина.</summary>
+    public static IntakeAttempt Fail(int statusCode, IntakeFailure failure, string? detail = null)
+        => new(false, statusCode, null, failure, detail);
+}
+
+/// <summary>Приём фразы сервером Kouki (позволяет подменять транспорт в тестах).</summary>
+public interface IKoukiIntake
+{
+    /// <summary>Отправляет фразу в <c>POST /api/intake</c>.</summary>
+    Task<IntakeAttempt> SubmitAsync(string text, CancellationToken cancellationToken = default);
+}
+
 /// <summary>
 /// Клиент сервера Kouki: отправляет текст в приём задач.
 /// </summary>
-public sealed class KoukiIntakeClient
+/// <remarks>
+/// Ошибки возвращаются значениями, а не исключениями: вызывающему нужно показать
+/// человеку «сервер недоступен» или «токен не принят», а <c>ex.Message</c> вида
+/// «Response status code does not indicate success: 401» в чат отдавать нельзя.
+/// </remarks>
+public sealed class KoukiIntakeClient : IKoukiIntake
 {
+    private const int MaxResponseBytes = 64 * 1024;
+
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly JsonSerializerOptions PayloadOptions = new()
     {
@@ -52,12 +111,8 @@ public sealed class KoukiIntakeClient
         _source = source ?? "telegram";
     }
 
-    /// <summary>
-    /// Отправляет фразу в приём задач.
-    /// </summary>
-    /// <param name="text">Текст задачи.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    public async Task<IntakeResponseDto> SubmitAsync(string text, CancellationToken cancellationToken = default)
+    /// <inheritdoc />
+    public async Task<IntakeAttempt> SubmitAsync(string text, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
@@ -77,15 +132,72 @@ public sealed class KoukiIntakeClient
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _serverToken);
         }
 
-        using HttpResponseMessage response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
-        string json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-
-        if (!response.IsSuccessStatusCode)
+        HttpResponseMessage response;
+        try
         {
-            throw new InvalidOperationException($"Kouki ответил {(int)response.StatusCode}: {json}");
+            response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or IOException)
+        {
+            return IntakeAttempt.Fail(0, IntakeFailure.ServerUnavailable, $"{ex.GetType().Name}: {ex.Message}");
         }
 
-        return JsonSerializer.Deserialize<IntakeResponseDto>(json, JsonOptions)
-               ?? throw new InvalidOperationException("Kouki вернул пустой ответ.");
+        using (response)
+        {
+            string json = await ReadLimitedAsync(response, cancellationToken).ConfigureAwait(false);
+            int status = (int)response.StatusCode;
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return IntakeAttempt.Fail(status, Classify(status), Partial(json));
+            }
+
+            try
+            {
+                IntakeResponseDto? parsed = JsonSerializer.Deserialize<IntakeResponseDto>(json, JsonOptions);
+                return parsed is null
+                    ? IntakeAttempt.Fail(status, IntakeFailure.InvalidResponse, "пустой ответ")
+                    : IntakeAttempt.Success(parsed);
+            }
+            catch (JsonException ex)
+            {
+                return IntakeAttempt.Fail(status, IntakeFailure.InvalidResponse, ex.Message);
+            }
+        }
+    }
+
+    private static IntakeFailure Classify(int status) => status switch
+    {
+        401 or 403 => IntakeFailure.Unauthorized,
+        400 or 413 or 415 or 422 => IntakeFailure.BadRequest,
+        >= 500 => IntakeFailure.ServerError,
+        _ => IntakeFailure.InvalidResponse,
+    };
+
+    private static string Partial(string body)
+        => body.Length <= 300 ? body : body[..300] + "…";
+
+    private static async Task<string> ReadLimitedAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        await using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        using var buffer = new MemoryStream();
+        byte[] chunk = new byte[8192];
+
+        while (buffer.Length < MaxResponseBytes)
+        {
+            int read = await stream.ReadAsync(chunk, cancellationToken).ConfigureAwait(false);
+            if (read <= 0)
+            {
+                break;
+            }
+
+            await buffer.WriteAsync(chunk.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+        }
+
+        return Encoding.UTF8.GetString(buffer.ToArray());
     }
 }

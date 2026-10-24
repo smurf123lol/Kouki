@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+using System.Globalization;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -15,19 +15,32 @@ namespace Kouki.Kagedama.Bot;
 public sealed record TelegramMessage(long UpdateId, long ChatId, string Text);
 
 /// <summary>
-/// Минимальный клиент Bot API: только получение обновлений и отправка текста.
+/// Минимальный клиент Bot API: получение обновлений, отправка текста и проверка webhook.
 /// Внешних пакетов не требует — работает через <see cref="HttpClient"/>.
 /// </summary>
-public sealed class TelegramApiClient
+/// <remarks>
+/// Ошибки HTTP возвращаются значениями (<see cref="TelegramUpdatesResult"/> и др.),
+/// а не исключениями: вызывающему нужно различать 409 (второй экземпляр/webhook),
+/// 429 (пауза по <c>retry_after</c>) и 401 (битый токен) — по типу исключения это
+/// неразличимо, а текст исключения нельзя отдавать человеку в чат.
+/// </remarks>
+public sealed class TelegramApiClient : ITelegramApi
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private const int MaxErrorBodyBytes = 8 * 1024;
+
+    /// <summary>
+    /// Потолок размера ответа Bot API: сто обновлений — это килобайты, но чужой прокси
+    /// может прислать что угодно, поэтому читаем с ограничением.
+    /// </summary>
+    private const int MaxResponseBytes = 1024 * 1024;
+
     private static readonly JsonSerializerOptions PayloadOptions = new()
     {
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
     private readonly HttpClient _http;
-    private readonly string _baseUrl;
+    private readonly Uri _baseUri;
     private readonly string _botToken;
 
     /// <summary>
@@ -40,36 +53,111 @@ public sealed class TelegramApiClient
     {
         _http = http ?? throw new ArgumentNullException(nameof(http));
 
-        string normalized = string.IsNullOrWhiteSpace(baseUrl) ? string.Empty : baseUrl.TrimEnd('/');
-        _baseUrl = normalized.Length > 0 ? normalized : "https://api.telegram.org";
-
         if (string.IsNullOrWhiteSpace(botToken))
         {
             throw new ArgumentException("Токен бота не задан.", nameof(botToken));
         }
 
         _botToken = botToken;
+
+        string normalized = string.IsNullOrWhiteSpace(baseUrl) ? string.Empty : baseUrl.Trim();
+        _baseUri = new Uri(normalized.Length > 0 ? EnsureTrailingSlash(normalized) : "https://api.telegram.org/");
     }
 
-    /// <summary>
-    /// Забирает новые обновления длинным опросом.
-    /// </summary>
-    /// <param name="offset">Первый ожидаемый идентификатор обновления.</param>
-    /// <param name="timeoutSeconds">Таймаут long polling.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    public async Task<IReadOnlyList<TelegramMessage>> GetUpdatesAsync(
+    /// <inheritdoc />
+    public async Task<TelegramUpdatesResult> GetUpdatesAsync(
         long offset,
         int timeoutSeconds,
         CancellationToken cancellationToken = default)
     {
-        string url = $"{_baseUrl}/bot{_botToken}/getUpdates?timeout={timeoutSeconds}&offset={offset}";
-        using var response = await _http.GetAsync(url, cancellationToken).ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
+        string query = string.Create(
+            CultureInfo.InvariantCulture,
+            $"bot{_botToken}/getUpdates?timeout={timeoutSeconds}&offset={offset}");
 
-        using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-        using JsonDocument document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
+        using HttpResponseMessage response = await _http
+            .GetAsync(BuildUri(query), cancellationToken)
+            .ConfigureAwait(false);
 
-        return ParseUpdates(document.RootElement);
+        JsonDocument document = await ReadJsonAsync(response, cancellationToken).ConfigureAwait(false);
+        using (document)
+        {
+            if (!response.IsSuccessStatusCode || !IsOk(document.RootElement))
+            {
+                return Failure(response, document.RootElement);
+            }
+
+            return new TelegramUpdatesResult(true, (int)response.StatusCode, ParseUpdates(document.RootElement));
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<TelegramSendResult> SendMessageAsync(
+        long chatId,
+        string text,
+        CancellationToken cancellationToken = default)
+    {
+        var payload = new JsonObject
+        {
+            ["chat_id"] = chatId,
+            ["text"] = text,
+            ["disable_web_page_preview"] = true,
+        };
+
+        using var content = new StringContent(payload.ToJsonString(PayloadOptions), Encoding.UTF8, "application/json");
+        using HttpResponseMessage response = await _http
+            .PostAsync(BuildUri($"bot{_botToken}/sendMessage"), content, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return new TelegramSendResult(true, (int)response.StatusCode);
+        }
+
+        JsonDocument document = await ReadJsonAsync(response, cancellationToken).ConfigureAwait(false);
+        using (document)
+        {
+            TelegramUpdatesResult failure = Failure(response, document.RootElement);
+            return new TelegramSendResult(false, failure.StatusCode, failure.Error, failure.RetryAfter);
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<TelegramWebhookInfo> GetWebhookInfoAsync(CancellationToken cancellationToken = default)
+    {
+        using HttpResponseMessage response = await _http
+            .GetAsync(BuildUri($"bot{_botToken}/getWebhookInfo"), cancellationToken)
+            .ConfigureAwait(false);
+
+        JsonDocument document = await ReadJsonAsync(response, cancellationToken).ConfigureAwait(false);
+        using (document)
+        {
+            JsonElement root = document.RootElement;
+            if (!response.IsSuccessStatusCode || !IsOk(root))
+            {
+                return new TelegramWebhookInfo(false, null, DescribeError(root));
+            }
+
+            if (!root.TryGetProperty("result", out JsonElement result) || result.ValueKind != JsonValueKind.Object)
+            {
+                return new TelegramWebhookInfo(false, null, "getWebhookInfo: нет поля result");
+            }
+
+            string? url = result.TryGetProperty("url", out JsonElement urlElement) && urlElement.ValueKind == JsonValueKind.String
+                ? urlElement.GetString()
+                : null;
+
+            string? lastError = result.TryGetProperty("last_error_message", out JsonElement errorElement)
+                                && errorElement.ValueKind == JsonValueKind.String
+                ? errorElement.GetString()
+                : null;
+
+            int pending = result.TryGetProperty("pending_update_count", out JsonElement pendingElement)
+                          && pendingElement.TryGetInt32(out int count)
+                ? count
+                : 0;
+
+            return new TelegramWebhookInfo(true, url, lastError, pending);
+        }
     }
 
     /// <summary>
@@ -80,9 +168,7 @@ public sealed class TelegramApiClient
     {
         var messages = new List<TelegramMessage>();
 
-        if (root.ValueKind != JsonValueKind.Object
-            || !root.TryGetProperty("ok", out JsonElement ok)
-            || ok.ValueKind != JsonValueKind.True
+        if (!IsOk(root)
             || !root.TryGetProperty("result", out JsonElement result)
             || result.ValueKind != JsonValueKind.Array)
         {
@@ -116,25 +202,95 @@ public sealed class TelegramApiClient
     }
 
     /// <summary>
-    /// Отправляет текстовое сообщение.
+    /// Собирает описание ошибки по телу ответа (описание и код из JSON, если он есть).
     /// </summary>
-    /// <param name="chatId">Идентификатор чата.</param>
-    /// <param name="text">Текст.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    public async Task SendMessageAsync(long chatId, string text, CancellationToken cancellationToken = default)
+    /// <param name="root">Корень ответа.</param>
+    public static string? DescribeError(JsonElement root)
     {
-        var payload = new JsonObject
+        if (root.ValueKind == JsonValueKind.Object
+            && root.TryGetProperty("description", out JsonElement description)
+            && description.ValueKind == JsonValueKind.String)
         {
-            ["chat_id"] = chatId,
-            ["text"] = text,
-            ["disable_web_page_preview"] = true,
-        };
+            return description.GetString();
+        }
 
-        using var content = new StringContent(payload.ToJsonString(PayloadOptions), Encoding.UTF8, "application/json");
-        using var response = await _http
-            .PostAsync($"{_baseUrl}/bot{_botToken}/sendMessage", content, cancellationToken)
-            .ConfigureAwait(false);
-
-        response.EnsureSuccessStatusCode();
+        return null;
     }
+
+    private static TelegramUpdatesResult Failure(HttpResponseMessage response, JsonElement root)
+    {
+        int status = (int)response.StatusCode;
+
+        // Bot API умеет отдавать ok:false и с кодом 200; тогда ориентируемся на error_code.
+        if (root.ValueKind == JsonValueKind.Object
+            && root.TryGetProperty("error_code", out JsonElement codeElement)
+            && codeElement.TryGetInt32(out int errorCode)
+            && errorCode > 0)
+        {
+            status = errorCode;
+        }
+
+        return new TelegramUpdatesResult(false, status, Array.Empty<TelegramMessage>(), DescribeError(root), RetryAfter(root));
+    }
+
+    private static TimeSpan? RetryAfter(JsonElement root)
+    {
+        if (root.ValueKind == JsonValueKind.Object
+            && root.TryGetProperty("parameters", out JsonElement parameters)
+            && parameters.ValueKind == JsonValueKind.Object
+            && parameters.TryGetProperty("retry_after", out JsonElement retry)
+            && retry.TryGetInt32(out int seconds)
+            && seconds > 0)
+        {
+            return TimeSpan.FromSeconds(seconds);
+        }
+
+        return null;
+    }
+
+    private static bool IsOk(JsonElement root)
+        => root.ValueKind == JsonValueKind.Object
+           && root.TryGetProperty("ok", out JsonElement ok)
+           && ok.ValueKind == JsonValueKind.True;
+
+    private static async Task<JsonDocument> ReadJsonAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        await using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        using var buffer = new MemoryStream();
+        byte[] chunk = new byte[MaxErrorBodyBytes];
+        int read;
+
+        // Обновления читаем целиком, но с потолком: тело ошибки ограничено ещё сильнее
+        // самим обработчиком, а мегабайты от чужого прокси съели бы память.
+        while (buffer.Length < MaxResponseBytes
+               && (read = await stream.ReadAsync(chunk, cancellationToken).ConfigureAwait(false)) > 0)
+        {
+            int allowed = (int)Math.Min(read, MaxResponseBytes - buffer.Length);
+            await buffer.WriteAsync(chunk.AsMemory(0, allowed), cancellationToken).ConfigureAwait(false);
+        }
+
+        buffer.Position = 0;
+        try
+        {
+            return await JsonDocument.ParseAsync(buffer, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+        catch (JsonException)
+        {
+            return JsonDocument.Parse("""{"ok":false,"description":"ответ Bot API не разобрать как JSON"}""");
+        }
+    }
+
+    private static string EnsureTrailingSlash(string value)
+        => value.EndsWith('/') ? value : value + "/";
+
+    /// <summary>
+    /// Склеивает базовый адрес и путь Bot API.
+    /// </summary>
+    /// <remarks>
+    /// Не <c>new Uri(base, relative)</c>: токен вида <c>123456:ABC</c> начинается с двоеточия,
+    /// и относительный адрес «bot123456:ABC/getUpdates» разбирается как схема <c>bot123456</c>.
+    /// Поэтому собираем абсолютный адрес строкой: базовый адрес уже оканчивается на «/».
+    /// </remarks>
+    private Uri BuildUri(string relative)
+        => new(_baseUri + relative, UriKind.Absolute);
 }

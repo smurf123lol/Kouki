@@ -49,7 +49,7 @@ public sealed class BotOptions
                     options.ServerUrl = ReadString(section, "ServerUrl") ?? options.ServerUrl;
                     options.ServerToken = ReadString(section, "ServerToken") ?? options.ServerToken;
                     options.Source = ReadString(section, "Source") ?? options.Source;
-        options.TelegramApiUrl = ReadString(section, "TelegramApiUrl") ?? options.TelegramApiUrl;
+                    options.TelegramApiUrl = ReadString(section, "TelegramApiUrl") ?? options.TelegramApiUrl;
                     options.PollTimeoutSeconds = ReadInt(section, "PollTimeoutSeconds") ?? options.PollTimeoutSeconds;
                 }
             }
@@ -88,6 +88,16 @@ public sealed class BotOptions
                     break;
                 case "source":
                     options.Source = value;
+                    break;
+                case "telegram-api-url":
+                    options.TelegramApiUrl = value;
+                    break;
+                case "poll-timeout":
+                    if (int.TryParse(value, out int timeout))
+                    {
+                        options.PollTimeoutSeconds = timeout;
+                    }
+
                     break;
                 default:
                     break;

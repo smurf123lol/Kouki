@@ -89,6 +89,9 @@ Kagedama.api / .mcp / Kouki.Kagedama.Bot — хосты
     Убирать «запиши задачу» из текста нельзя — это часть текста, который человек сказал.
 11. **Никаких магических чисел.** Порог — `IntakeOptions.ConfidenceThreshold` (дефолт 0.75),
     лимиты — из конфигурации (`AnalysisConstants`), приоритет — `TaskPriorities.Default`.
+12. **Человеку — человеческий текст.** Внешние ошибки (Telegram, HTTP, SQL) не уходят
+    в чат как `ex.Message`: хост разбирает код ответа и берёт текст из
+    `IntakeReplyFormatter`/`Describe`; сам `ex.Message` остаётся в логах.
 
 ## Где что менять
 

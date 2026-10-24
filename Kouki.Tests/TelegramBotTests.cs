@@ -5,7 +5,7 @@ using Kouki.Kagedama.Bot;
 
 namespace Kouki.Tests;
 
-/// <summary>Проверки Telegram-бота: разбор обновлений, клиент Kouki, текст ответа.</summary>
+/// <summary>Проверки Telegram-бота: разбор обновлений, клиенты, тексты ответов, цикл.</summary>
 public sealed class TelegramBotTests
 {
     [Fact]
@@ -57,7 +57,7 @@ public sealed class TelegramBotTests
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://kouki.test/") };
         var client = new KoukiIntakeClient(http, "secret", "telegram");
 
-        IntakeResponseDto response = await client.SubmitAsync("купить хлеб");
+        IntakeAttempt attempt = await client.SubmitAsync("купить хлеб");
 
         Assert.Equal(HttpMethod.Post, handler.LastRequest!.Method);
         Assert.Equal("http://kouki.test/api/intake", handler.LastRequest.RequestUri!.ToString());
@@ -65,21 +65,184 @@ public sealed class TelegramBotTests
         Assert.Equal("secret", handler.LastRequest.Headers.Authorization.Parameter);
         Assert.Contains("купить хлеб", handler.LastBody!, StringComparison.Ordinal);
         Assert.Contains("\"source\":\"telegram\"", handler.LastBody!, StringComparison.Ordinal);
-        Assert.Equal("add_task", response.Intent!.Intent);
-        Assert.Equal("new", response.Task!.Status);
+        Assert.True(attempt.Ok);
+        Assert.Equal("add_task", attempt.Response!.Intent!.Intent);
+        Assert.Equal("new", attempt.Response.Task!.Status);
     }
 
     [Fact]
-    public async Task Intake_client_reports_server_error()
+    public async Task Intake_client_maps_unauthorized_without_throwing()
     {
         var handler = new StubHandler(_ => Json(HttpStatusCode.Unauthorized, """{ "error": "unauthorized" }"""));
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://kouki.test/") };
         var client = new KoukiIntakeClient(http, string.Empty, "telegram");
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => client.SubmitAsync("купить хлеб"));
+        IntakeAttempt attempt = await client.SubmitAsync("купить хлеб");
 
-        Assert.Contains("401", exception.Message, StringComparison.Ordinal);
+        Assert.False(attempt.Ok);
+        Assert.Equal(401, attempt.StatusCode);
+        Assert.Equal(IntakeFailure.Unauthorized, attempt.Failure);
         Assert.Null(handler.LastRequest!.Headers.Authorization);
+    }
+
+    [Theory]
+    [InlineData(500, IntakeFailure.ServerError)]
+    [InlineData(503, IntakeFailure.ServerError)]
+    [InlineData(400, IntakeFailure.BadRequest)]
+    [InlineData(422, IntakeFailure.BadRequest)]
+    [InlineData(429, IntakeFailure.InvalidResponse)]
+    public async Task Intake_client_classifies_http_failures(int status, IntakeFailure expected)
+    {
+        var handler = new StubHandler(_ => Json((HttpStatusCode)status, """{ "error": "nope" }"""));
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://kouki.test/") };
+        var client = new KoukiIntakeClient(http, "secret", "telegram");
+
+        IntakeAttempt attempt = await client.SubmitAsync("купить хлеб");
+
+        Assert.False(attempt.Ok);
+        Assert.Equal(status, attempt.StatusCode);
+        Assert.Equal(expected, attempt.Failure);
+    }
+
+    [Fact]
+    public async Task Intake_client_reports_unavailable_when_network_fails()
+    {
+        var handler = new StubHandler(_ => throw new HttpRequestException("нет соединения"));
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://kouki.test/") };
+        var client = new KoukiIntakeClient(http, "secret", "telegram");
+
+        IntakeAttempt attempt = await client.SubmitAsync("купить хлеб");
+
+        Assert.False(attempt.Ok);
+        Assert.Equal(0, attempt.StatusCode);
+        Assert.Equal(IntakeFailure.ServerUnavailable, attempt.Failure);
+    }
+
+    [Fact]
+    public async Task Telegram_429_is_reported_with_retry_after()
+    {
+        var handler = new StubHandler(_ => Json(
+            (HttpStatusCode)429,
+            """{ "ok": false, "error_code": 429, "description": "Too Many Requests: retry after 7", "parameters": { "retry_after": 7 } }"""));
+
+        using var http = new HttpClient(handler);
+        var client = new TelegramApiClient(http, "123:abc", "http://telegram.test");
+
+        TelegramUpdatesResult result = await client.GetUpdatesAsync(0, 25);
+
+        Assert.False(result.Ok);
+        Assert.True(result.IsRateLimited);
+        Assert.Equal(429, result.StatusCode);
+        Assert.Equal(TimeSpan.FromSeconds(7), result.RetryAfter);
+        Assert.Contains("retry after 7", result.Error!, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Telegram_409_is_a_conflict_and_webhook_info_is_parsed()
+    {
+        var handler = new StubHandler(request => request.RequestUri!.AbsolutePath.EndsWith("/getWebhookInfo", StringComparison.Ordinal)
+            ? Json(HttpStatusCode.OK, """{ "ok": true, "result": { "url": "https://example.org/hook", "pending_update_count": 3 } }""")
+            : Json((HttpStatusCode)409, """{ "ok": false, "error_code": 409, "description": "Conflict: terminated by other getUpdates request" }"""));
+
+        using var http = new HttpClient(handler);
+        var client = new TelegramApiClient(http, "123:abc", "http://telegram.test/");
+
+        TelegramUpdatesResult updates = await client.GetUpdatesAsync(0, 25);
+        TelegramWebhookInfo webhook = await client.GetWebhookInfoAsync();
+
+        Assert.True(updates.IsConflict);
+        Assert.False(updates.IsUnauthorized);
+        Assert.True(webhook.Ok);
+        Assert.True(webhook.HasWebhook);
+        Assert.Equal("https://example.org/hook", webhook.Url);
+        Assert.Equal(3, webhook.PendingUpdateCount);
+        // Токен в пути, базовый адрес — из конструктора, без склейки строк.
+        Assert.StartsWith("http://telegram.test/bot123:abc/getUpdates", handler.Requests[0].ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Bot_stops_with_fatal_code_when_webhook_is_set()
+    {
+        var telegram = new FakeTelegram
+        {
+            Updates = new TelegramUpdatesResult(false, 409, Array.Empty<TelegramMessage>(), "Conflict"),
+            Webhook = new TelegramWebhookInfo(true, "https://example.org/hook"),
+        };
+
+        int exitCode = await RunBotAsync(telegram, new FakeIntake());
+
+        Assert.Equal(BotRunner.ExitFatal, exitCode);
+        Assert.Contains(telegram.Logs, line => line.Contains("webhook", StringComparison.OrdinalIgnoreCase));
+        Assert.Empty(telegram.Sent);
+    }
+
+    [Fact]
+    public async Task Bot_waits_and_retries_conflict_without_webhook()
+    {
+        var telegram = new FakeTelegram
+        {
+            Webhook = new TelegramWebhookInfo(true, null),
+        };
+        telegram.UpdatesQueue.Enqueue(new TelegramUpdatesResult(false, 409, Array.Empty<TelegramMessage>(), "Conflict"));
+        telegram.UpdatesQueue.Enqueue(new TelegramUpdatesResult(
+            true,
+            200,
+            new[] { new TelegramMessage(1, 42, "купить хлеб") }));
+
+        var intake = new FakeIntake { Attempt = IntakeAttempt.Success(TaskResponse("купить хлеб")) };
+
+        int exitCode = await RunBotAsync(telegram, intake);
+
+        Assert.Equal(BotRunner.ExitOk, exitCode);
+        Assert.Contains(TimeSpan.FromSeconds(5), telegram.Delays);
+        Assert.Single(telegram.Sent);
+        Assert.Contains("Задача: купить хлеб", telegram.Sent[0].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Bot_truncates_text_before_sending_to_server()
+    {
+        string longText = new('я', BotRunner.MaxTextLength + 500);
+        var telegram = new FakeTelegram();
+        telegram.UpdatesQueue.Enqueue(new TelegramUpdatesResult(true, 200, new[] { new TelegramMessage(1, 7, longText) }));
+        telegram.UpdatesQueue.Enqueue(TelegramUpdatesResult.Empty);
+
+        var intake = new FakeIntake { Attempt = IntakeAttempt.Success(TaskResponse("обрезано")) };
+
+        await RunBotAsync(telegram, intake);
+
+        Assert.Equal(BotRunner.MaxTextLength, intake.Received.Single().Length);
+        Assert.Contains("длиннее", telegram.Sent.Single().Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Bot_reports_failure_without_exception_text()
+    {
+        var telegram = new FakeTelegram();
+        telegram.UpdatesQueue.Enqueue(new TelegramUpdatesResult(true, 200, new[] { new TelegramMessage(1, 7, "купить хлеб") }));
+        telegram.UpdatesQueue.Enqueue(TelegramUpdatesResult.Empty);
+
+        var intake = new FakeIntake { Attempt = IntakeAttempt.Fail(503, IntakeFailure.ServerError, "System.Net.Http.HttpRequestException: boom") };
+
+        await RunBotAsync(telegram, intake);
+
+        string reply = telegram.Sent.Single().Text;
+        Assert.Contains("ошибкой 503", reply, StringComparison.Ordinal);
+        Assert.DoesNotContain("boom", reply, StringComparison.Ordinal);
+        Assert.DoesNotContain("Exception", reply, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Reply_failure_texts_are_human()
+    {
+        string unauthorized = IntakeReplyFormatter.FormatFailure(IntakeFailure.Unauthorized, 401);
+        string unavailable = IntakeReplyFormatter.FormatFailure(IntakeFailure.ServerUnavailable, 0);
+        string bad = IntakeReplyFormatter.FormatFailure(IntakeFailure.BadRequest, 413);
+
+        Assert.Contains("токен", unauthorized, StringComparison.Ordinal);
+        Assert.Contains("недоступен", unavailable, StringComparison.Ordinal);
+        Assert.Contains("413", bad, StringComparison.Ordinal);
+        Assert.DoesNotContain("Exception", unauthorized + unavailable + bad, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -177,8 +340,105 @@ public sealed class TelegramBotTests
         Assert.Contains("Не вышло", reply, StringComparison.Ordinal);
         Assert.Contains("не найдена", reply, StringComparison.Ordinal);
     }
+
+    private static async Task<int> RunBotAsync(FakeTelegram telegram, FakeIntake intake)
+    {
+        var options = new BotOptions { BotToken = "123:abc", PollTimeoutSeconds = 1 };
+        var runner = new BotRunner(telegram, intake, options, telegram.Log, telegram.Delay);
+        using var cts = new CancellationTokenSource();
+
+        // Пустая очередь = «новых сообщений нет»; после третьего пустого ответа останавливаем.
+        telegram.OnEmptyPoll = () =>
+        {
+            if (telegram.EmptyPolls >= 2)
+            {
+                cts.Cancel();
+            }
+        };
+
+        try
+        {
+            return await runner.RunAsync(cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            return BotRunner.ExitOk;
+        }
+    }
+
+    private static IntakeResponseDto TaskResponse(string title)
+        => new(
+            new IntakeTaskDto(Guid.NewGuid(), title, "new", "telegram", title),
+            new IntakeIntentDto("add_task", 1d, Confident: true, "rules-v1"),
+            Command: "add_task",
+            Executed: false,
+            Error: null,
+            Outcome: "created",
+            Result: null);
+
     private static HttpResponseMessage Json(HttpStatusCode status, string body)
         => new(status) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
+
+    private sealed class FakeTelegram : ITelegramApi
+    {
+        public Queue<TelegramUpdatesResult> UpdatesQueue { get; } = new();
+
+        public TelegramUpdatesResult Updates { get; set; } = TelegramUpdatesResult.Empty;
+
+        public TelegramWebhookInfo Webhook { get; set; } = new(true, null);
+
+        public List<string> Logs { get; } = new();
+
+        public List<(long ChatId, string Text)> Sent { get; } = new();
+
+        public List<TimeSpan> Delays { get; } = new();
+
+        public int EmptyPolls { get; private set; }
+
+        public Action? OnEmptyPoll { get; set; }
+
+        public Task<TelegramUpdatesResult> GetUpdatesAsync(long offset, int timeoutSeconds, CancellationToken cancellationToken = default)
+        {
+            if (UpdatesQueue.Count > 0)
+            {
+                return Task.FromResult(UpdatesQueue.Dequeue());
+            }
+
+            EmptyPolls++;
+            OnEmptyPoll?.Invoke();
+            return Task.FromResult(Updates);
+        }
+
+        public Task<TelegramSendResult> SendMessageAsync(long chatId, string text, CancellationToken cancellationToken = default)
+        {
+            Sent.Add((chatId, text));
+            return Task.FromResult(new TelegramSendResult(true, 200));
+        }
+
+        public Task<TelegramWebhookInfo> GetWebhookInfoAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(Webhook);
+
+        public void Log(string line) => Logs.Add(line);
+
+        public Task Delay(TimeSpan span, CancellationToken cancellationToken)
+        {
+            Delays.Add(span);
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeIntake : IKoukiIntake
+    {
+        public IntakeAttempt Attempt { get; set; } = IntakeAttempt.Fail(0, IntakeFailure.ServerUnavailable);
+
+        public List<string> Received { get; } = new();
+
+        public Task<IntakeAttempt> SubmitAsync(string text, CancellationToken cancellationToken = default)
+        {
+            Received.Add(text);
+            return Task.FromResult(Attempt);
+        }
+    }
 
     private sealed class StubHandler : HttpMessageHandler
     {
@@ -190,9 +450,12 @@ public sealed class TelegramBotTests
 
         public string? LastBody { get; private set; }
 
+        public List<Uri> Requests { get; } = new();
+
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             LastRequest = request;
+            Requests.Add(request.RequestUri!);
             LastBody = request.Content is null
                 ? null
                 : await request.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);

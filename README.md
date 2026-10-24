@@ -73,7 +73,8 @@ curl -X POST http://localhost:5000/api/intake \
 `GET|PATCH /api/tasks/{id}`, `GET /api/classifications`, `POST /api/classifications/{id}/label`,
 `GET /api/actions?taskId=&limit=`, `GET /api/context`, `POST /api/voice` (WAV, см. раздел «Голос»),
 `GET /api/classifiers`, `POST /api/classify` (сравнение роутеров), `POST /api/transcribe` (только WAV → текст).
-Авторизация — `Authorization: Bearer <Kouki:Token>`; пустой токен отключает проверку.
+Авторизация — `Authorization: Bearer <Kouki:Token>`; пустой токен **закрывает** API
+(открытый доступ только через `Kouki:AllowAnonymous`).
 
 Настройки — секция `Kouki` в `appsettings.json`: `DatabasePath` (`kouki.sqlite`), `Token`,
 `ConfidenceThreshold` (0.75), `StoreAudio`, `AudioDirectory`.
@@ -92,8 +93,22 @@ dotnet run -- --bot-token=123:ABC --server-url=http://127.0.0.1:5199
 ```
 
 Токены можно задать в `appsettings.json` (секция `KoukiBot`), переменными окружения
-`KOUKI_BOT_TOKEN` / `KOUKI_SERVER_URL` / `KOUKI_SERVER_TOKEN` или аргументами `--bot-token=`,
-`--server-url=`, `--server-token=`.
+`KOUKI_BOT_TOKEN` / `KOUKI_SERVER_URL` / `KOUKI_SERVER_TOKEN` / `KOUKI_TELEGRAM_API_URL` или
+аргументами `--bot-token=`, `--server-url=`, `--server-token=`, `--telegram-api-url=`, `--poll-timeout=`.
+
+**Поведение при ошибках.** Bot API отвечает не исключениями, а кодами, и бот их различает:
+
+| Ситуация | Что делает бот |
+| --- | --- |
+| `409 Conflict` и `getWebhookInfo` показывает установленный webhook | пишет, что бот не может работать вместе с webhook, и выходит с кодом **2** (ждать бесполезно) |
+| `409 Conflict` без webhook (второй экземпляр только что перезапустился) | пауза 5 с и повтор |
+| `429 Too Many Requests` | пауза по `retry_after` из ответа |
+| 5xx или сеть недоступна | backoff 3 → 6 → 12 → 30 с |
+| `401/403` от Bot API | «бот не принят: проверьте токен», без бесконечных повторов |
+
+Человеку в чат уходят человеческие тексты («Сервер не принял токен бота…», «Сервер Kouki
+ответил ошибкой 503.»), а не `.NET`-исключения: `ex.Message` с телом ответа больше не пересылается.
+Текст длиннее `Kouki:MaxTextLength` (2000) обрезается до отправки, и бот об этом сообщает.
 
 Команды задач (M2):
 

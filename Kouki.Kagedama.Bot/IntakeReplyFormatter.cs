@@ -39,6 +39,26 @@ public static class IntakeReplyFormatter
         _ => status ?? "неизвестно",
     };
 
+    /// <summary>
+    /// Текст ответа, когда сервер не принял фразу. Без HTTP-жаргона и без
+    /// текста исключения: человеку нужно понять, что делать.
+    /// </summary>
+    /// <param name="failure">Причина отказа.</param>
+    /// <param name="statusCode">HTTP-код (0 — ответа не было).</param>
+    public static string FormatFailure(IntakeFailure failure, int statusCode) => failure switch
+    {
+        IntakeFailure.Unauthorized =>
+            "Сервер Kouki не принял токен бота. Проверьте KOUKI_SERVER_TOKEN — он должен совпадать с Kouki__Token на сервере.",
+        IntakeFailure.ServerUnavailable =>
+            "Сервер Kouki недоступен. Проверьте, что он запущен и адрес в KOUKI_SERVER_URL верный; эту фразу можно повторить позже.",
+        IntakeFailure.ServerError =>
+            $"Сервер Kouki ответил ошибкой {statusCode}. Фраза не сохранена — попробуйте ещё раз позже.",
+        IntakeFailure.BadRequest =>
+            $"Сервер Kouki отклонил фразу (HTTP {statusCode}). Скорее всего она слишком длинная или пустая.",
+        _ =>
+            "Сервер Kouki ответил чем-то непонятным. Фраза не сохранена — попробуйте ещё раз.",
+    };
+
     private static string FormatTask(IntakeResponseDto response)
     {
         var lines = new List<string>
