@@ -1,4 +1,3 @@
-using System.Reflection;
 using Microsoft.Extensions.FileProviders;
 using Kouki.Kagedama.Api;
 using Kouki.Kagedama.Api.Api;
@@ -6,10 +5,8 @@ using Kouki.Kagedama.Api.Auth;
 using Kouki.Kagedama.Api.Services;
 using Kouki.Kagedama;
 using Kouki.Kagedama.Contracts;
-using Kouki.Kagedama.Data;
-using Kouki.Mugura.DependencyInjection;
+using Kouki.Kagedama.Hosting;
 using Kouki.Shimi.Context;
-using Kouki.Shimi.DependencyInjection;
 using Kouki.Shimi.ServiceAbstractions;
 using Kouki.Un;
 using Kouki.Ubusuna;
@@ -39,19 +36,29 @@ builder.Logging.AddSimpleConsole(options =>
 
 builder.Services.Configure<KoukiServerOptions>(builder.Configuration.GetSection(KoukiServerOptions.SectionName));
 
-Assembly serverAssembly = Assembly.GetExecutingAssembly();
+// Необработанное исключение превращается в JSON-ответ с ProblemDetails и записью в лог,
+// иначе клиент видит пустой 500 без объяснения.
+builder.Services.AddProblemDetails();
 
-// Хранилище — всё из одной базы (задачи, журналы, состояние контекста).
-// Регистрируем до AddShimiContext, чтобы TryAddSingleton не подставил InMemoryStateStore.
-string databasePath = builder.Configuration[$"{KoukiServerOptions.SectionName}:{nameof(KoukiServerOptions.DatabasePath)}"]
-    ?? "kouki.sqlite";
-builder.Services.AddKagedamaData(databasePath);
+// Порог живёт в одном месте: отсюда его получают и приём, и классификатор, и /api/classify.
+double threshold = builder.Configuration.GetValue<double?>(
+    $"{KoukiServerOptions.SectionName}:{nameof(KoukiServerOptions.ConfidenceThreshold)}")
+    ?? IntakeOptions.DefaultConfidenceThreshold;
 
-builder.Services.AddMugura(
-    serverAssembly,
-    typeof(Kouki.Ubusuna.Commands.PingHandler).Assembly,
-    typeof(Kouki.Kagedama.Commands.ListTasksHandler).Assembly);
-builder.Services.AddShimiContext();
+string configuredDatabase = builder.Configuration[
+    $"{KoukiServerOptions.SectionName}:{nameof(KoukiServerOptions.DatabasePath)}"] ?? string.Empty;
+
+string databasePath = string.IsNullOrWhiteSpace(configuredDatabase)
+    ? KoukiHosting.DefaultDatabasePath()
+    : Path.GetFullPath(configuredDatabase);
+
+// Одна композиция домена на все хосты: хранилище, команды, контексты, классификатор, приём.
+builder.Services.AddKoukiCore(new KoukiHostSettings
+{
+    DatabasePath = databasePath,
+    ConfidenceThreshold = threshold,
+    DefaultSource = TaskSources.Api,
+});
 builder.Services.AddUbusuna();
 
 // Голос: без пакета sherpa-onnx работает заглушка (503 на /api/voice),
@@ -69,21 +76,6 @@ Kouki.Un.Sherpa.ServiceCollectionExtensions.AddUnSherpa(
 #else
 builder.Services.AddUn();
 #endif
-
-builder.Services.AddYasabi(o => o.ConfidenceThreshold = 0.75d);
-
-// Прикладной слой не знает про IOptions: передаём ему снимок настроек.
-builder.Services.AddSingleton(sp =>
-{
-    KoukiServerOptions serverOptions = sp.GetRequiredService<IOptions<KoukiServerOptions>>().Value;
-    return new IntakeOptions
-    {
-        ConfidenceThreshold = serverOptions.ConfidenceThreshold,
-        DefaultSource = "api",
-    };
-});
-
-builder.Services.AddSingleton<TaskIntakeService>();
 
 // Голос: распознавание приходит из Kouki.Un (пока заглушка), склейка — VoiceIntakeService.
 builder.Services.AddSingleton<IAudioStore>(sp =>
@@ -111,20 +103,18 @@ builder.Services.AddHostedService<AudioRetentionService>();
 WebApplication app = builder.Build();
 
 KoukiServerOptions options = app.Services.GetRequiredService<IOptions<KoukiServerOptions>>().Value;
-string initializedDatabase = DatabaseInitializer.Initialize(options.DatabasePath);
+string initializedDatabase = KoukiHosting.InitializeKouki(app.Services, "server");
 app.Logger.LogInformation("Kouki: база данных {Path}", initializedDatabase);
 
-app.Services.GetRequiredService<IContextRegistry>().SetDefaultContext(new BaseExecutionContext(
-    "server",
-    app.Services.GetRequiredService<IFileSystem>(),
-    app.Services.GetRequiredService<ITerminal>(),
-    app.Services.GetRequiredService<IStateStore>(),
-    app.Services));
-
-if (string.IsNullOrWhiteSpace(options.Token))
+// Защита выключена только явно: «забыли токен» — это не разрешение пускать всех.
+if (string.IsNullOrWhiteSpace(options.Token) && !options.AllowAnonymous)
 {
-    app.Logger.LogWarning("Kouki: bearer-токен не задан (Kouki:Token) — API доступен без авторизации.");
+    throw new InvalidOperationException(
+        "Kouki:Token не задан. Укажите bearer-токен в Kouki:Token или явно разрешите открытый API " +
+        "через Kouki:AllowAnonymous=true (только для локальной отладки).");
 }
+
+app.UseExceptionHandler();
 
 // Дашборд — статика из wwwroot; API остаётся под токеном (см. TokenAuthMiddleware).
 string webRoot = new[]

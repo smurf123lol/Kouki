@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.Extensions.Logging;
 
 namespace Kouki.Kagedama.Mcp;
 
@@ -27,14 +28,25 @@ public sealed class McpSession
     /// </summary>
     public const string ServerVersion = "0.3.0";
 
+    /// <summary>
+    /// Предел длины одного сообщения, символов. JSON-RPC-сообщения Kouki — килобайты,
+    /// так что мегабайтный кадр заведомо не наш.
+    /// </summary>
+    public const int MaxMessageLength = 1_048_576;
+
     private readonly KoukiMcpTools _tools;
+    private readonly ILogger? _logger;
 
     /// <summary>
     /// Создаёт сессию поверх набора инструментов.
     /// </summary>
     /// <param name="tools">Инструменты Kouki.</param>
-    public McpSession(KoukiMcpTools tools)
-        => _tools = tools ?? throw new ArgumentNullException(nameof(tools));
+    /// <param name="logger">Логгер (по умолчанию — без логов).</param>
+    public McpSession(KoukiMcpTools tools, ILogger? logger = null)
+    {
+        _tools = tools ?? throw new ArgumentNullException(nameof(tools));
+        _logger = logger;
+    }
 
     /// <summary>
     /// Крутит цикл чтения до конца входного потока.
@@ -69,7 +81,30 @@ public sealed class McpSession
                 continue;
             }
 
-            string? response = await HandleAsync(line, cancellationToken).ConfigureAwait(false);
+            // Одна гигантская строка от клиента не должна съесть память процесса.
+            if (line.Length > MaxMessageLength)
+            {
+                await output.WriteLineAsync(ErrorResponse(null, -32600, $"Invalid Request: message is longer than {MaxMessageLength} characters")).ConfigureAwait(false);
+                await output.FlushAsync(cancellationToken).ConfigureAwait(false);
+                continue;
+            }
+
+            string? response;
+            try
+            {
+                response = await HandleAsync(line, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+            catch (Exception ex)
+            {
+                // Ошибка обработки одного сообщения не завершает сеанс: клиент получает -32603.
+                _logger?.LogError(ex, "Ошибка обработки сообщения MCP");
+                response = ErrorResponse(null, -32603, "Internal error");
+            }
+
             if (response is null)
             {
                 continue;
@@ -186,16 +221,30 @@ public sealed class McpSession
         }
         catch (ArgumentException ex)
         {
-            return SuccessResponse(id, new JsonObject
-            {
-                ["content"] = new JsonArray
-                {
-                    new JsonObject { ["type"] = "text", ["text"] = ex.Message },
-                },
-                ["isError"] = true,
-            });
+            return ToolError(id, ex.Message);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            // Любая другая ошибка инструмента (SQLite, роутер, десериализация) не должна
+            // ронять процесс: клиент получает isError=true и остаётся на связи.
+            _logger?.LogError(ex, "Инструмент {Tool} упал", toolName);
+
+            return ToolError(id, $"Инструмент '{toolName}' завершился ошибкой: {ex.Message}");
         }
     }
+
+    private static string ToolError(JsonNode? id, string message) => SuccessResponse(id, new JsonObject
+    {
+        ["content"] = new JsonArray
+        {
+            new JsonObject { ["type"] = "text", ["text"] = message },
+        },
+        ["isError"] = true,
+    });
 
     private static JsonArray DescribeTools()
     {

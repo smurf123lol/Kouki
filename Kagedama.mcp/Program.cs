@@ -2,6 +2,7 @@ using System.Reflection;
 using Kouki.Kagedama;
 using Kouki.Kagedama.Contracts;
 using Kouki.Kagedama.Data;
+using Kouki.Kagedama.Hosting;
 using Kouki.Kagedama.Mcp;
 using Kouki.Mugura.DependencyInjection;
 using Kouki.Shimi.Context;
@@ -40,44 +41,29 @@ services.AddLogging(logging =>
     });
 });
 
-// Хранилище — из одной базы: задачи, журналы и состояние контекста.
-// Регистрируем до AddShimiContext, чтобы TryAddSingleton не подставил InMemoryStateStore.
-services.AddKagedamaData(databasePath);
+// Хранилище, команды и контекст собираются общим слоем: MCP и API в одном процессе
+// работают одинаково, различается только транспорт и источник.
+services.AddKoukiCore(new KoukiHostSettings
+{
+    DatabasePath = databasePath,
+    ConfidenceThreshold = threshold,
+    DefaultSource = TaskSources.Mcp,
+    CommandAssemblies =
+    [
+        typeof(Kouki.Ubusuna.Commands.PingHandler).Assembly,
+        typeof(Kouki.Kagedama.Commands.ListTasksHandler).Assembly,
+    ],
+});
 
-services.AddMugura(
-    typeof(Kouki.Ubusuna.Commands.PingHandler).Assembly,
-    typeof(Kouki.Kagedama.Commands.ListTasksHandler).Assembly);
-services.AddShimiContext();
 services.AddUbusuna();
 services.AddUn();
-services.AddYasabi(o =>
-{
-    o.ConfidenceThreshold = threshold;
-    o.Source = "mcp";
-});
-
-
-services.AddSingleton(new IntakeOptions
-{
-    ConfidenceThreshold = threshold,
-    DefaultSource = "mcp",
-});
-services.AddSingleton<TaskIntakeService>();
 services.AddSingleton<KoukiMcpTools>();
 services.AddSingleton<McpSession>();
 
 using ServiceProvider provider = services.BuildServiceProvider();
 
-string initialized = DatabaseInitializer.Initialize(databasePath);
 ILogger logger = provider.GetRequiredService<ILoggerFactory>().CreateLogger("Kouki.Mcp");
-logger.LogInformation("Kouki MCP: база данных {Path}", initialized);
-
-provider.GetRequiredService<IContextRegistry>().SetDefaultContext(new BaseExecutionContext(
-    "mcp",
-    provider.GetRequiredService<IFileSystem>(),
-    provider.GetRequiredService<ITerminal>(),
-    provider.GetRequiredService<IStateStore>(),
-    provider));
+logger.LogInformation("Kouki MCP: база данных {Path}", KoukiHosting.InitializeKouki(provider, "mcp"));
 
 McpSession session = provider.GetRequiredService<McpSession>();
 logger.LogInformation("Kouki MCP: сервер готов, жду JSON-RPC в stdin");

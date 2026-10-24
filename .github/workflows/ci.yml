@@ -2,12 +2,24 @@ name: CI
 
 on:
   push:
-    branches: [master, main]
+    branches: [ master, main, dev ]
   pull_request:
-  workflow_dispatch:
+
+# Один прогон на ветку: новый пуш отменяет старый.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
-  build-and-test:
+  build:
+    name: Сборка и тесты (.NET)
     runs-on: ubuntu-latest
 
     steps:
@@ -19,14 +31,87 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      # Решение целиком здесь не собирается: бывший Kagedama.vs (VS-расширение) убран
-      # из решения и вернётся отдельным проектом в MVP.
-      # Тестовый проект транзитивно собирает Kouki.Mugura, Kouki.Shimi и Kouki.Ubusuna.
-      - name: Restore
-        run: dotnet restore Kouki.Tests/Kouki.Tests.csproj
+      - name: Кеш NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
 
+      - name: Restore
+        run: dotnet restore Kouki.slnx
+
+      # Собираем всё решение: раньше проверялись только тесты, и три хоста
+      # с плагином не компилировались в CI вообще.
       - name: Build
-        run: dotnet build Kouki.Tests/Kouki.Tests.csproj --no-restore --configuration Release
+        run: dotnet build Kouki.slnx --no-restore --configuration Release
 
       - name: Test
-        run: dotnet test Kouki.Tests/Kouki.Tests.csproj --no-build --configuration Release --logger "console;verbosity=normal"
+        run: >
+          dotnet test Kouki.Tests/Kouki.Tests.csproj
+          --no-build --configuration Release
+          --logger "console;verbosity=normal"
+
+      - name: Publish (проверка, что сервер собирается в пакет)
+        run: >
+          dotnet publish Kagedama.api/Kagedama.api.csproj
+          --no-build --configuration Release --output artifacts/api
+
+      - name: Артефакты сервера
+        uses: actions/upload-artifact@v4
+        with:
+          name: kagedama-api
+          path: artifacts/api
+          retention-days: 7
+
+  build-sherpa:
+    name: Сборка с распознаванием речи (sherpa-onnx)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Кеш NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-sherpa-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'global.json') }}
+          restore-keys: nuget-sherpa-${{ runner.os }}-
+
+      # Код под флагом не компилируется по умолчанию, поэтому без отдельной job
+      # он гниёт незаметно: api-ветка, Kouki.Un/Sherpa, плагин и SpeechLab.
+      - name: Restore
+        run: dotnet restore Kouki.slnx -p:KoukiEnableSherpa=true
+
+      - name: Build
+        run: dotnet build Kouki.slnx --no-restore --configuration Release -p:KoukiEnableSherpa=true
+
+      - name: Test
+        run: >
+          dotnet test Kouki.Tests/Kouki.Tests.csproj
+          --no-build --configuration Release -p:KoukiEnableSherpa=true
+          --logger "console;verbosity=normal"
+
+  test-plugin:
+    name: Тесты плагина DSH
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Клиент MCP без внешних зависимостей: тесты гоняют транспорт на фейковом спавне.
+      - name: Test
+        working-directory: dsh-kouki
+        run: node --test test/

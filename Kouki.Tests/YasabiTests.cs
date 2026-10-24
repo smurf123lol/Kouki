@@ -160,7 +160,7 @@ public sealed class YasabiTests
         public Task<IReadOnlyList<ClassificationEntry>> ListLabeledAsync(int limit, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<ClassificationEntry>>(Array.Empty<ClassificationEntry>());
 
-        public Task<bool> AnnotateIntentAsync(Guid id, string intent, string model, CancellationToken cancellationToken = default)
+        public Task<bool> AnnotateHintAsync(Guid id, string? hintedIntent, CancellationToken cancellationToken = default)
             => Task.FromResult(true);
     }
 

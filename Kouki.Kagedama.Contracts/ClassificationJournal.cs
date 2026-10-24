@@ -60,19 +60,20 @@ public interface IClassificationJournal
     Task<bool> AnnotateAudioAsync(Guid id, double? asrConfidence, string? audioPath, CancellationToken cancellationToken = default, string? source = null);
 
     /// <summary>
-    /// Переписывает вердикт записи, когда интент пришёл не от классификатора, а из сессии
-    /// (кнопка «Записать»/«Спросить» на станции).
+    /// Помечает запись интентом сессии (кнопка «Записать»/«Спросить» на станции),
+    /// не трогая вердикт классификатора.
     /// </summary>
     /// <remarks>
-    /// Классификатор пишет свою догадку (часто <c>unclassified</c>), а сессия знает интент точно.
-    /// Без этой правки фильтр «что не распознали» показывал бы и удачные записи.
+    /// Раньше подсказка переписывала сам вердикт и ставила <c>score = 1</c>; тогда в журнале
+    /// не оставалось ни исходной догадки правил, ни её уверенности, и по таким данным нельзя
+    /// ни измерить качество, ни дообучить модель. Теперь подсказка живёт в отдельной колонке
+    /// <c>hinted_intent</c>, а вердикт и <c>score</c> остаются как есть.
     /// </remarks>
     /// <param name="id">Запись журнала.</param>
-    /// <param name="intent">Интент сессии.</param>
-    /// <param name="model">Модель с пометкой сессии, например <c>rules-v1+session</c>.</param>
+    /// <param name="hintedIntent">Интент, сообщённый сессией.</param>
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <returns><c>true</c>, если запись нашлась.</returns>
-    Task<bool> AnnotateIntentAsync(Guid id, string intent, string model, CancellationToken cancellationToken = default);
+    Task<bool> AnnotateHintAsync(Guid id, string? hintedIntent, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Записи, которые уже размечены вручную: их аудио можно считать отработанным.
@@ -136,6 +137,12 @@ public sealed class ClassificationEntry
 
     /// <summary>Путь к сохранённой записи, если она есть.</summary>
     public string? AudioPath { get; set; }
+
+    /// <summary>
+    /// Интент, который сообщила сессия (кнопка станции). Вердикт классификатора при этом
+    /// остаётся в <see cref="Intent"/> и <see cref="Score"/> — так журнал годится для датасета.
+    /// </summary>
+    public string? HintedIntent { get; set; }
 }
 
 /// <summary>
@@ -167,6 +174,6 @@ public sealed class NullClassificationJournal : IClassificationJournal
         => Task.FromResult<IReadOnlyList<ClassificationEntry>>(Array.Empty<ClassificationEntry>());
 
     /// <inheritdoc />
-    public Task<bool> AnnotateIntentAsync(Guid id, string intent, string model, CancellationToken cancellationToken = default)
+    public Task<bool> AnnotateHintAsync(Guid id, string? hintedIntent, CancellationToken cancellationToken = default)
         => Task.FromResult(false);
 }

@@ -118,6 +118,41 @@ public sealed record VoiceResponse(
 /// <summary>Преобразование записей в DTO.</summary>
 public static class ApiMapping
 {
+    private static readonly JsonSerializerOptions WebJson = new(JsonSerializerDefaults.Web);
+
+    /// <summary>
+    /// Ответ команды с одним объектом задачи → DTO.
+    /// </summary>
+    /// <param name="node">Объект из ответа <c>patch_task</c> или подобной команды.</param>
+    public static TaskDto? FromTaskJson(JsonNode? node)
+        => node is JsonObject ? node.Deserialize<TaskDto>(WebJson) : null;
+
+    /// <summary>
+    /// Ответ команды <c>list_tasks</c> → список DTO в форме, привычной HTTP-клиенту.
+    /// </summary>
+    /// <param name="node">Объект вида <c>{count, status, tasks[]}</c>.</param>
+    public static IReadOnlyList<TaskDto> ToTaskList(JsonNode? node)
+    {
+        if (node is not JsonObject payload || payload["tasks"] is not JsonArray array)
+        {
+            return Array.Empty<TaskDto>();
+        }
+
+        var tasks = new List<TaskDto>(array.Count);
+
+        foreach (JsonNode? item in array)
+        {
+            TaskDto? task = FromTaskJson(item);
+
+            if (task is not null)
+            {
+                tasks.Add(task);
+            }
+        }
+
+        return tasks;
+    }
+
     /// <summary>Задача → DTO.</summary>
     public static TaskDto ToDto(TaskRecord record)
     {

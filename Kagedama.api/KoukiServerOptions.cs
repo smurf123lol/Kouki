@@ -11,8 +11,17 @@ public sealed class KoukiServerOptions
     /// <summary>Путь к файлу SQLite. Относительный разрешается от рабочего каталога.</summary>
     public string DatabasePath { get; set; } = "kouki.sqlite";
 
-    /// <summary>Bearer-токен. Пустая строка отключает проверку (только для локальной отладки).</summary>
+    /// <summary>
+    /// Bearer-токен. Пустой токен закрывает API: открытый доступ включается только
+    /// явным <see cref="AllowAnonymous"/>.
+    /// </summary>
     public string Token { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Разрешить работу без токена. Только для локальной отладки: при выезде за пределы
+    /// своей машины API без токена доступен любому в сети.
+    /// </summary>
+    public bool AllowAnonymous { get; set; }
 
     /// <summary>Порог уверенности распознавания.</summary>
     public double ConfidenceThreshold { get; set; } = 0.75d;

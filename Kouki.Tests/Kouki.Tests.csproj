@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Kagedama.api\Kagedama.api.csproj" />
+    <ProjectReference Include="..\Kagedama.mcp\Kagedama.mcp.csproj" />
     <ProjectReference Include="..\Kouki.Kagedama.Data\Kouki.Kagedama.Data.csproj" />
     <ProjectReference Include="..\Kouki.Kagedama\Kouki.Kagedama.csproj" />
     <ProjectReference Include="..\Kouki.Kagedama.Bot\Kouki.Kagedama.Bot.csproj" />

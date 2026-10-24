@@ -31,6 +31,44 @@ public static class TaskStatuses
 }
 
 /// <summary>
+/// Источники фразы. Значения стабильны: на них опираются журналы и мета задач,
+/// поэтому новые источники добавляются только здесь.
+/// </summary>
+public static class TaskSources
+{
+    /// <summary>HTTP API (дашборд, внешние клиенты).</summary>
+    public const string Api = "api";
+
+    /// <summary>Telegram-бот.</summary>
+    public const string Telegram = "telegram";
+
+    /// <summary>Голосовой приём: запись от станции или другого клиента.</summary>
+    public const string Voice = "voice";
+
+    /// <summary>Станция Kouki (ESP32).</summary>
+    public const string Station = "station";
+
+    /// <summary>Веб-дашборд.</summary>
+    public const string Dashboard = "dashboard";
+
+    /// <summary>MCP-сервер для агента.</summary>
+    public const string Mcp = "mcp";
+
+    /// <summary>Команда, вызванная напрямую — без приёма фразы.</summary>
+    public const string Command = "command";
+
+    /// <summary>Все известные источники.</summary>
+    public static IReadOnlyList<string> All { get; } = new[] { Api, Telegram, Voice, Station, Dashboard, Mcp, Command };
+
+    /// <summary>
+    /// Проверяет, что источник известен.
+    /// </summary>
+    /// <param name="source">Проверяемое значение.</param>
+    public static bool IsKnown(string? source)
+        => source is not null && All.Contains(source, StringComparer.OrdinalIgnoreCase);
+}
+
+/// <summary>
 /// Задача, пришедшая с телефона, станции, дашборда или агента.
 /// </summary>
 public sealed class TaskRecord

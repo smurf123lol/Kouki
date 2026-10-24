@@ -1,6 +1,8 @@
+using System.Text.Json.Nodes;
 using Kouki.Kagedama;
 using Kouki.Kagedama.Contracts;
 using Kouki.Kagedama.Data;
+using MuguraRouter = Kouki.Mugura.Dispatcher.IRouter;
 using Kouki.Shimi.Context;
 using Kouki.Shimi.ServiceAbstractions;
 using Kouki.Yasabi;
@@ -80,7 +82,16 @@ public static class ApiEndpoints
             return Results.BadRequest(new { error = "Поле 'text' обязательно." });
         }
 
-        string source = string.IsNullOrWhiteSpace(request.Source) ? "api" : request.Source.Trim();
+        string source = string.IsNullOrWhiteSpace(request.Source) ? intake.DefaultSource : request.Source.Trim();
+
+        if (!TaskSources.IsKnown(source))
+        {
+            return Results.BadRequest(new
+            {
+                error = $"Неизвестный источник '{source}'. Допустимые: {string.Join(", ", TaskSources.All)}.",
+            });
+        }
+
         // Сессия может сообщить интент сама («ассистент, запись» на станции): тогда фраза
         // не разбирается, а сразу становится задачей — удалять слова из записи не нужно.
         IntakeResult result = await intake.IntakeAsync(
@@ -314,7 +325,7 @@ public static class ApiEndpoints
     private static async Task<IResult> listTasksHandler(
         string? status,
         int? limit,
-        ITaskStore store,
+        MuguraRouter router,
         CancellationToken cancellationToken)
     {
         if (status is not null && !TaskStatuses.IsKnown(status))
@@ -323,13 +334,25 @@ public static class ApiEndpoints
         }
 
         int take = Math.Clamp(limit ?? 50, 1, 500);
-        IReadOnlyList<TaskRecord> tasks = await store.ListAsync(status, take, cancellationToken);
 
-        return Results.Ok(tasks.Select(ApiMapping.ToDto).ToList());
+        // Чтение идёт через команду, как и запись: одно поведение для api, mcp и бота.
+        JsonNode? result = await router.RouteAsync(
+            "list_tasks",
+            new JsonObject { ["status"] = status, ["limit"] = take },
+            context: null,
+            cancellationToken).ConfigureAwait(false);
+
+        if (result is JsonObject payload && payload["error"] is JsonNode error)
+        {
+            return Results.BadRequest(new { error = error.ToString() });
+        }
+
+        return Results.Ok(ApiMapping.ToTaskList(result));
     }
 
     private static async Task<IResult> getTaskHandler(Guid id, ITaskStore store, CancellationToken cancellationToken)
     {
+        // Чтение одной задачи: команды для этого нет, поэтому читаем хранилище напрямую.
         TaskRecord? task = await store.GetAsync(id, cancellationToken);
         return task is null ? Results.NotFound(new { error = "Задача не найдена." }) : Results.Ok(ApiMapping.ToDto(task));
     }
@@ -337,7 +360,7 @@ public static class ApiEndpoints
     private static async Task<IResult> patchTaskHandler(
         Guid id,
         TaskPatchRequest request,
-        ITaskStore store,
+        MuguraRouter router,
         CancellationToken cancellationToken)
     {
         if (request is null)
@@ -345,25 +368,30 @@ public static class ApiEndpoints
             return Results.BadRequest(new { error = "Тело запроса обязательно." });
         }
 
-        if (request.Status is not null && !TaskStatuses.IsKnown(request.Status))
+        JsonNode? result = await router.RouteAsync(
+            "patch_task",
+            new JsonObject
+            {
+                ["taskId"] = id.ToString(),
+                ["status"] = request.Status,
+                ["title"] = request.Title,
+                ["priority"] = request.Priority,
+            },
+            context: null,
+            cancellationToken).ConfigureAwait(false);
+
+        if (result is JsonObject payload && payload["error"] is JsonNode error)
         {
-            return Results.BadRequest(new { error = $"Неизвестный статус '{request.Status}'." });
+            string text = error.ToString();
+            return text.Contains("не найдена", StringComparison.OrdinalIgnoreCase)
+                ? Results.NotFound(new { error = text })
+                : Results.BadRequest(new { error = text });
         }
 
-        if (request.Priority is < 1 or > 3)
-        {
-            return Results.BadRequest(new { error = "Приоритет: 1, 2 или 3." });
-        }
-
-        bool updated = await store.UpdateAsync(
-            id, request.Status, request.Title, request.Priority, cancellationToken: cancellationToken);
-        if (!updated)
-        {
-            return Results.NotFound(new { error = "Задача не найдена." });
-        }
-
-        TaskRecord? task = await store.GetAsync(id, cancellationToken);
-        return task is null ? Results.NotFound(new { error = "Задача не найдена." }) : Results.Ok(ApiMapping.ToDto(task));
+        TaskDto? updated = ApiMapping.FromTaskJson(result);
+        return updated is null
+            ? Results.NotFound(new { error = "Задача не найдена." })
+            : Results.Ok(updated);
     }
 
     private static async Task<IResult> listActionsHandler(

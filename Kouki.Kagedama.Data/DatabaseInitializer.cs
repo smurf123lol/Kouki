@@ -54,6 +54,10 @@ public static class DatabaseInitializer
         command.CommandText = Schema;
         command.ExecuteNonQuery();
 
+        // Базы, созданные до появления подсказки интента, нужно догнать: CREATE TABLE IF NOT EXISTS
+        // не добавляет новые колонки в уже существующую таблицу.
+        EnsureColumn(connection, "classifications", "hinted_intent", "TEXT NULL");
+
         // Идентификаторы пишутся текстом в нижнем регистре. Раньше Guid, переданный параметром,
         // попадал в файл в верхнем регистре — выравниваем уже сохранённые строки.
         command.CommandText = "UPDATE tasks SET id = lower(id) WHERE id <> lower(id); " +
@@ -61,6 +65,29 @@ public static class DatabaseInitializer
         command.ExecuteNonQuery();
 
         return fullPath;
+    }
+
+    /// <summary>
+    /// Добавляет колонку, если её нет: <c>CREATE TABLE IF NOT EXISTS</c> не меняет уже существующую таблицу.
+    /// </summary>
+    private static void EnsureColumn(SqliteConnection connection, string table, string column, string definition)
+    {
+        using (var check = connection.CreateCommand())
+        {
+            check.CommandText = $"PRAGMA table_info({table});";
+            using var reader = check.ExecuteReader();
+            while (reader.Read())
+            {
+                if (string.Equals(reader.GetString(1), column, StringComparison.Ordinal))
+                {
+                    return;
+                }
+            }
+        }
+
+        using var alter = connection.CreateCommand();
+        alter.CommandText = $"ALTER TABLE {table} ADD COLUMN {column} {definition};";
+        alter.ExecuteNonQuery();
     }
 
     private const string Schema = """
@@ -97,7 +124,8 @@ public static class DatabaseInitializer
             error          TEXT NULL,
             label          TEXT NULL,
             labeled_at     TEXT NULL,
-            audio_path     TEXT NULL
+            audio_path     TEXT NULL,
+            hinted_intent  TEXT NULL
         );
 
         CREATE INDEX IF NOT EXISTS ix_classifications_created ON classifications (created_at DESC);

@@ -153,6 +153,13 @@ public sealed class KoukiMcpTools
             _ => throw new ArgumentException($"Unknown tool '{name}'.", nameof(name)),
         };
 
+        // Команды сообщают о проблеме полем error, а не исключением: для агента это
+        // такой же отказ инструмента, как и неизвестный id, — помечаем isError.
+        if (result is JsonObject payload && payload["error"] is JsonNode error && error.GetValueKind() == JsonValueKind.String)
+        {
+            throw new InvalidOperationException(error.GetValue<string>());
+        }
+
         return result.ToJsonString(JsonOptions);
     }
 

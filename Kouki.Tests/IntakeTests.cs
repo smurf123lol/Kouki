@@ -96,18 +96,24 @@ public sealed class IntakeTests
     }
 
     [Fact]
-    public async Task Session_hint_rewrites_the_journal_entry()
+    public async Task Session_hint_does_not_erase_the_classifier_verdict()
     {
         using var server = new ServerFixture();
 
-        // Правила на такой фразе скажут unclassified; сессия знает точнее — и журнал должен это знать.
+        // Правила на такой фразе скажут unclassified; сессия знает точнее.
+        // Вердикт классификатора и его score при этом обязаны остаться в журнале:
+        // иначе по нему нельзя ни измерить качество, ни дообучить модель.
         await server.Intake.IntakeAsync("молоко и хлеб", "station", intentHint: "add_task");
 
         IReadOnlyList<ClassificationEntry> records = await server.Journal.ListAsync(5, onlyUnresolved: false);
         ClassificationEntry record = Assert.Single(records);
-        Assert.Equal("add_task", record.Intent);
-        Assert.EndsWith("+session", record.Model, StringComparison.Ordinal);
-        Assert.True(record.Confident, "запись из сессии не должна попадать в фильтр «не разобрали»");
+
+        Assert.Equal(IntentResult.Unclassified, record.Intent);
+        Assert.Equal("add_task", record.HintedIntent);
+
+        // Подсказка снимает запись с «разбора» — но не подделкой вердикта.
+        IReadOnlyList<ClassificationEntry> unresolved = await server.Journal.ListAsync(5, onlyUnresolved: true);
+        Assert.Empty(unresolved);
     }
 
     [Fact]

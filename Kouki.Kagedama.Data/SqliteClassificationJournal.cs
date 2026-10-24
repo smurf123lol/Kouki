@@ -14,7 +14,7 @@ public sealed class SqliteClassificationJournal : IClassificationJournal
         "id AS Id, created_at AS CreatedAt, source AS Source, input_kind AS InputKind, " +
         "input_text AS InputText, intent AS Intent, score AS Score, confident AS Confident, " +
         "model AS Model, error AS Error, label AS Label, labeled_at AS LabeledAt, " +
-        "asr_confidence AS AsrConfidence, audio_path AS AudioPath";
+        "asr_confidence AS AsrConfidence, audio_path AS AudioPath, hinted_intent AS HintedIntent";
 
     private readonly string _connectionString;
 
@@ -71,7 +71,7 @@ public sealed class SqliteClassificationJournal : IClassificationJournal
         IEnumerable<ClassificationEntry> rows = await connection.QueryAsync<ClassificationEntry>(
             new CommandDefinition(
                 $"SELECT {SelectColumns} FROM classifications " +
-                (onlyUnresolved ? "WHERE label IS NULL AND (confident = 0 OR error IS NOT NULL) " : string.Empty) +
+                (onlyUnresolved ? "WHERE label IS NULL AND hinted_intent IS NULL AND (confident = 0 OR error IS NOT NULL) " : string.Empty) +
                 "ORDER BY created_at DESC LIMIT @limit",
                 new { limit },
                 cancellationToken: cancellationToken)).ConfigureAwait(false);
@@ -94,19 +94,16 @@ public sealed class SqliteClassificationJournal : IClassificationJournal
     }
 
     /// <inheritdoc />
-    public async Task<bool> AnnotateIntentAsync(Guid id, string intent, string model, CancellationToken cancellationToken = default)
+    public async Task<bool> AnnotateHintAsync(Guid id, string? hintedIntent, CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(intent);
-        ArgumentException.ThrowIfNullOrWhiteSpace(model);
-
         await using SqliteConnection connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
 
-        // Сессия знает интент точно, поэтому запись перестаёт быть «неуверенной»:
-        // фильтр onlyUnresolved не должен показывать удачную фразу как непонятую.
+        // Подсказка сессии пишется отдельно: вердикт правил и его score остаются в записи,
+        // иначе по журналу нельзя понять, насколько хорошо работает классификатор.
         int affected = await connection.ExecuteAsync(
             new CommandDefinition(
-                "UPDATE classifications SET intent = @intent, model = @model, confident = 1, score = 1 WHERE id = @id",
-                new { id = id.ToString(), intent, model },
+                "UPDATE classifications SET hinted_intent = @hintedIntent WHERE id = @id",
+                new { id = id.ToString(), hintedIntent },
                 cancellationToken: cancellationToken)).ConfigureAwait(false);
 
         return affected > 0;
