@@ -158,6 +158,21 @@ if (string.IsNullOrWhiteSpace(options.Token) && !options.AllowAnonymous)
 
 app.UseExceptionHandler();
 
+// Заголовки безопасности ставятся раньше остальных: они должны попасть и в статику,
+// и в ответы API, включая отказы по токену.
+app.Use(async (context, next) =>
+{
+    IHeaderDictionary headers = context.Response.Headers;
+    headers["X-Content-Type-Options"] = "nosniff";
+    headers["Referrer-Policy"] = "no-referrer";
+    headers["X-Frame-Options"] = "DENY";
+    headers["Content-Security-Policy"] =
+        "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; " +
+        "connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; " +
+        "frame-ancestors 'none'; object-src 'none'";
+    await next(context);
+});
+
 // Лог запросов идёт первым: он должен видеть и 401, и 503, и статику.
 app.UseHttpLogging();
 

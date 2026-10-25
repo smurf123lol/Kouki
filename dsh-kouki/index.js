@@ -159,5 +159,38 @@ export function apply(ctx, config) {
         ),
       "dsh-kouki: kouki_label_classification",
     );
+
+    sctx.effect(
+      () =>
+        sctx.tools.register(
+          defineTool({
+            name: "kouki_task_history",
+            description:
+              "Показывает журнал действий по задаче: что с ней делали, каким интентом и с каким результатом. По нему видно, почему задача выглядит именно так.",
+            parameters: {
+              taskId: { type: "string", description: "Идентификатор задачи (GUID)." },
+              limit: { type: "number", description: "Сколько действий вернуть, по умолчанию 50, максимум 200." },
+            },
+            output: textOutput,
+            execute: (toolArgs) => call("kouki_task_history", toolArgs),
+          }),
+        ),
+      "dsh-kouki: kouki_task_history",
+    );
+
+    sctx.effect(
+      () =>
+        sctx.tools.register(
+          defineTool({
+            name: "kouki_context",
+            description:
+              "Описывает окружение сервера Kouki: какой контекст выполнения активен, какие сервисы в нём и куда указывают хранилища.",
+            parameters: {},
+            output: textOutput,
+            execute: (toolArgs) => call("kouki_context", toolArgs),
+          }),
+        ),
+      "dsh-kouki: kouki_context",
+    );
   });
 }

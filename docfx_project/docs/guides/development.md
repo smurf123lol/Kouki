@@ -82,6 +82,11 @@ dotnet _scratch\testrun\bin\Debug\net10.0\Kouki.Tests.Runner.dll
 ```
 
 Он исполняет только `[Fact]`; `[Theory]` не запускается — цикл пишите внутри `[Fact]`.
+И ещё: раннер держит свою копию `Kouki.Tests.dll`, поэтому после добавления новых тестов
+его надо пересобрать (`dotnet build _scratch\testrun\testrun.csproj`), иначе новые тесты
+просто не попадут в прогон. Если раннера нет — соберите такой же: консольный проект с
+`ProjectReference` на `Kouki.Tests`, обход типов сборки и вызов методов с
+`Xunit.FactAttribute`.
 
 ## Правила репозитория
 

@@ -18,6 +18,11 @@ public sealed record IntakeRequest(string Text, string? Source = null, string? I
 public sealed record ClassifyRequest(string Text, List<string>? Classifiers = null);
 
 /// <summary>Задача в ответах API.</summary>
+/// <remarks>
+/// Поля <c>workspace</c> здесь нет намеренно: колонка в базе есть, но её никто не заполняет,
+/// а «всегда null» в контракте — это ложное обещание. Когда воркспейсы появятся по-настоящему,
+/// поле вернётся вместе с тем, кто его пишет.
+/// </remarks>
 public sealed record TaskDto(
     Guid Id,
     string CreatedAt,
@@ -27,7 +32,6 @@ public sealed record TaskDto(
     string Title,
     string Status,
     int Priority,
-    string? Workspace,
     JsonNode? Meta);
 
 /// <summary>Результат распознавания в ответах API.</summary>
@@ -101,19 +105,22 @@ public sealed record ClassificationDto(
     string? LabeledAt);
 
 /// <summary>Ответ на голосовой запрос.</summary>
+/// <remarks>
+/// Поля <c>error</c> нет: неудачные распознавания и отказы отдаются кодами
+/// (400/413/415/422/503) с объектом <c>{ error = "…" }</c>. Держать ещё одно поле ошибки
+/// в успешном ответе значило бы описывать состояние, которое в нём не бывает.
+/// </remarks>
 /// <param name="Transcript">Что услышало распознавание.</param>
 /// <param name="Confidence">Уверенность распознавания речи.</param>
 /// <param name="DurationSec">Длительность записи.</param>
 /// <param name="AudioPath">Куда сохранено аудио, если сохраняли.</param>
-/// <param name="Intake">Что понял приём задач; <c>null</c>, если речь не распознана.</param>
-/// <param name="Error">Почему не получилось, если не получилось.</param>
+/// <param name="Intake">Что понял приём задач.</param>
 public sealed record VoiceResponse(
     string? Transcript,
     double? Confidence,
     double DurationSec,
     string? AudioPath,
-    IntakeResponse? Intake,
-    string? Error = null);
+    IntakeResponse Intake);
 
 /// <summary>Преобразование записей в DTO.</summary>
 public static class ApiMapping
@@ -195,7 +202,6 @@ public static class ApiMapping
             record.Title,
             record.Status,
             record.Priority,
-            record.Workspace,
             ParseMeta(record.MetaJson));
     }
 

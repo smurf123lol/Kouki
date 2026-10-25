@@ -128,6 +128,8 @@ dotnet build   Kouki.slnx --no-restore -m:1 -nodeReuse:false     # 0 ошибо�
   `[Fact]`; `[Theory]` **не запускается** — пиши `[Fact]` с циклом внутри.
 - **После переноса сборок** (`AssemblyName`, новые проекты) чисти `_scratch\testrun\bin` и
   `obj`: иначе раннер падает `FileNotFoundException` на старой копии.
+- **Добавил новый файл тестов — пересобери раннер** (`dotnet build _scratch\testrun\testrun.csproj`):
+  он держит свою копию `Kouki.Tests.dll`, и без пересбора новые тесты молча не попадут в прогон.
 - **Распознавание речи** включается флагом и требует его и на restore, и на build:
   `dotnet restore Kagedama.api\Kagedama.api.csproj -p:KoukiEnableSherpa=true -m:1 -nodeReuse:false`,
   затем `dotnet build … --no-restore -p:KoukiEnableSherpa=true -m:1 -nodeReuse:false`.
