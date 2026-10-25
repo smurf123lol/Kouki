@@ -9,19 +9,7 @@ namespace Kouki.Tests;
 /// </summary>
 public sealed class DashboardAssetsTests
 {
-    private static readonly string WebRoot = Path.Combine(RepoRoot(), "Kagedama.api", "wwwroot");
-
-    private static string RepoRoot()
-    {
-        var assembly = typeof(DashboardAssetsTests).Assembly;
-        string? root = assembly.GetCustomAttributes(typeof(System.Reflection.AssemblyMetadataAttribute), false)
-            .Cast<System.Reflection.AssemblyMetadataAttribute>()
-            .FirstOrDefault(attribute => attribute.Key == "RepoRoot")
-            ?.Value;
-
-        Assert.False(string.IsNullOrWhiteSpace(root), "в сборку тестов не попал RepoRoot (AssemblyMetadata)");
-        return root!;
-    }
+    private static readonly string WebRoot = Path.Combine(TestPaths.RepoRoot(), "Kagedama.api", "wwwroot");
 
     [Fact]
     public void Dashboard_files_are_present_and_not_empty()
