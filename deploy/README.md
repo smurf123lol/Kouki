@@ -108,15 +108,43 @@ Kouki__DatabasePath=/var/lib/kouki/db/kouki.sqlite dotnet /opt/kouki/app/mcp/Kag
 
 ## Резервные копии
 
+Бэкап — отдельный юнит с таймером, ставится руками (это решение администратора,
+а не следствие установки сервера):
+
 ```bash
-# база: согласованный снимок (SQLite .backup, а не cp — там WAL)
-sudo -u kouki sqlite3 /var/lib/kouki/db/kouki.sqlite ".backup '/var/lib/kouki/db/kouki-$(date +%F).sqlite'"
-# аудио и модели — обычным rsync
-sudo rsync -a /var/lib/kouki/audio/ /backup/kouki/audio/
+sudo install -o root -g kouki -m 640 deploy/backup.env.example /etc/kouki/backup.env
+sudo install -o root -g root -m 644 deploy/kouki-backup.service /etc/systemd/system/
+sudo install -o root -g root -m 644 deploy/kouki-backup.timer   /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now kouki-backup.timer
+systemctl list-timers kouki-backup.timer          # когда следующий запуск
+sudo systemctl start kouki-backup.service         # прогнать сейчас
+journalctl -u kouki-backup -n 30 --no-pager
 ```
 
-Ежедневно — по cron/systemd-timer; хранить 7–14 снимков. Восстановление:
-остановить службу, подменить `kouki.sqlite`, поднять службу.
+Что делает `kouki-backup.sh`: снимок базы через `sqlite3 .backup` (не `cp` — база в
+WAL, копия живого файла получается «наполовину»), проверка `PRAGMA integrity_check`
+и отказ сохранять битый снимок, `rsync` аудио без `--delete` (пропавший том с аудио
+не должен затирать бэкап), чистка старше `KOUKI_BACKUP_RETENTION_DAYS` (по умолчанию
+14 дней). Два запуска одновременно не идут — `flock`.
+
+Снимки лежат в `KOUKI_BACKUP_DIR` (`/var/backups/kouki`): `db/kouki-YYYY-MM-DD.sqlite`
+и `audio/`. Держите каталог **не на том же диске**, что `/var/lib/kouki`, иначе один
+сбой диска уносит и данные, и копии.
+
+### Восстановление
+
+```bash
+sudo systemctl stop kouki kouki-bot
+sudo install -o kouki -g kouki -m 640 \
+    /var/backups/kouki/db/kouki-2026-10-25.sqlite /var/lib/kouki/db/kouki.sqlite
+sudo rm -f /var/lib/kouki/db/kouki.sqlite-wal /var/lib/kouki/db/kouki.sqlite-shm
+sudo systemctl start kouki kouki-bot
+curl -fsS http://127.0.0.1:5300/api/health
+```
+
+Проверять восстановление стоит раз в квартал — на копии рядом, чтобы не трогать
+живую базу: бэкап, который ни разу не разворачивали, — это не бэкап, а надежда.
 
 ## Обновление
 

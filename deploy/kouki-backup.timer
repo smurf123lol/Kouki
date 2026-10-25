@@ -1,0 +1,13 @@
+[Unit]
+Description=Kouki backup: ежедневно
+Documentation=file:///opt/kouki/app/deploy/README.md
+
+[Timer]
+# Ночью, со случайным разбросом: чтобы бэкап не совпал с чьим-то ещё cron.
+OnCalendar=*-*-* 03:30:00
+RandomizedDelaySec=15m
+Persistent=true
+Unit=kouki-backup.service
+
+[Install]
+WantedBy=timers.target
