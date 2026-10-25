@@ -4,6 +4,10 @@ Documentation=file:///opt/kouki/app/deploy/README.md
 # Ждём сеть, но не падаем, если её нет: сервер должен подняться и без неё.
 After=network-online.target
 Wants=network-online.target
+# Ограничения на число перезапусков живут в [Unit], а не в [Service]:
+# в [Service] systemd их не знает и ругается «Unknown key».
+StartLimitIntervalSec=0
+StartLimitBurst=0
 
 [Service]
 Type=simple
@@ -24,7 +28,6 @@ ExecStart=/usr/bin/dotnet /opt/kouki/app/Kagedama.api.dll
 # Сервер сам восстанавливается: падение — это повод перезапуститься, а не сдаться.
 Restart=on-failure
 RestartSec=5
-StartLimitIntervalSec=0
 TimeoutStopSec=20
 KillSignal=SIGINT
 

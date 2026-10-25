@@ -111,14 +111,26 @@ builder.Services.AddUbusuna();
 
 // Голос: без пакета sherpa-onnx работает заглушка (503 на /api/voice),
 // с -p:KoukiEnableSherpa=true подключается настоящее распознавание.
+// Модели может не быть (свежая установка, чужой сервер): это повод работать
+// без распознавания, а не падать на старте — поэтому каталог проверяем до
+// регистрации распознавателя.
+string? speechFallbackReason = null;
 #if KOUKI_SHERPA
-Kouki.Un.Sherpa.ServiceCollectionExtensions.AddUnSherpa(
-    builder.Services,
-    sherpa =>
-    {
-        sherpa.ModelDirectory = serverOptions.SpeechModelDirectory;
-        sherpa.Language = serverOptions.SpeechLanguage;
-    });
+if (Kouki.Un.SpeechModelCheck.TryValidate(serverOptions.SpeechModelDirectory, out string? modelProblem))
+{
+    Kouki.Un.Sherpa.ServiceCollectionExtensions.AddUnSherpa(
+        builder.Services,
+        sherpa =>
+        {
+            sherpa.ModelDirectory = serverOptions.SpeechModelDirectory;
+            sherpa.Language = serverOptions.SpeechLanguage;
+        });
+}
+else
+{
+    speechFallbackReason = modelProblem;
+    builder.Services.AddUn();
+}
 #else
 builder.Services.AddUn();
 #endif
@@ -168,11 +180,23 @@ LogResolvedPath(app.Logger, nameof(KoukiServerOptions.SpeechModelDirectory), con
 // «распознавание не подключено». Предупреждаем сразу, в момент старта.
 if (app.Services.GetService<ISpeechTranscriber>() is Kouki.Un.UnavailableSpeechTranscriber)
 {
-    app.Logger.LogWarning(
-        "Kouki: распознавание речи не подключено — сервер собран без -p:KoukiEnableSherpa=true. " +
-        "/api/voice будет отвечать 503. Пересборка: dotnet restore Kagedama.api\\Kagedama.api.csproj " +
-        "-p:KoukiEnableSherpa=true && dotnet build Kagedama.api\\Kagedama.api.csproj " +
-        "-p:KoukiEnableSherpa=true --no-restore (или tools/run-server.ps1).");
+    if (speechFallbackReason is not null)
+    {
+        app.Logger.LogWarning(
+            "Kouki: распознавание речи выключено — {Reason}. /api/voice будет отвечать 503. " +
+            "Скопируйте каталог модели (tokens.txt, *encoder*.onnx, *decoder*.onnx) " +
+            "в {Model} или задайте другой Kouki:SpeechModelDirectory.",
+            speechFallbackReason,
+            options.SpeechModelDirectory);
+    }
+    else
+    {
+        app.Logger.LogWarning(
+            "Kouki: распознавание речи не подключено — сервер собран без -p:KoukiEnableSherpa=true. " +
+            "/api/voice будет отвечать 503. Пересборка: dotnet restore Kagedama.api\\Kagedama.api.csproj " +
+            "-p:KoukiEnableSherpa=true && dotnet build Kagedama.api\\Kagedama.api.csproj " +
+            "-p:KoukiEnableSherpa=true --no-restore (или tools/run-server.ps1).");
+    }
 }
 
 // Защита выключена только явно: «забыли токен» — это не разрешение пускать всех.

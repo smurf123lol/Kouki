@@ -221,7 +221,8 @@ if [ ! -f "$MODEL_FILE" ]; then
     echo
     echo "ВНИМАНИЕ: модель распознавания не найдена:"
     echo "  $MODEL_FILE"
-    echo "/api/voice будет отвечать 503. Скопируйте каталог модели и выдайте права:"
+    echo "Сервер поднимется и без неё (health 200), но /api/voice будет отвечать 503."
+    echo "Скопируйте каталог модели и выдайте права:"
     echo "  rsync -a models/asr/sherpa-onnx-whisper-small/ $DATA_DIR/models/asr/sherpa-onnx-whisper-small/"
     echo "  chown -R $USER_NAME:$USER_NAME $DATA_DIR/models"
 fi
