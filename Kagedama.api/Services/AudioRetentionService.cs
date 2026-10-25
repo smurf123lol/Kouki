@@ -6,13 +6,14 @@ using Microsoft.Extensions.Options;
 namespace Kouki.Kagedama.Api.Services;
 
 /// <summary>
-/// Удаляет голосовые записи старше настроенного срока (<c>Kouki:AudioRetentionDays</c>).
+/// Чистит голосовые записи по двум срокам из настроек: возраст записи
+/// (<c>Kouki:AudioRetentionDays</c>) и возраст разметки (<c>Kouki:AudioLabeledRetentionDays</c>).
 /// </summary>
 /// <remarks>
-/// Срок — настройка, а не константа: запись нужна как материал для будущего обучения,
-/// но держать её вечно на домашнем сервере незачем. <c>0</c> отключает чистку по возрасту
-/// (удаление размеченного остаётся в <see cref="IAudioStore.RemoveLabeledAsync"/>).
-/// Первая чистка идёт сразу при старте, дальше — раз в 12 часов.
+/// Сроки — настройки, а не константы: запись нужна как материал для будущего обучения,
+/// но держать её вечно на домашнем сервере незачем. <c>0</c> отключает соответствующий срок.
+/// Размеченное аудио удаляется раньше обычного: датасет оно уже дало, а голос человека
+/// в нём остаётся. Первая чистка идёт сразу при старте, дальше — раз в 12 часов.
 /// </remarks>
 public sealed class AudioRetentionService : BackgroundService
 {
@@ -64,7 +65,7 @@ public sealed class AudioRetentionService : BackgroundService
     {
         KoukiServerOptions options = _options.Value;
 
-        if (!options.StoreAudio || options.AudioRetentionDays <= 0)
+        if (!options.StoreAudio)
         {
             return;
         }
@@ -75,17 +76,37 @@ public sealed class AudioRetentionService : BackgroundService
             return;
         }
 
-        DateTimeOffset cutoff = DateTimeOffset.UtcNow.AddDays(-options.AudioRetentionDays);
+        if (options.AudioRetentionDays > 0)
+        {
+            DateTimeOffset cutoff = DateTimeOffset.UtcNow.AddDays(-options.AudioRetentionDays);
+            await SweepOnceAsync(
+                () => store.RemoveOlderThanAsync(cutoff, cancellationToken),
+                $"Аудио старше {options.AudioRetentionDays} дн.",
+                cancellationToken).ConfigureAwait(false);
+        }
 
+        if (options.AudioLabeledRetentionDays > 0)
+        {
+            DateTimeOffset labeledCutoff =
+                DateTimeOffset.UtcNow.AddDays(-options.AudioLabeledRetentionDays);
+            await SweepOnceAsync(
+                () => store.RemoveLabeledAsync(labeledCutoff, cancellationToken),
+                $"Аудио, размеченное более {options.AudioLabeledRetentionDays} дн. назад,",
+                cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task SweepOnceAsync(
+        Func<Task<int>> sweep,
+        string what,
+        CancellationToken cancellationToken)
+    {
         try
         {
-            int removed = await store.RemoveOlderThanAsync(cutoff, cancellationToken).ConfigureAwait(false);
+            int removed = await sweep().ConfigureAwait(false);
             if (removed > 0)
             {
-                _logger.LogInformation(
-                    "Аудио старше {Days} дн.: удалено {Count} записей",
-                    options.AudioRetentionDays,
-                    removed);
+                _logger.LogInformation("{What}: удалено {Count} записей", what, removed);
             }
         }
         catch (OperationCanceledException)
@@ -94,7 +115,7 @@ public sealed class AudioRetentionService : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Чистка аудио по сроку хранения не удалась");
+            _logger.LogWarning(ex, "{What}: чистка не удалась", what);
         }
     }
 }

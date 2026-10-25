@@ -77,7 +77,12 @@ curl -X POST http://localhost:5000/api/intake \
 (открытый доступ только через `Kouki:AllowAnonymous`).
 
 Настройки — секция `Kouki` в `appsettings.json`: `DatabasePath` (`kouki.sqlite`), `Token`,
-`ConfidenceThreshold` (0.75), `StoreAudio`, `AudioDirectory`.
+`ConfidenceThreshold` (0.75), `StoreAudio`, `AudioDirectory`, `AudioRetentionDays` (30),
+`AudioLabeledRetentionDays` (90).
+
+Два срока хранения аудио: обычный (`AudioRetentionDays`, возраст записи) и для размеченного
+(`AudioLabeledRetentionDays`, возраст разметки). Размеченное удаляется раньше: датасет оно
+уже дало, а голос человека в нём остаётся. `0` отключает соответствующий срок.
 
 Журнал `classifications` пишет **все** классификации, включая низкую уверенность и ошибки, —
 это датасет для будущего BERT; нераспознанные фразы попадают в задачи со статусом `needs_review`.
@@ -95,6 +100,10 @@ dotnet run -- --bot-token=123:ABC --server-url=http://127.0.0.1:5199
 Токены можно задать в `appsettings.json` (секция `KoukiBot`), переменными окружения
 `KOUKI_BOT_TOKEN` / `KOUKI_SERVER_URL` / `KOUKI_SERVER_TOKEN` / `KOUKI_TELEGRAM_API_URL` или
 аргументами `--bot-token=`, `--server-url=`, `--server-token=`, `--telegram-api-url=`, `--poll-timeout=`.
+
+Файл читается через `IConfiguration`. Если JSON сломан, бот не стартует с настройками по
+умолчанию (с чужим токеном это выглядит как «ничего не работает»), а печатает, какой файл и что
+в нём не так, и выходит с кодом **2**.
 
 **Поведение при ошибках.** Bot API отвечает не исключениями, а кодами, и бот их различает:
 

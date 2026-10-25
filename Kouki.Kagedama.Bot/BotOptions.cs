@@ -1,4 +1,4 @@
-using System.Text.Json;
+using Microsoft.Extensions.Configuration;
 
 namespace Kouki.Kagedama.Bot;
 
@@ -9,6 +9,9 @@ namespace Kouki.Kagedama.Bot;
 /// </summary>
 public sealed class BotOptions
 {
+    /// <summary>Секция конфигурации с настройками бота.</summary>
+    public const string SectionName = "KoukiBot";
+
     /// <summary>Токен бота Telegram.</summary>
     public string BotToken { get; set; } = string.Empty;
 
@@ -33,37 +36,80 @@ public sealed class BotOptions
     /// Собирает настройки из файла, окружения и аргументов.
     /// </summary>
     /// <param name="args">Аргументы вида <c>--bot-token=…</c>, <c>--server-url=…</c>, <c>--server-token=…</c>.</param>
-    public static BotOptions Load(string[] args)
+    /// <param name="baseDirectory">
+    /// Где искать <c>appsettings.json</c>. По умолчанию — каталог приложения; параметр нужен тестам.
+    /// </param>
+    /// <exception cref="BotConfigurationException">
+    /// Файл настроек есть, но разобрать его не удалось. Молча подставлять значения по умолчанию
+    /// нельзя: бот с чужим токеном и адресом сервера выглядит как «ничего не работает», и найти
+    /// причину в таком виде почти невозможно.
+    /// </exception>
+    public static BotOptions Load(string[] args, string? baseDirectory = null)
     {
-        var options = new BotOptions();
+        ArgumentNullException.ThrowIfNull(args);
 
-        string configPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
-        if (File.Exists(configPath))
+        string directory = baseDirectory ?? AppContext.BaseDirectory;
+        string configPath = Path.Combine(directory, "appsettings.json");
+
+        IConfigurationRoot configuration;
+        try
         {
-            try
+            // Абсолютный путь вместо SetBasePath: каталога может не быть вовсе
+            // (тесты, ручной запуск из пустой папки), а это не ошибка — просто нет файла.
+            configuration = new ConfigurationBuilder()
+                .AddJsonFile(Path.GetFullPath(configPath), optional: true, reloadOnChange: false)
+                .Build();
+        }
+        catch (Exception ex) when (ex is InvalidDataException or FormatException)
+        {
+            // Внутри обычно лежит JsonException с номером строки и символом — именно он
+            // и нужен человеку, а не «Failed to load configuration from file».
+            Exception root = ex;
+            while (root.InnerException is not null)
             {
-                using JsonDocument document = JsonDocument.Parse(File.ReadAllText(configPath));
-                if (document.RootElement.TryGetProperty("KoukiBot", out JsonElement section))
-                {
-                    options.BotToken = ReadString(section, "BotToken") ?? options.BotToken;
-                    options.ServerUrl = ReadString(section, "ServerUrl") ?? options.ServerUrl;
-                    options.ServerToken = ReadString(section, "ServerToken") ?? options.ServerToken;
-                    options.Source = ReadString(section, "Source") ?? options.Source;
-                    options.TelegramApiUrl = ReadString(section, "TelegramApiUrl") ?? options.TelegramApiUrl;
-                    options.PollTimeoutSeconds = ReadInt(section, "PollTimeoutSeconds") ?? options.PollTimeoutSeconds;
-                }
+                root = root.InnerException;
             }
-            catch (JsonException)
-            {
-                // Битый конфиг не должен мешать запуску: дальше решат окружение и аргументы.
-            }
+            throw new BotConfigurationException(
+                $"Не удалось прочитать {configPath}: {root.Message} " +
+                "Проверьте JSON в секции KoukiBot или задайте настройки переменными окружения " +
+                "(KOUKI_BOT_TOKEN, KOUKI_SERVER_URL) либо аргументами (--bot-token=…).",
+                ex);
         }
 
+        var options = new BotOptions();
+        IConfigurationSection section = configuration.GetSection(SectionName);
+        options.BotToken = section[nameof(BotToken)] ?? options.BotToken;
+        options.TelegramApiUrl = section[nameof(TelegramApiUrl)] ?? options.TelegramApiUrl;
+        options.ServerUrl = section[nameof(ServerUrl)] ?? options.ServerUrl;
+        options.ServerToken = section[nameof(ServerToken)] ?? options.ServerToken;
+        options.Source = section[nameof(Source)] ?? options.Source;
+        if (int.TryParse(section[nameof(PollTimeoutSeconds)], out int configuredTimeout))
+        {
+            options.PollTimeoutSeconds = configuredTimeout;
+        }
+
+        // Переменные окружения читаем явно: у них свои имена (KOUKI_*), а не KoukiBot:*.
         options.BotToken = Environment.GetEnvironmentVariable("KOUKI_BOT_TOKEN") ?? options.BotToken;
         options.ServerUrl = Environment.GetEnvironmentVariable("KOUKI_SERVER_URL") ?? options.ServerUrl;
         options.TelegramApiUrl = Environment.GetEnvironmentVariable("KOUKI_TELEGRAM_API_URL") ?? options.TelegramApiUrl;
         options.ServerToken = Environment.GetEnvironmentVariable("KOUKI_SERVER_TOKEN") ?? options.ServerToken;
+        options.Source = Environment.GetEnvironmentVariable("KOUKI_SOURCE") ?? options.Source;
 
+        ApplyArguments(options, args);
+
+        if (options.PollTimeoutSeconds < 1)
+        {
+            options.PollTimeoutSeconds = 1;
+        }
+
+        return options;
+    }
+
+    /// <summary>
+    /// Перекрывает настройки аргументами командной строки.
+    /// </summary>
+    private static void ApplyArguments(BotOptions options, string[] args)
+    {
         foreach (string arg in args)
         {
             int separator = arg.IndexOf('=');
@@ -99,24 +145,7 @@ public sealed class BotOptions
                     }
 
                     break;
-                default:
-                    break;
             }
         }
-
-        if (options.PollTimeoutSeconds < 1)
-        {
-            options.PollTimeoutSeconds = 1;
-        }
-
-        return options;
     }
-
-    private static string? ReadString(JsonElement section, string name)
-        => section.TryGetProperty(name, out JsonElement value) && value.ValueKind == JsonValueKind.String
-            ? value.GetString()
-            : null;
-
-    private static int? ReadInt(JsonElement section, string name)
-        => section.TryGetProperty(name, out JsonElement value) && value.TryGetInt32(out int number) ? number : null;
 }

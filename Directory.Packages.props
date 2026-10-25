@@ -1,0 +1,41 @@
+<Project>
+
+  <!--
+    Одна версия каждого пакета на всё решение.
+
+    Зачем: до этого в проектах жили и 8.0.0, и 9.0.0 из линейки Microsoft.Extensions.*
+    на net10.0 — это две разные ветки API в одном процессе, и обновить их по отдельности
+    легко забыть. Здесь версия задаётся один раз, а csproj ссылается только именем пакета.
+  -->
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup Label="Данные">
+    <PackageVersion Include="Dapper" Version="2.1.24" />
+    <PackageVersion Include="Microsoft.Data.Sqlite" Version="8.0.32" />
+  </ItemGroup>
+
+  <ItemGroup Label="Microsoft.Extensions">
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="9.0.4" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.4" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="9.0.4" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.4" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.4" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="9.0.4" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.4" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="9.0.4" />
+  </ItemGroup>
+
+  <ItemGroup Label="Распознавание речи">
+    <PackageVersion Include="org.k2fsa.sherpa.onnx" Version="1.13.8" />
+  </ItemGroup>
+
+  <ItemGroup Label="Тесты">
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.4.0" />
+    <PackageVersion Include="xunit" Version="2.4.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.4.5" />
+  </ItemGroup>
+
+</Project>

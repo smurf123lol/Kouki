@@ -6,9 +6,12 @@ namespace Kouki.Kagedama;
 /// Хранилище голосовых записей.
 /// </summary>
 /// <remarks>
-/// Записи нужны как материал для будущего обучения: пока разметки нет — аудио лежит,
-/// после разметки <see cref="RemoveLabeledAsync"/> может его удалить. Отдельно работает
-/// срок хранения (<see cref="RemoveOlderThanAsync"/>): это настройка, а не константа.
+/// Записи нужны как материал для будущего обучения: пока разметки нет — аудио лежит.
+/// Дальше работают два независимых срока, оба — настройки, а не константы:
+/// <see cref="RemoveOlderThanAsync"/> (по возрасту записи) и
+/// <see cref="RemoveLabeledAsync"/> (по возрасту разметки). Второй срок короче:
+/// размеченная запись уже дала то, что от неё требовалось, а лежать в ней остаётся
+/// живая речь человека.
 /// </remarks>
 public interface IAudioStore
 {
@@ -23,9 +26,12 @@ public interface IAudioStore
     /// <summary>
     /// Удаляет записи, чьи распознавания уже размечены.
     /// </summary>
+    /// <param name="labeledBefore">
+    /// Удалять только то, что размечено раньше этого момента. <c>null</c> — удалить всё размеченное.
+    /// </param>
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <returns>Сколько файлов удалено.</returns>
-    Task<int> RemoveLabeledAsync(CancellationToken cancellationToken = default);
+    Task<int> RemoveLabeledAsync(DateTimeOffset? labeledBefore = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Удаляет записи старше <paramref name="cutoff"/>.
@@ -82,7 +88,9 @@ public sealed class FileAudioStore : IAudioStore
     }
 
     /// <inheritdoc />
-    public async Task<int> RemoveLabeledAsync(CancellationToken cancellationToken = default)
+    public async Task<int> RemoveLabeledAsync(
+        DateTimeOffset? labeledBefore = null,
+        CancellationToken cancellationToken = default)
     {
         IReadOnlyList<Contracts.ClassificationEntry> labeled =
             await _journal.ListLabeledAsync(500, cancellationToken).ConfigureAwait(false);
@@ -98,6 +106,21 @@ public sealed class FileAudioStore : IAudioStore
                 continue;
             }
 
+            // Момент разметки — то, от чего считается срок. Если журнал не записал его
+            // (старые строки), берём время создания записи: так аудио не задержится навсегда.
+            // Неразборчивая дата трактуется как «очень старое»: цель — удалить, а не сохранить.
+            if (labeledBefore is { } cutoff)
+            {
+                DateTimeOffset markedAt = ParseTimestamp(entry.LabeledAt)
+                    ?? ParseTimestamp(entry.CreatedAt)
+                    ?? DateTimeOffset.MinValue;
+
+                if (markedAt >= cutoff)
+                {
+                    continue;
+                }
+            }
+
             try
             {
                 File.Delete(entry.AudioPath);
@@ -111,6 +134,11 @@ public sealed class FileAudioStore : IAudioStore
             {
                 _logger.LogWarning(ex, "Не удалось удалить аудио {Path}", entry.AudioPath);
             }
+        }
+
+        if (removed > 0)
+        {
+            _logger.LogInformation("Размеченное аудио: удалено {Count} записей", removed);
         }
 
         return removed;
@@ -168,5 +196,21 @@ public sealed class FileAudioStore : IAudioStore
     {
         char[] invalid = Path.GetInvalidFileNameChars();
         return string.Concat(value.Select(c => invalid.Contains(c) ? '_' : c));
+    }
+
+    private static DateTimeOffset? ParseTimestamp(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return DateTimeOffset.TryParse(
+            value,
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.RoundtripKind,
+            out DateTimeOffset parsed)
+            ? parsed
+            : null;
     }
 }

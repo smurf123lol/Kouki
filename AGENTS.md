@@ -96,6 +96,9 @@ Kagedama.api / .mcp / Kouki.Kagedama.Bot — хосты
     лимит длины, источник по умолчанию и закрытый список интентов (`SessionIntents`)
     проверяются там, а не в эндпоинте, MCP-инструменте или боте; порог для поля
     `confident` берётся из `TaskIntakeService.ConfidenceThreshold`, а не из `IOptions`.
+14. **Версия пакета задаётся только в `Directory.Packages.props`.** В `csproj` —
+    `<PackageReference Include="…" />` без `Version`: иначе версии `Microsoft.Extensions.*`
+    снова разойдутся по проектам (и один и тот же `Logging` приедет дважды).
 
 ## Где что менять
 

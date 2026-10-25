@@ -13,7 +13,19 @@ catch (IOException)
     // Нет консоли (служба, перенаправление без потока) — не критично.
 }
 
-BotOptions options = BotOptions.Load(args);
+BotOptions options;
+
+try
+{
+    options = BotOptions.Load(args);
+}
+catch (BotConfigurationException ex)
+{
+    // Сломанный конфиг — это не «повод стартовать с дефолтами»: бот не найдёт ни сервер,
+    // ни Telegram, а причина останется в чужом файле. Поэтому печатаем текст и выходим.
+    await Console.Error.WriteLineAsync(ex.Message);
+    return 2;
+}
 
 if (string.IsNullOrWhiteSpace(options.BotToken))
 {
