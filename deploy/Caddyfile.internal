@@ -1,0 +1,30 @@
+# Kouki за https с локальным CA (режим по умолчанию, KOUKI_HTTPS_MODE=internal).
+#
+# Сертификаты подписывает сам Caddy: интернет и домен не нужны, но корневой
+# сертификат придётся один раз поставить на устройства (см. deploy/README.md).
+# Неизвестные клиенты получат предупреждение браузера — это ожидаемо для
+# внутреннего CA, а не ошибка конфигурации.
+
+{
+	# Все сертификаты — от собственного CA Caddy.
+	local_certs
+	admin off
+}
+
+# Порт 80 существует только ради редиректа: иначе токен и аудио поедут
+# открытым текстом, и никто этого не заметит.
+:80 {
+	redir https://{host}{uri} permanent
+}
+
+# Адрес, по которому заходят люди. По умолчанию kouki.local — его надо
+# прописать в DNS роутера или в hosts на клиентских машинах.
+{$KOUKI_SITE:kouki.local} {
+	tls internal
+	encode zstd gzip
+	reverse_proxy {$KOUKI_UPSTREAM:127.0.0.1:5300}
+	log {
+		output file /var/log/caddy/kouki-access.log
+		format console
+	}
+}

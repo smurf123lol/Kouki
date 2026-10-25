@@ -14,6 +14,9 @@
 #   sudo ./deploy/install.sh /path/to/publish
 #   sudo ./deploy/install.sh /path/to/publish --urls http://127.0.0.1:5300
 #   sudo ./deploy/install.sh /path/to/publish --with-bot --bot-token 123:ABC
+#   sudo ./deploy/install.sh /path/to/publish --with-caddy --https-mode internal --site kouki.local
+#   sudo ./deploy/install.sh /path/to/publish --with-caddy --https-mode acme \
+#        --domain kouki.example.org --acme-email admin@example.org
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -28,6 +31,13 @@ URLS="http://0.0.0.0:5300"
 WITH_BOT=0
 BOT_TOKEN=""
 
+# https-прокси (T55): по умолчанию выключен, режим по умолчанию — локальный CA.
+WITH_CADDY=0
+HTTPS_MODE=internal
+KOUKI_DOMAIN=""
+ACME_EMAIL=""
+KOUKI_SITE="kouki.local"
+
 SOURCE="${1:-}"
 [ $# -gt 0 ] && shift || true
 while [ $# -gt 0 ]; do
@@ -37,9 +47,39 @@ while [ $# -gt 0 ]; do
         --user) USER_NAME="$2"; shift 2 ;;
         --with-bot) WITH_BOT=1; shift ;;
         --bot-token) BOT_TOKEN="$2"; shift 2 ;;
+        --with-caddy) WITH_CADDY=1; shift ;;
+        --https-mode) HTTPS_MODE="$2"; shift 2 ;;
+        --domain) KOUKI_DOMAIN="$2"; shift 2 ;;
+        --acme-email) ACME_EMAIL="$2"; shift 2 ;;
+        --site) KOUKI_SITE="$2"; shift 2 ;;
         *) echo "Неизвестный аргумент: $1" >&2; exit 2 ;;
     esac
 done
+
+if [ "$WITH_CADDY" -eq 1 ]; then
+    case "$HTTPS_MODE" in
+        internal|acme) ;;
+        *) echo "Режим https должен быть internal или acme: --https-mode internal" >&2; exit 2 ;;
+    esac
+
+    # С прокси наружу смотрит только Caddy: сам сервер прячем на loopback,
+    # иначе его достанут по открытому http в обход сертификата.
+    if [ "$URLS" = "http://0.0.0.0:5300" ]; then
+        URLS="http://127.0.0.1:5300"
+    fi
+
+    if [ "$HTTPS_MODE" = "acme" ] && { [ -z "$KOUKI_DOMAIN" ] || [ -z "$ACME_EMAIL" ]; }; then
+        echo "Для режима acme нужны --domain и --acme-email: сертификат выпускается на имя" >&2
+        exit 2
+    fi
+
+    for asset in Caddyfile.internal Caddyfile.acme caddy.env.example; do
+        if [ ! -f "$SCRIPT_DIR/$asset" ]; then
+            echo "Для --with-caddy нужен $asset (он лежит в deploy/)" >&2
+            exit 2
+        fi
+    done
+fi
 
 if [ -z "$SOURCE" ] || [ ! -f "$SOURCE/Kagedama.api.dll" ]; then
     echo "Нужен каталог публикации с Kagedama.api.dll: sudo $0 /path/to/publish" >&2
@@ -124,6 +164,56 @@ done
 if [ "$OK" -ne 1 ]; then
     echo "Сервер не ответил на /api/health. Смотрите: journalctl -u kouki -n 50 --no-pager" >&2
     exit 1
+fi
+
+if [ "$WITH_CADDY" -eq 1 ]; then
+    echo "== https: Caddy ($HTTPS_MODE)"
+    if ! command -v caddy >/dev/null 2>&1; then
+        echo "   ставлю Caddy из официального репозитория"
+        apt-get update
+        apt-get install -y debian-keyring debian-archive-keyring apt-transport-https curl gnupg
+        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \
+            | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' \
+            > /etc/apt/sources.list.d/caddy-stable.list
+        apt-get update
+        apt-get install -y caddy
+    fi
+
+    install -d -m 755 /etc/caddy
+    install -d -m 755 /var/log/caddy
+    chown caddy:caddy /var/log/caddy 2>/dev/null || true
+
+    case "$HTTPS_MODE" in
+        internal) CADDYFILE_SRC="$SCRIPT_DIR/Caddyfile.internal" ;;
+        acme)     CADDYFILE_SRC="$SCRIPT_DIR/Caddyfile.acme" ;;
+    esac
+
+    # Подстановка значений без sed: в Caddyfile есть {$...}, и экранировать это
+    # в регулярке проще не пытаться.
+    CADDY_CONF="$(cat "$CADDYFILE_SRC")"
+    CADDY_CONF="${CADDY_CONF//\{\$KOUKI_SITE:kouki.local\}/$KOUKI_SITE}"
+    CADDY_CONF="${CADDY_CONF//\{\$KOUKI_SITE\}/$KOUKI_SITE}"
+    CADDY_CONF="${CADDY_CONF//\{\$KOUKI_DOMAIN\}/$KOUKI_DOMAIN}"
+    CADDY_CONF="${CADDY_CONF//\{\$KOUKI_ACME_EMAIL\}/$ACME_EMAIL}"
+    CADDY_CONF="${CADDY_CONF//\{\$KOUKI_UPSTREAM:127.0.0.1:5300\}/127.0.0.1:$PORT}"
+    printf '%s\n' "$CADDY_CONF" > /etc/caddy/Caddyfile
+
+    # Конфиг проверяется до запуска: иначе Caddy молча не поднимется, а сервер
+    # останется доступен только на loopback — то есть нигде.
+    caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+    systemctl enable --now caddy >/dev/null
+    systemctl reload caddy 2>/dev/null || systemctl restart caddy
+
+    echo "   https включён: режим $HTTPS_MODE, апстрим 127.0.0.1:$PORT"
+    if [ "$HTTPS_MODE" = "internal" ]; then
+        echo "   адрес: https://$KOUKI_SITE (это имя должно резолвиться на сервер: DNS роутера или hosts)"
+        echo "   корневой сертификат: /var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt"
+        echo "   поставить на клиентах: sudo caddy trust  (или скопировать файл выше и установить вручную)"
+    else
+        echo "   адрес: https://$KOUKI_DOMAIN"
+    fi
+    echo "   открыть порты: ufw allow 80,443/tcp"
 fi
 
 MODEL_FILE="$DATA_DIR/models/asr/sherpa-onnx-whisper-small/small-encoder.int8.onnx"

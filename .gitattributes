@@ -67,3 +67,5 @@
 *.sh            text eol=lf
 *.service       text eol=lf
 *.env.example   text eol=lf
+# Конфиги Caddy: тот же смысл — LF, чтобы файл из git не отличался от того, что читает caddy.
+deploy/Caddyfile.*   text eol=lf

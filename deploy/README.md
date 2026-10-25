@@ -111,6 +111,56 @@ Kouki__DatabasePath=/var/lib/kouki/db/kouki.sqlite dotnet /opt/kouki/app/mcp/Kag
 Если MCP живёт на другой машине, базу ему не отдают — вместо этого агент ходит
 через HTTP (`/api/intake`, `/api/tasks`).
 
+## https: Caddy (необязательно)
+
+По умолчанию сервер слушает `http://0.0.0.0:5300` — этого достаточно в закрытой
+сети, но токен и аудио идут открытым текстом. `--with-caddy` ставит Caddy,
+прячет сервер на loopback и отдаёт наружу только https.
+
+```bash
+# режим по умолчанию — локальный CA, домен не нужен
+sudo bash app/deploy/install.sh app --with-caddy --site kouki.local
+
+# публичный сертификат (нужен домен, смотрящий на сервер)
+sudo bash app/deploy/install.sh app --with-caddy --https-mode acme \
+    --domain kouki.example.org --acme-email admin@example.org
+```
+
+Режим задаётся `KOUKI_HTTPS_MODE` (`internal` по умолчанию, `acme` — публичный
+сертификат); остальные значения установщик отвергает. Конфиги лежат рядом:
+`Caddyfile.internal` (`tls internal`), `Caddyfile.acme` (`{$KOUKI_DOMAIN}`,
+`{$KOUKI_ACME_EMAIL}`), значения — `caddy.env.example`.
+
+**Почему внутренний CA по умолчанию:** интернета на стенде может не быть, а
+`tls internal` работает сразу. Цена — предупреждение браузера, пока корневой
+сертификат не установлен на клиенте:
+
+```bash
+# путь печатает установщик; на клиенте — либо так,
+sudo caddy trust        # на самом сервере: кладёт корень в системное хранилище
+# либо вручную: скопировать root.crt
+sudo install -m 644 root.crt /usr/local/share/ca-certificates/kouki-local-ca.crt
+sudo update-ca-certificates
+```
+
+Windows: `certutil -addstore -f Root root.crt`; Android/iOS — «установить
+сертификат» из файла. После установки корня `https://kouki.local` открывается
+без предупреждений, и дашборд работает как обычно.
+
+**Станция пока остаётся на http внутри LAN.** Это осознанно: у ESP32-S3 в
+прошивке есть только публичные корневые сертификаты, поэтому https для неё
+потребует либо публичного домена, либо отдельного сертификата в образе — это
+отдельная задача, а не забывчивость. Внутри домашней сети http на 5300 с
+токеном остаётся допустимым.
+
+Проверка после установки:
+
+```bash
+curl -fsS https://kouki.local/api/health
+systemctl status caddy --no-pager
+journalctl -u caddy -n 30 --no-pager
+```
+
 ## Резервные копии
 
 Бэкап — отдельный юнит с таймером, ставится руками (это решение администратора,
