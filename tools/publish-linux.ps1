@@ -16,6 +16,11 @@ RID публикации. По умолчанию linux-x64.
 .PARAMETER NoSpeech
 Собрать без sherpa-onnx (сервер без распознавания речи, /api/voice отвечает 503).
 
+.PARAMETER SelfContained
+Включить рантайм .NET в пакет (~80 МБ). Нужно, когда на сервере нет подходящего
+`dotnet-runtime` (например, свежий дистрибутив, для которого Microsoft ещё не
+выпустил пакет). Без рантайма установка требует `aspnetcore-runtime-10.0`.
+
 .EXAMPLE
 .\tools\publish-linux.ps1
 .EXAMPLE
@@ -25,7 +30,8 @@ RID публикации. По умолчанию linux-x64.
 param(
     [string]$Runtime = 'linux-x64',
     [string]$Output = '',
-    [switch]$NoSpeech
+    [switch]$NoSpeech,
+    [switch]$SelfContained
 )
 
 $ErrorActionPreference = 'Stop'
@@ -38,17 +44,18 @@ if (Test-Path $Output) { Remove-Item $Output -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $Output | Out-Null
 
 $speech = if ($NoSpeech) { 'false' } else { 'true' }
+$hosting = if ($SelfContained) { 'true' } else { 'false' }
 $publishArgs = @(
     'publish', $project,
     '-c', 'Release',
     "-p:KoukiEnableSherpa=$speech",
     '-r', $Runtime,
-    '--self-contained', 'false',
+    '--self-contained', $hosting,
     '-m:1', '-nodeReuse:false',
     '-o', $Output
 )
 
-Write-Host "Публикация $Runtime (sherpa=$speech) -> $Output" -ForegroundColor Cyan
+Write-Host "Публикация $Runtime (sherpa=$speech, self-contained=$hosting) -> $Output" -ForegroundColor Cyan
 & dotnet @publishArgs
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish завершился с кодом $LASTEXITCODE" }
 
@@ -60,7 +67,7 @@ $botArgs = @(
     'publish', (Join-Path $root 'Kouki.Kagedama.Bot\Kouki.Kagedama.Bot.csproj'),
     '-c', 'Release',
     '-r', $Runtime,
-    '--self-contained', 'false',
+    '--self-contained', $hosting,
     '-m:1', '-nodeReuse:false',
     '-o', $botOutput
 )
@@ -76,7 +83,7 @@ $mcpArgs = @(
     '-c', 'Release',
     "-p:KoukiEnableSherpa=$speech",
     '-r', $Runtime,
-    '--self-contained', 'false',
+    '--self-contained', $hosting,
     '-m:1', '-nodeReuse:false',
     '-o', $mcpOutput
 )

@@ -15,14 +15,19 @@ deploy/
 
 ## Что нужно
 
-- Ubuntu 22.04/24.04 или Debian 12;
+- Ubuntu 22.04/24.04/26.04 LTS или Debian 12 (на 26.04 шаги те же; пакета
+  `aspnetcore-runtime-10.0` для свежего релиза может ещё не быть — тогда
+  публикуйте self-contained, см. ниже);
 - .NET 10 runtime (`aspnetcore-runtime-10.0`) — `dotnet --version` должен отвечать;
 - `curl`, `rsync` (желательно), `sqlite3` (для бэкапов);
 - артефакт публикации: на Windows `Kouki\tools\publish-linux.ps1`, на Linux
   `dotnet publish Kagedama.api/Kagedama.api.csproj -c Release -r linux-x64 --self-contained false -p:KoukiEnableSherpa=true -o publish/linux-x64`.
 
-Публикация — framework-dependent: сам .NET на сервере ставится отдельно, зато
-артефакт 33 МБ, а не 100+.
+Публикация по умолчанию — framework-dependent: сам .NET на сервере ставится
+отдельно, зато артефакт 33 МБ. Ключ `-SelfContained` (или
+`--self-contained true`) кладёт рантайм внутрь: 330 МБ, но серверу не нужен
+`dotnet` в системе и нет зависимости от наличия пакета под конкретный
+дистрибутив.
 
 ## Установка
 
