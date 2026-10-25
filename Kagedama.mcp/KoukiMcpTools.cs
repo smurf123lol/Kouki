@@ -2,8 +2,9 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Kouki.Kagedama.Contracts;
-using Kouki.Kagedama.Data;
-using Kouki.Mugura.Dispatcher;using Kouki.Shimi.Context;
+using Kouki.Kagedama.Transport;
+using Kouki.Mugura.Dispatcher;
+using Kouki.Shimi.Context;
 using Kouki.Yasabi;
 
 namespace Kouki.Kagedama.Mcp;
@@ -205,30 +206,16 @@ public sealed class KoukiMcpTools
 
         IntakeResult result = await _intake.IntakeAsync(spec!.Text, spec.Source, cancellationToken).ConfigureAwait(false);
 
-        return new JsonObject
+        // Ответ собирает один и тот же маппинг, что и для HTTP: иначе поля снова разъедутся
+        // (в прежней ручной сборке не было priority, source и meta).
+        if (ApiMapping.ToJson(ApiMapping.ToResponse(result, _intake.ConfidenceThreshold)) is not JsonObject payload)
         {
-            // Фраза может оказаться командой («покажи задачи») — тогда задача не создаётся.
-            ["actionId"] = result.ActionId is null ? null : result.ActionId.Value.ToString(),
-            ["task"] = result.Task is null
-                ? null
-                : new JsonObject
-                {
-                    ["id"] = result.Task.Id.ToString(),
-                    ["title"] = result.Task.Title,
-                    ["status"] = result.Task.Status,
-                },
-            ["intent"] = new JsonObject
-            {
-                ["intent"] = result.Route.Intent.Intent,
-                ["score"] = result.Route.Intent.Score,
-                ["model"] = result.Route.Intent.Model,
-            },
-            ["command"] = result.Route.CommandName,
-            ["executed"] = result.AutoExecuted,
-            ["outcome"] = result.Outcome,
-            ["error"] = result.Route.Error,
-            ["result"] = result.Route.Result?.DeepClone(),
-        };
+            return new JsonObject { ["outcome"] = result.Outcome };
+        }
+
+        // Идентификатор действия — не часть HTTP-ответа, это удобство отладки для агента.
+        payload["actionId"] = result.ActionId is null ? null : result.ActionId.Value.ToString();
+        return payload;
     }
 
     private async Task<JsonNode> ListTasksAsync(JsonObject args, CancellationToken cancellationToken)

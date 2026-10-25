@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.HttpLogging;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.FileProviders;
+using System.Threading.RateLimiting;
 using Kouki.Kagedama.Api;
 using Kouki.Kagedama.Api.Api;
 using Kouki.Kagedama.Api.Auth;
@@ -58,6 +60,31 @@ builder.Services.AddSingleton<IOptions<KoukiServerOptions>>(Options.Create(serve
 // Необработанное исключение превращается в JSON-ответ с ProblemDetails и записью в лог,
 // иначе клиент видит пустой 500 без объяснения.
 builder.Services.AddProblemDetails();
+
+// Ограничение частоты: сервер живёт в локальной сети, но кнопка на станции и автообновление
+// дашборда — это регулярный поток. Лимит на ключ (токен, иначе адрес) защищает от цикла.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("api", httpContext =>
+    {
+        string key = httpContext.Request.Headers.Authorization.ToString();
+
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            key = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        }
+
+        return RateLimitPartition.GetFixedWindowLimiter(
+            key,
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 120,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+            });
+    });
+});
 
 // Каждый запрос — строка в логе (метод, путь, код, длительность). Без этого
 // «станция не отвечает» разбирается вслепую: запросы приходят, а в логе тишина.
@@ -175,6 +202,10 @@ app.Use(async (context, next) =>
 
 // Лог запросов идёт первым: он должен видеть и 401, и 503, и статику.
 app.UseHttpLogging();
+
+// Лимит ставится после лога (чтобы 429 тоже был виден) и до статики: статику не ограничиваем,
+// ограничение висит только на группе /api.
+app.UseRateLimiter();
 
 // Дашборд — статика из wwwroot; API остаётся под токеном (см. TokenAuthMiddleware).
 string webRoot = new[]

@@ -91,6 +91,27 @@ public sealed class McpSessionTests : IDisposable
     }
 
     [Fact]
+    public async Task Add_task_returns_the_same_shape_as_http()
+    {
+        // C-6: ответ MCP собирался руками и отставал от HTTP-формы (не было priority,
+        // source, meta). Теперь оба хоста берут ApiMapping — проверяем, что поля на месте.
+        JsonNode response = await CallAsync(
+            """{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"kouki_add_task","arguments":{"text":"запиши задачу купить хлеб"}}}""");
+
+        Assert.False(response["result"]!["isError"]!.GetValue<bool>());
+
+        JsonNode payload = JsonNode.Parse(response["result"]!["content"]![0]!["text"]!.GetValue<string>())!;
+        JsonNode task = payload["task"]!;
+
+        Assert.Equal("new", task["status"]!.GetValue<string>());
+        Assert.Equal(2, task["priority"]!.GetValue<int>());
+        Assert.Equal(TaskSources.Mcp, task["source"]!.GetValue<string>());
+        Assert.NotNull(task["meta"]);
+        Assert.Equal("created", payload["outcome"]!.GetValue<string>());
+        Assert.NotNull(payload["actionId"]);
+    }
+
+    [Fact]
     public async Task Tool_error_is_returned_as_isError_not_an_exception()
     {
         JsonNode response = await CallAsync(

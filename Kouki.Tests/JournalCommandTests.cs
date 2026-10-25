@@ -160,6 +160,26 @@ public sealed class JournalCommandTests : IDisposable
         Assert.Equal("not-found", result["reason"]!.GetValue<string>());
     }
 
+    [Fact]
+    public async Task Get_task_reads_one_task_and_reports_missing()
+    {
+        // C-11: HTTP читал одну задачу напрямую. Теперь есть команда — проверяем оба исхода.
+        var store = _provider.GetRequiredService<ITaskStore>();
+        TaskRecord task = Kouki.Kagedama.TaskFactory.Create("позвонить маме", TaskSources.Api);
+        await store.AddAsync(task, CancellationToken.None);
+
+        JsonNode? found = await _router.RouteAsync("get_task", new JsonObject { ["taskId"] = task.Id.ToString() });
+
+        Assert.True(found!["found"]!.GetValue<bool>());
+        Assert.Equal("позвонить маме", found["title"]!.GetValue<string>());
+        Assert.Equal("new", found["status"]!.GetValue<string>());
+
+        JsonNode? missing = await _router.RouteAsync("get_task", new JsonObject { ["taskId"] = Guid.NewGuid().ToString() });
+
+        Assert.False(missing!["found"]!.GetValue<bool>());
+        Assert.NotNull(missing["error"]);
+    }
+
     /// <inheritdoc />
     public void Dispose()
     {

@@ -151,6 +151,69 @@ public sealed class ListTasksHandler : ICommandHandler<ListTasksCommand>
 }
 
 /// <summary>
+/// Запрос на чтение одной задачи.
+/// </summary>
+/// <param name="TaskId">Идентификатор задачи (GUID строкой).</param>
+public sealed record GetTaskCommand(string? TaskId = null) : ICommand;
+
+/// <summary>
+/// Читает одну задачу по идентификатору.
+/// </summary>
+/// <remarks>
+/// Существует ради полноты: HTTP-хост не должен ходить в хранилище мимо команд. Ответ —
+/// тот же объект задачи, что отдаёт <c>list_tasks</c>, плюс поля <c>found</c>/<c>error</c>.
+/// </remarks>
+[Command(
+    "get_task",
+    Description = "Читает одну задачу по идентификатору",
+    Category = CommandCategory.Navigation,
+    RequiresConfirmation = false)]
+public sealed class GetTaskHandler : ICommandHandler<GetTaskCommand>
+{
+    private readonly ITaskStore _store;
+
+    /// <summary>
+    /// Создаёт обработчик чтения задачи.
+    /// </summary>
+    /// <param name="store">Хранилище задач.</param>
+    public GetTaskHandler(ITaskStore store)
+        => _store = store ?? throw new ArgumentNullException(nameof(store));
+
+    /// <inheritdoc />
+    public async Task<JsonNode> HandleAsync(
+        GetTaskCommand command,
+        IExecutionContext? context = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        if (!Guid.TryParse(command.TaskId, out Guid id))
+        {
+            return new JsonObject
+            {
+                ["found"] = false,
+                ["error"] = "Не указан идентификатор задачи.",
+            };
+        }
+
+        TaskRecord? task = await _store.GetAsync(id, cancellationToken).ConfigureAwait(false);
+
+        if (task is null)
+        {
+            return new JsonObject
+            {
+                ["found"] = false,
+                ["error"] = $"Задача {id} не найдена.",
+            };
+        }
+
+        JsonObject payload = ListTasksHandler.ToJson(task);
+        payload["found"] = true;
+        return payload;
+    }
+}
+
+/// <summary>
 /// Запрос на закрытие задачи.
 /// </summary>
 /// <param name="TaskId">Идентификатор задачи; если не задан, закрывается последняя открытая.</param>

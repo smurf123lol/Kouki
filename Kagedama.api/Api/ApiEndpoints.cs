@@ -1,8 +1,11 @@
 using System.Text.Json.Nodes;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Routing;
 using Kouki.Kagedama;
 using Kouki.Kagedama.Contracts;
 using Kouki.Kagedama.Commands;
 using Kouki.Kagedama.Data;
+using Kouki.Kagedama.Transport;
 using MuguraRouter = Kouki.Mugura.Dispatcher.IRouter;
 using Kouki.Shimi.Context;
 using Kouki.Shimi.ServiceAbstractions;
@@ -32,18 +35,22 @@ public static class ApiEndpoints
             utc = DateTimeOffset.UtcNow,
         }));
 
-        endpoints.MapPost("/api/intake", intakeHandler);
-        endpoints.MapPost("/api/voice", voiceHandler);
-        endpoints.MapPost("/api/classify", classifyHandler);
-        endpoints.MapPost("/api/transcribe", transcribeHandler);
-        endpoints.MapGet("/api/classifiers", (IClassifierCatalog catalog) => Results.Ok(new { classifiers = catalog.Names }));
-        endpoints.MapGet("/api/tasks", listTasksHandler);
-        endpoints.MapGet("/api/tasks/{id:guid}", getTaskHandler);
-        endpoints.MapPatch("/api/tasks/{id:guid}", patchTaskHandler);
-        endpoints.MapGet("/api/actions", listActionsHandler);
-        endpoints.MapGet("/api/context", contextHandler);
-        endpoints.MapGet("/api/classifications", listClassificationsHandler);
-        endpoints.MapPost("/api/classifications/{id:guid}/label", labelClassificationHandler);
+        // Всё, что ниже, ограничено по частоте: health оставлен без лимита, чтобы мониторинг
+        // не упирался в 429, когда кто-то другой выедает квоту.
+        RouteGroupBuilder api = endpoints.MapGroup(string.Empty).RequireRateLimiting("api");
+
+        api.MapPost("/api/intake", intakeHandler);
+        api.MapPost("/api/voice", voiceHandler);
+        api.MapPost("/api/classify", classifyHandler);
+        api.MapPost("/api/transcribe", transcribeHandler);
+        api.MapGet("/api/classifiers", (IClassifierCatalog catalog) => Results.Ok(new { classifiers = catalog.Names }));
+        api.MapGet("/api/tasks", listTasksHandler);
+        api.MapGet("/api/tasks/{id:guid}", getTaskHandler);
+        api.MapPatch("/api/tasks/{id:guid}", patchTaskHandler);
+        api.MapGet("/api/actions", listActionsHandler);
+        api.MapGet("/api/context", contextHandler);
+        api.MapGet("/api/classifications", listClassificationsHandler);
+        api.MapPost("/api/classifications/{id:guid}/label", labelClassificationHandler);
 
         return endpoints;
     }
@@ -181,14 +188,7 @@ public static class ApiEndpoints
     }
 
     private static IntakeResponse ToResponse(IntakeResult result, double confidenceThreshold)
-        => new(
-            result.Task is null ? null : ApiMapping.ToDto(result.Task),
-            ApiMapping.ToDto(result.Route.Intent, confidenceThreshold),
-            result.Route.CommandName,
-            result.AutoExecuted,
-            result.Outcome,
-            result.Route.Error,
-            result.Route.Result);
+        => ApiMapping.ToResponse(result, confidenceThreshold);
 
     /// <summary>
     /// Одна фраза — несколько классификаторов. Ничего не исполняет и не создаёт задачу:
@@ -357,11 +357,35 @@ public static class ApiEndpoints
         return Results.Ok(ApiMapping.ToTaskList(result));
     }
 
-    private static async Task<IResult> getTaskHandler(Guid id, ITaskStore store, CancellationToken cancellationToken)
+    private static async Task<IResult> getTaskHandler(
+        Guid id,
+        MuguraRouter router,
+        IContextRegistry contexts,
+        CancellationToken cancellationToken)
     {
-        // Чтение одной задачи: команды для этого нет, поэтому читаем хранилище напрямую.
-        TaskRecord? task = await store.GetAsync(id, cancellationToken);
-        return task is null ? Results.NotFound(new { error = "Задача не найдена." }) : Results.Ok(ApiMapping.ToDto(task));
+        // Чтение одной задачи тоже командой: хост — транспорт, а не второй способ
+        // добраться до хранилища (C-11).
+        JsonNode result = await router.RouteAsync(
+            "get_task",
+            new JsonObject { ["taskId"] = id.ToString() },
+            contexts.GetDefaultContext(),
+            cancellationToken).ConfigureAwait(false);
+
+        // Команда отвечает объектом с флагом found: «нет задачи» — это штатный ответ
+        // команды, а не исключение, поэтому 404 решает хост, а не команда.
+        if (result is not JsonObject payload)
+        {
+            return Results.NotFound(new { error = "Задача не найдена." });
+        }
+
+        if (payload["found"]?.GetValue<bool>() != true)
+        {
+            string? reason = payload["error"]?.GetValue<string>();
+            return Results.NotFound(new { error = reason ?? "Задача не найдена." });
+        }
+
+        TaskDto? task = ApiMapping.FromTaskJson(payload);
+        return task is null ? Results.NotFound(new { error = "Задача не найдена." }) : Results.Ok(task);
     }
 
     private static async Task<IResult> patchTaskHandler(

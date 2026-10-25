@@ -30,6 +30,26 @@ internal static class SpeechLab
 
         string root = RepositoryRoot();
         string command = args[0].ToLowerInvariant();
+
+        if (command is "help" or "--help" or "-h")
+        {
+            PrintUsage();
+            return 0;
+        }
+
+#if !KOUKI_SHERPA
+        // Одна страховка на все команды: без флага не работает ни синтез, ни распознавание,
+        // и «Унарная операция» посреди работы — плохой способ об этом узнать.
+        Console.Error.WriteLine(
+            "Kouki.SpeechLab собран без распознавания и синтеза речи: нужен флаг " +
+            "-p:KoukiEnableSherpa=true и на restore, и на build:");
+        Console.Error.WriteLine(
+            "  dotnet restore tools\\Kouki.SpeechLab\\Kouki.SpeechLab.csproj -p:KoukiEnableSherpa=true -m:1 -nodeReuse:false");
+        Console.Error.WriteLine(
+            "  dotnet build tools\\Kouki.SpeechLab\\Kouki.SpeechLab.csproj --no-restore -p:KoukiEnableSherpa=true -m:1 -nodeReuse:false");
+        return 2;
+#endif
+
         Dictionary<string, string> options = ParseOptions(args.Skip(1));
         string? text = args.Length > 1 && !args[1].StartsWith("--", StringComparison.Ordinal) ? args[1] : null;
 
