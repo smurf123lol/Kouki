@@ -52,12 +52,46 @@ Write-Host "Публикация $Runtime (sherpa=$speech) -> $Output" -Foregrou
 & dotnet @publishArgs
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish завершился с кодом $LASTEXITCODE" }
 
+# Бот — отдельный процесс, поэтому живёт в подкаталоге bot/: у него свой
+# appsettings.json, и он не должен перетирать серверный при публикации в тот же каталог.
+$botOutput = Join-Path $Output 'bot'
+Write-Host "Публикация бота -> $botOutput" -ForegroundColor Cyan
+$botArgs = @(
+    'publish', (Join-Path $root 'Kouki.Kagedama.Bot\Kouki.Kagedama.Bot.csproj'),
+    '-c', 'Release',
+    '-r', $Runtime,
+    '--self-contained', 'false',
+    '-m:1', '-nodeReuse:false',
+    '-o', $botOutput
+)
+& dotnet @botArgs
+if ($LASTEXITCODE -ne 0) { throw "публикация бота завершилась с кодом $LASTEXITCODE" }
+
+# MCP-сервер — тоже отдельный stdio-процесс: в свой подкаталог, чтобы не
+# спорить за appsettings.json и чтобы путь к нему был предсказуем.
+$mcpOutput = Join-Path $Output 'mcp'
+Write-Host "Публикация MCP -> $mcpOutput" -ForegroundColor Cyan
+$mcpArgs = @(
+    'publish', (Join-Path $root 'Kagedama.mcp\Kagedama.mcp.csproj'),
+    '-c', 'Release',
+    "-p:KoukiEnableSherpa=$speech",
+    '-r', $Runtime,
+    '--self-contained', 'false',
+    '-m:1', '-nodeReuse:false',
+    '-o', $mcpOutput
+)
+& dotnet @mcpArgs
+if ($LASTEXITCODE -ne 0) { throw "публикация MCP завершилась с кодом $LASTEXITCODE" }
+
 $required = @(
     'Kagedama.api.dll',
     'appsettings.json',
     'wwwroot\app.js',
-    'webroot-placeholder'
-) | Where-Object { $_ -ne 'webroot-placeholder' }
+    'bot\Kouki.Kagedama.Bot.dll',
+    'bot\appsettings.json',
+    'mcp\Kagedama.mcp.dll',
+    'mcp\appsettings.json'
+)
 
 $missing = @()
 foreach ($name in $required) {

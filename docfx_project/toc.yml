@@ -1,5 +1,7 @@
 - name: Главная
   href: index.md
+- name: Документация
+  href: docs/
 - name: Core API (Shimi & Mugura)
   href: api/
 - name: Примеры (Kagedama)

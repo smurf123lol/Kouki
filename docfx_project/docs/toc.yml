@@ -5,6 +5,8 @@ items:
     href: architecture.md
   - name: Датафлоу
     href: dataflow.md
+  - name: Безопасность
+    href: security.md
   - name: Руководства
     items:
     - name: Разработка

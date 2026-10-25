@@ -341,7 +341,7 @@ dotnet test Kouki.Tests/Kouki.Tests.csproj --no-build -c Release
 
 ```bash
 # на машине с .NET 10 SDK
-tools/publish-linux.ps1                   # publish/linux-x64: 33 МБ, sherpa внутри
+tools/publish-linux.ps1                   # publish/linux-x64: сервер, bot/, mcp/
 
 # на сервере
 sudo bash app/deploy/install.sh app       # пользователь, каталоги, юнит, токен
@@ -357,7 +357,9 @@ sudo bash app/deploy/install.sh app       # пользователь, катал
 - `docfx_project/docs/dataflow.md` — путь команды от входной точки до хендлера.
 - `docfx_project/docs/guides/development.md` — как добавить команду и прогнать тесты.
 - `docfx_project/docs/guides/routers.md` — роутеры и декораторы.
-- `deploy/README.md` — установка на Linux, обновление, диагностика.
+- `deploy/README.md` — установка на Linux, обновление, диагностика, резервные копии.
+- `docfx_project/docs/security.md` — модель угроз: что защищаем, что осознанно не
+  защищено, как запускать безопасно.
 
 ## Лицензия
 

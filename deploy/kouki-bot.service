@@ -1,0 +1,39 @@
+[Unit]
+Description=Kouki Telegram bot
+Documentation=file:///opt/kouki/app/deploy/README.md
+# Боту нужен сервер: ждём сеть и стартуем после самого сервера.
+After=network-online.target kouki.service
+Wants=network-online.target
+PartOf=kouki.service
+
+[Service]
+Type=simple
+User=kouki
+Group=kouki
+WorkingDirectory=/opt/kouki/app/bot
+SyslogIdentifier=kouki-bot
+Environment=DOTNET_ENVIRONMENT=Production
+EnvironmentFile=/etc/kouki/bot.env
+
+ExecStart=/usr/bin/dotnet /opt/kouki/app/bot/Kouki.Kagedama.Bot.dll
+
+Restart=on-failure
+RestartSec=10
+# Bot API Telegram — не наш сервис: падение не должно крутиться в цикле каждые 5 секунд.
+StartLimitIntervalSec=300
+StartLimitBurst=5
+TimeoutStopSec=20
+KillSignal=SIGINT
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+ReadWritePaths=/var/lib/kouki
+
+[Install]
+WantedBy=multi-user.target

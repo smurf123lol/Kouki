@@ -64,6 +64,60 @@ curl -H "Authorization: Bearer $(sudo grep '^Kouki__Token=' /etc/kouki/kouki.env
 остановит старт с сообщением, какая именно настройка виновата (типичная ошибка
 переноса — «сервер запустился, а база пустая»).
 
+## Telegram-бот (необязательно)
+
+Бот — отдельный процесс в том же артефакте, в подкаталоге `bot/` (у него свой
+`appsettings.json`). Ставится флагом:
+
+```bash
+sudo ./deploy/install.sh /tmp/kouki-publish --with-bot --bot-token 123456:ABC-DEF
+```
+
+Появляется `/etc/kouki/bot.env` (640, `root:kouki`) и юнит `kouki-bot.service`,
+который стартует после `kouki.service`. Токен бота спрашивается у `@BotFather`;
+токен сервера подставляется из `/etc/kouki/kouki.env`, адрес — `http://127.0.0.1:<порт>`.
+
+Если бот уже был установлен, env не перезаписывается (токен не потеряется при
+обновлении артефакта): меняйте `/etc/kouki/bot.env` руками и делайте
+`systemctl restart kouki-bot`.
+
+Проверка: `journalctl -u kouki-bot -n 30 --no-pager` — при старте бот пишет
+`Бот Kouki запущен`; на 409 (вебхук у другого процесса) он спрашивает
+`getWebhookInfo` и выходит с кодом 2, а не крутит цикл.
+
+## MCP-сервер (для агента на любой машине)
+
+`Kagedama.mcp` — не служба, а stdio-процесс: его запускает клиент (плагин
+`dsh-kouki` в DeepSeek Harness, `claude mcp add`, любой MCP-клиент). В артефакте
+он лежит в подкаталоге `mcp/`, и на сервере ему нужен только доступ к базе:
+
+```bash
+dotnet /opt/kouki/app/mcp/Kagedama.mcp.dll --database=/var/lib/kouki/db/kouki.sqlite
+```
+
+Удобнее — через окружение, чтобы плагин не знал пути:
+
+```bash
+Kouki__DatabasePath=/var/lib/kouki/db/kouki.sqlite dotnet /opt/kouki/app/mcp/Kagedama.mcp.dll
+```
+
+База общая с сервером (WAL разрешает писать обоим), но `busy_timeout` у MCP —
+5 секунд: при долгой транзакции приёма инструмент подождёт, а не упадёт.
+Если MCP живёт на другой машине, базу ему не отдают — вместо этого агент ходит
+через HTTP (`/api/intake`, `/api/tasks`).
+
+## Резервные копии
+
+```bash
+# база: согласованный снимок (SQLite .backup, а не cp — там WAL)
+sudo -u kouki sqlite3 /var/lib/kouki/db/kouki.sqlite ".backup '/var/lib/kouki/db/kouki-$(date +%F).sqlite'"
+# аудио и модели — обычным rsync
+sudo rsync -a /var/lib/kouki/audio/ /backup/kouki/audio/
+```
+
+Ежедневно — по cron/systemd-timer; хранить 7–14 снимков. Восстановление:
+остановить службу, подменить `kouki.sqlite`, поднять службу.
+
 ## Обновление
 
 ```bash
