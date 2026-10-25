@@ -1,0 +1,28 @@
+# Kouki за https с публичным сертификатом (KOUKI_HTTPS_MODE=acme).
+#
+# Нужен домен, указывающий на этот сервер (A-запись для внешнего IP или
+# локальный DNS), и открытый наружу порт 80/443 хотя бы на время выпуска.
+# Сертификат Caddy продлевает сам; при выпуске через DNS-01 интернет-доступа
+# к серверу не требуется, но нужен плагин DNS-провайдера.
+#
+# Адрес сайта берётся из KOUKI_DOMAIN, почта для ACME — из KOUKI_ACME_EMAIL.
+# Установщик отказывается включать acme с пустыми значениями: без них Caddy
+# выдаёт невнятную ошибку разбора, а не «забыли домен».
+
+{
+	admin off
+}
+
+:80 {
+	redir https://{host}{uri} permanent
+}
+
+{$KOUKI_DOMAIN} {
+	tls {$KOUKI_ACME_EMAIL}
+	encode zstd gzip
+	reverse_proxy {$KOUKI_UPSTREAM:127.0.0.1:5300}
+	log {
+		output file /var/log/caddy/kouki-access.log
+		format console
+	}
+}
