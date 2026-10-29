@@ -97,20 +97,37 @@ public sealed class OpenAiChatAnswerer : IAnswerer
         }
     }
 
-    private string BuildBody(string question)
+    private string BuildBody(string question) => BuildPayload(_options, question).ToJsonString();
+
+    /// <summary>Собирает тело запроса <c>/chat/completions</c> (отдельно — чтобы покрыть тестом).</summary>
+    public static JsonObject BuildPayload(KotaeOptions options, string question)
     {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentException.ThrowIfNullOrWhiteSpace(question);
+
         var payload = new JsonObject
         {
-            ["model"] = _options.ResolveModel(),
+            ["model"] = options.ResolveModel(),
             ["messages"] = new JsonArray(
-                new JsonObject { ["role"] = "system", ["content"] = _options.SystemPrompt },
+                new JsonObject { ["role"] = "system", ["content"] = options.SystemPrompt },
                 new JsonObject { ["role"] = "user", ["content"] = question }),
-            ["max_tokens"] = _options.MaxOutputTokens,
+            ["max_tokens"] = options.MaxOutputTokens,
             ["temperature"] = 0.4,
             ["stream"] = false,
         };
 
-        return payload.ToJsonString();
+        if (options.DisableThinking)
+        {
+            // llama.cpp отдаёт эти ключи шаблону чата модели: выключает размышление
+            // и включает «разговорный» режим — ответ сразу короткой фразой.
+            payload["chat_template_kwargs"] = new JsonObject
+            {
+                ["enable_thinking"] = false,
+                ["conversational_mode"] = true,
+            };
+        }
+
+        return payload;
     }
 
     private static string ExtractText(string body)
@@ -129,6 +146,13 @@ public sealed class OpenAiChatAnswerer : IAnswerer
         if (!string.IsNullOrWhiteSpace(content))
         {
             return content.Trim();
+        }
+
+        var reasoning = root?["choices"]?[0]?["message"]?["reasoning_content"]?.GetValue<string>();
+        if (!string.IsNullOrWhiteSpace(reasoning))
+        {
+            throw new AnswererException(
+                "модель только рассуждала и не дала ответа — включите Kouki:Answerer:DisableThinking");
         }
 
         var finish = root?["choices"]?[0]?["finish_reason"]?.GetValue<string>();

@@ -61,6 +61,14 @@ public static class IntakeReplyFormatter
 
     private static string FormatTask(IntakeResponseDto response)
     {
+        // Вопрос («ask») создаёт задачу-запись, но человеку нужен ответ модели, а не статус.
+        if (response.Result is JsonObject payload
+            && payload["answer"] is JsonValue answer
+            && !string.IsNullOrWhiteSpace(answer.ToString()))
+        {
+            return answer.ToString();
+        }
+
         var lines = new List<string>
         {
             $"Задача: {response.Task!.Title}",

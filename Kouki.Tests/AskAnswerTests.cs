@@ -189,4 +189,49 @@ public sealed class AskAnswerTests
         Assert.Equal("https://generativelanguage.googleapis.com/v1beta", options.ResolveEndpoint());
         Assert.StartsWith("gemini-", options.ResolveModel());
     }
+
+    [Theory]
+    [InlineData("http://127.0.0.1:8080/v1")]
+    [InlineData("http://localhost:8080/v1")]
+    [InlineData("http://192.168.1.157:8080/v1")]
+    [InlineData("http://10.0.0.5:8080/v1")]
+    public void A_local_model_may_speak_plain_http(string endpoint)
+    {
+        var options = new KotaeOptions
+        {
+            Provider = KotaeProvider.OpenAi,
+            ApiKey = "local",
+            Endpoint = endpoint,
+            Model = "nemotron",
+        };
+
+        Assert.Null(options.Validate());
+    }
+
+    [Fact]
+    public void A_remote_answerer_must_use_https()
+    {
+        var options = new KotaeOptions
+        {
+            Provider = KotaeProvider.OpenAi,
+            ApiKey = "test-key",
+            Endpoint = "http://api.example.com/v1",
+        };
+
+        Assert.Contains("https", options.Validate());
+    }
+
+    [Fact]
+    public void Thinking_is_off_only_when_asked()
+    {
+        var quiet = new KotaeOptions { Provider = KotaeProvider.OpenAi, ApiKey = "local", DisableThinking = true };
+        var loud = new KotaeOptions { Provider = KotaeProvider.OpenAi, ApiKey = "local" };
+
+        var quietBody = OpenAiChatAnswerer.BuildPayload(quiet, "Сколько варить яйцо?");
+        var loudBody = OpenAiChatAnswerer.BuildPayload(loud, "Сколько варить яйцо?");
+
+        Assert.False(quietBody["chat_template_kwargs"]!["enable_thinking"]!.GetValue<bool>());
+        Assert.True(quietBody["chat_template_kwargs"]!["conversational_mode"]!.GetValue<bool>());
+        Assert.Null(loudBody["chat_template_kwargs"]);
+    }
 }

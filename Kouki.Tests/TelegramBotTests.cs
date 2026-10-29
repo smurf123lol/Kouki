@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using Kouki.Kagedama.Bot;
@@ -293,6 +293,24 @@ public sealed class TelegramBotTests
         Assert.Contains("выполнена", reply, StringComparison.Ordinal);
         Assert.Contains("list_tasks", reply, StringComparison.Ordinal);
         Assert.DoesNotContain("неуверенно", reply, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Reply_returns_the_answer_to_a_question()
+    {
+        var response = new IntakeResponseDto(
+            new IntakeTaskDto(Guid.NewGuid(), "сколько варить яйцо", "new", "telegram", null),
+            new IntakeIntentDto("ask", 1d, Confident: true, "rules-v1+session"),
+            Command: "ask",
+            Executed: true,
+            Error: null,
+            Outcome: "executed",
+            Result: System.Text.Json.Nodes.JsonNode.Parse(
+                "{\"answer\":\"Варить 3–4 минуты.\",\"stub\":false,\"answerer\":\"openai:qwen3\"}"));
+
+        string reply = IntakeReplyFormatter.Format(response);
+
+        Assert.Equal("Варить 3–4 минуты.", reply);
     }
 
     [Fact]

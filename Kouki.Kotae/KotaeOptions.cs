@@ -57,6 +57,17 @@ public sealed class KotaeOptions
         "Ты — Kouki, голосовой ассистент. Отвечай по-русски, коротко и по делу: " +
         "две-три фразы, без списков и без markdown. Если не знаешь — скажи прямо.";
 
+    /// <summary>
+    /// Просит модель не рассуждать вслух (<c>chat_template_kwargs.enable_thinking = false</c>).
+    /// </summary>
+    /// <remarks>
+    /// Нужно локальным «думающим» моделям вроде Nemotron: с включённым размышлением они
+    /// кладут в <c>content</c> английский план решения, а на голосовой станции это
+    /// читается как абзац бессвязной речи. Флаг понимает llama.cpp (шаблон чата модели),
+    /// остальные провайдеры молча игнорируют лишний ключ.
+    /// </remarks>
+    public bool DisableThinking { get; set; }
+
     /// <summary>Модель с подставленным умолчанием провайдера.</summary>
     public string ResolveModel()
         => string.IsNullOrWhiteSpace(Model)
@@ -104,9 +115,16 @@ public sealed class KotaeOptions
             return "не задана модель: Kouki:Answerer:Model";
         }
 
-        if (!Uri.TryCreate(ResolveEndpoint(), UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps)
+        if (!Uri.TryCreate(ResolveEndpoint(), UriKind.Absolute, out var uri))
         {
-            return "Endpoint должен быть абсолютным https-адресом";
+            return "Endpoint должен быть абсолютным адресом";
+        }
+
+        // Наружу — только https: приватный текст нельзя гонять открытым текстом.
+        // Локальная модель (llama-server, ollama) живёт на loopback и там http нормален.
+        if (uri.Scheme != Uri.UriSchemeHttps && !IsLocal(uri))
+        {
+            return "Endpoint должен быть https-адресом (http разрешён только для 127.0.0.1/localhost)";
         }
 
         if (TimeoutSeconds is < 1 or > 120)
@@ -120,5 +138,24 @@ public sealed class KotaeOptions
         }
 
         return null;
+    }
+
+    /// <summary>Локальный адрес: loopback или частная сеть — там http допустим.</summary>
+    private static bool IsLocal(Uri uri)
+        => uri.IsLoopback
+           || uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+           || (uri.HostNameType == UriHostNameType.IPv4 && IsPrivateIpv4(uri.Host));
+
+    private static bool IsPrivateIpv4(string host)
+    {
+        var parts = host.Split('.');
+        if (parts.Length != 4 || !byte.TryParse(parts[0], out var a) || !byte.TryParse(parts[1], out var b))
+        {
+            return false;
+        }
+
+        return a == 10
+               || (a == 192 && b == 168)
+               || (a == 172 && b is >= 16 and <= 31);
     }
 }
