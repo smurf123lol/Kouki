@@ -96,6 +96,33 @@ public sealed class IntakeTests
     }
 
     [Fact]
+    public async Task Reminder_phrase_creates_a_reminder_with_the_time_cut_out()
+    {
+        using var server = new ServerFixture();
+
+        IntakeResult result = await server.Intake.IntakeAsync("напомни через 20 минут полить цветы", "telegram");
+
+        Assert.Equal("add_reminder", result.Route.CommandName);
+        Assert.True(
+            result.AutoExecuted,
+            $"error={result.Route.Error}; intent={result.Route.Intent.Intent}; result={result.Route.Result?.ToJsonString()}; outcome={result.Outcome}");
+
+        JsonNode? payload = result.Route.Result;
+        Assert.NotNull(payload);
+        Assert.True(payload!["created"]!.GetValue<bool>());
+        Assert.Equal("полить цветы", payload["text"]!.GetValue<string>());
+        Assert.Equal("telegram", payload["source"]?.GetValue<string>());
+
+        // Напоминание живо и ждёт доставки в боте.
+        IReadOnlyList<ReminderRecord> open = await server.Provider
+            .GetRequiredService<IReminderStore>()
+            .ListAsync(openOnly: true, limit: 10);
+
+        Assert.Single(open);
+        Assert.Equal(ReminderStates.Pending, open[0].State);
+    }
+
+    [Fact]
     public async Task Session_hint_does_not_erase_the_classifier_verdict()
     {
         using var server = new ServerFixture();
@@ -323,6 +350,8 @@ public sealed class IntakeTests
             services.AddShimiContext();
             services.AddYasabi(options => options.Source = "test");
             services.AddKagedamaData(DatabasePath);
+            services.AddSingleton(TimeProvider.System);
+            services.AddSingleton(TimeZoneInfo.Local);
             services.AddSingleton(sp => new TaskIntakeService(
                 sp.GetRequiredService<IIntentClassifier>(),
                 sp.GetRequiredService<IIntentRouter>(),

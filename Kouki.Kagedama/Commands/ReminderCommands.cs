@@ -78,6 +78,7 @@ public sealed class AddReminderHandler : ICommandHandler<AddReminderCommand>
             ["dueAt"] = record.DueAt.ToString("O", CultureInfo.InvariantCulture),
             ["dueText"] = ReminderTime.Describe(record.DueAt, now, _zone, record.Repeat),
             ["repeat"] = record.Repeat,
+            ["source"] = record.Source,
             ["taskId"] = record.TaskId?.ToString(),
         };
     }

@@ -70,7 +70,7 @@ public sealed class ReminderCommandTests : IDisposable
             new JsonObject { ["text"] = "напомни через 20 минут позвонить маме" });
 
         Assert.True(result!["created"]!.GetValue<bool>());
-        Assert.Equal("напомни позвонить маме", result["text"]!.GetValue<string>());
+        Assert.Equal("позвонить маме", result["text"]!.GetValue<string>());
         Assert.Equal("сегодня в 09:20", result["dueText"]!.GetValue<string>());
     }
 

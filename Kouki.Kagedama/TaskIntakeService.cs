@@ -447,6 +447,20 @@ public sealed class TaskIntakeService
             };
         }
 
+        if (string.Equals(intent.Intent, "add_reminder", StringComparison.OrdinalIgnoreCase))
+        {
+            // Фразу разбирает ReminderTime: «напомни через 20 минут полить цветы» —
+            // время отделяется от текста уже в команде, приём лишь передаёт фразу.
+            return intent with
+            {
+                Slots = new JsonObject
+                {
+                    ["text"] = text,
+                    ["source"] = source,
+                },
+            };
+        }
+
         if (!string.Equals(intent.Intent, "complete_task", StringComparison.OrdinalIgnoreCase))
         {
             return intent;

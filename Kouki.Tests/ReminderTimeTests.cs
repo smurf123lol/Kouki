@@ -21,7 +21,7 @@ public sealed class ReminderTimeTests
         Assert.True(ReminderTime.TryParse("напомни через 20 минут позвонить маме", Now, Zone, out ParsedReminder parsed));
 
         Assert.Equal(Now.AddMinutes(20).ToUniversalTime(), parsed.DueAt);
-        Assert.Equal("напомни позвонить маме", parsed.Text);
+        Assert.Equal("позвонить маме", parsed.Text);
         Assert.Null(parsed.Repeat);
     }
 

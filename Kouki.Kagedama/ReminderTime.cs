@@ -314,6 +314,37 @@ public static class ReminderTime
         string cleaned = Regex.Replace(text, @"\s{2,}", " ").Trim();
         cleaned = Regex.Replace(cleaned, @"^[,.;:!?\-–—]+\s*", string.Empty);
         cleaned = Regex.Replace(cleaned, @"\s*[,.;:!?\-–—]+$", string.Empty);
+
+        // Глагол просьбы — не часть текста напоминания: «напомни через 20 минут полить
+        // цветы» → «полить цветы». Слова снимаем по одному, пока они стоят в начале.
+        cleaned = Regex.Replace(cleaned, @"^\s*remind\s+me\s+(?:to\s+)?", string.Empty, RegexOptions.IgnoreCase);
+
+        string[] markers = { "напомни-ка", "напомни", "напомнить", "поставь", "создай", "сделай", "мне", "напоминание", "о", "про" };
+
+        bool trimmed = true;
+        while (trimmed)
+        {
+            trimmed = false;
+
+            foreach (string marker in markers)
+            {
+                if (!cleaned.StartsWith(marker, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                int after = marker.Length;
+                if (after < cleaned.Length && char.IsLetterOrDigit(cleaned[after]))
+                {
+                    continue;
+                }
+
+                cleaned = cleaned[after..].TrimStart(' ', ',', ':', ';', '-', '—');
+                trimmed = true;
+                break;
+            }
+        }
+
         return cleaned.Trim();
     }
 }
