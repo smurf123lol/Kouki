@@ -8,6 +8,13 @@ public enum KotaeProvider
 
     /// <summary>Google AI Studio / Gemini API (ключ из <c>aistudio.google.com</c>).</summary>
     Gemini = 1,
+
+    /// <summary>
+    /// Любой сервис с OpenAI-совместимым <c>/chat/completions</c>: DeepSeek, Mistral,
+    /// OpenRouter, свой шлюз. Практичнее Gemini: тот отказывает по региону
+    /// («User location is not supported for the API use»).
+    /// </summary>
+    OpenAi = 2,
 }
 
 /// <summary>
@@ -21,17 +28,23 @@ public enum KotaeProvider
 /// </remarks>
 public sealed class KotaeOptions
 {
+    /// <summary>Адрес Gemini API по умолчанию.</summary>
+    public const string GeminiEndpoint = "https://generativelanguage.googleapis.com/v1beta";
+
+    /// <summary>Адрес OpenAI-совместимого API по умолчанию (DeepSeek).</summary>
+    public const string OpenAiEndpoint = "https://api.deepseek.com/v1";
+
     /// <summary>Провайдер. По умолчанию выключен.</summary>
     public KotaeProvider Provider { get; set; } = KotaeProvider.None;
 
     /// <summary>Ключ API провайдера.</summary>
     public string? ApiKey { get; set; }
 
-    /// <summary>Модель. Для Gemini — <c>gemini-2.5-flash</c> (быстрая и дешёвая).</summary>
-    public string Model { get; set; } = "gemini-2.5-flash";
+    /// <summary>Модель; <c>null</c> — взять умолчание провайдера.</summary>
+    public string? Model { get; set; }
 
-    /// <summary>Базовый адрес API (без последней части пути).</summary>
-    public string Endpoint { get; set; } = "https://generativelanguage.googleapis.com/v1beta";
+    /// <summary>Базовый адрес API; <c>null</c> — взять умолчание провайдера.</summary>
+    public string? Endpoint { get; set; }
 
     /// <summary>Сколько ждать ответа.</summary>
     public int TimeoutSeconds { get; set; } = 20;
@@ -44,6 +57,28 @@ public sealed class KotaeOptions
         "Ты — Kouki, голосовой ассистент. Отвечай по-русски, коротко и по делу: " +
         "две-три фразы, без списков и без markdown. Если не знаешь — скажи прямо.";
 
+    /// <summary>Модель с подставленным умолчанием провайдера.</summary>
+    public string ResolveModel()
+        => string.IsNullOrWhiteSpace(Model)
+            ? Provider switch
+            {
+                KotaeProvider.Gemini => "gemini-3.8-flash",
+                KotaeProvider.OpenAi => "deepseek-chat",
+                _ => string.Empty,
+            }
+            : Model.Trim();
+
+    /// <summary>Адрес API с подставленным умолчанием провайдера.</summary>
+    public string ResolveEndpoint()
+        => string.IsNullOrWhiteSpace(Endpoint)
+            ? Provider switch
+            {
+                KotaeProvider.Gemini => GeminiEndpoint,
+                KotaeProvider.OpenAi => OpenAiEndpoint,
+                _ => string.Empty,
+            }
+            : Endpoint.Trim().TrimEnd('/');
+
     /// <summary>
     /// Проверяет настройки и объясняет, что не так. <c>null</c> — всё готово.
     /// </summary>
@@ -54,17 +89,22 @@ public sealed class KotaeOptions
             return "ответчик выключен: Kouki:Answerer:Provider = None";
         }
 
-        if (string.IsNullOrWhiteSpace(ApiKey))
+        if (!Enum.IsDefined(Provider))
         {
-            return "не задан ключ: Kouki:Answerer:ApiKey";
+            return $"неизвестный провайдер: {(int)Provider}";
         }
 
-        if (string.IsNullOrWhiteSpace(Model))
+        if (string.IsNullOrWhiteSpace(ApiKey))
+        {
+            return "не задан ключ: Kouki:Answerer:ApiKey (на сервере — /etc/kouki/kouki.env)";
+        }
+
+        if (string.IsNullOrWhiteSpace(ResolveModel()))
         {
             return "не задана модель: Kouki:Answerer:Model";
         }
 
-        if (!Uri.TryCreate(Endpoint, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps)
+        if (!Uri.TryCreate(ResolveEndpoint(), UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps)
         {
             return "Endpoint должен быть абсолютным https-адресом";
         }

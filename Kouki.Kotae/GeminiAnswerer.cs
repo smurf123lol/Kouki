@@ -40,7 +40,7 @@ public sealed class GeminiAnswerer : IAnswerer
     public string? UnavailableReason => _problem;
 
     /// <inheritdoc />
-    public string Signature => $"gemini:{_options.Model}";
+    public string Signature => $"gemini:{_options.ResolveModel()}";
 
     /// <inheritdoc />
     public async Task<Answer> AnswerAsync(string question, CancellationToken cancellationToken = default)
@@ -55,7 +55,7 @@ public sealed class GeminiAnswerer : IAnswerer
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(_options.TimeoutSeconds));
 
-        var url = $"{_options.Endpoint.TrimEnd('/')}/models/{Uri.EscapeDataString(_options.Model)}:generateContent";
+        var url = $"{_options.ResolveEndpoint()}/models/{Uri.EscapeDataString(_options.ResolveModel())}:generateContent";
         var stopwatch = Stopwatch.StartNew();
 
         using var request = new HttpRequestMessage(HttpMethod.Post, url)

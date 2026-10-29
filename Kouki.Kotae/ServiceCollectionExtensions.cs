@@ -28,10 +28,17 @@ public static class ServiceCollectionExtensions
         {
             var settings = sp.GetRequiredService<KotaeOptions>();
             var problem = settings.Validate();
+            if (problem is not null)
+            {
+                return new DisabledAnswerer(problem);
+            }
 
-            return problem is null
-                ? new GeminiAnswerer(settings)
-                : new DisabledAnswerer(problem);
+            return settings.Provider switch
+            {
+                KotaeProvider.Gemini => new GeminiAnswerer(settings),
+                KotaeProvider.OpenAi => new OpenAiChatAnswerer(settings),
+                _ => new DisabledAnswerer($"провайдер выключен: {settings.Provider}"),
+            };
         });
 
         return services;

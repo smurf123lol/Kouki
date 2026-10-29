@@ -133,4 +133,60 @@ public sealed class AskAnswerTests
 
         Assert.Contains("https", options.Validate());
     }
+
+    [Fact]
+    public void OpenAi_provider_falls_back_to_deepseek_defaults()
+    {
+        var options = new KotaeOptions
+        {
+            Provider = KotaeProvider.OpenAi,
+            ApiKey = "test-key",
+        };
+
+        Assert.Null(options.Validate());
+        Assert.Equal("deepseek-chat", options.ResolveModel());
+        Assert.Equal("https://api.deepseek.com/v1", options.ResolveEndpoint());
+        Assert.Equal("openai:deepseek-chat", new OpenAiChatAnswerer(options).Signature);
+    }
+
+    [Fact]
+    public void A_trailing_slash_in_the_endpoint_does_not_double_up()
+    {
+        var options = new KotaeOptions
+        {
+            Provider = KotaeProvider.OpenAi,
+            ApiKey = "test-key",
+            Endpoint = "https://api.mistral.ai/v1/",
+            Model = "mistral-small-latest",
+        };
+
+        Assert.Null(options.Validate());
+        Assert.Equal("https://api.mistral.ai/v1", options.ResolveEndpoint());
+        Assert.Equal("mistral-small-latest", options.ResolveModel());
+    }
+
+    [Fact]
+    public void An_unknown_provider_number_is_reported()
+    {
+        var options = new KotaeOptions
+        {
+            Provider = (KotaeProvider)99,
+            ApiKey = "test-key",
+        };
+
+        Assert.Contains("неизвестный провайдер", options.Validate());
+    }
+
+    [Fact]
+    public void Gemini_keeps_its_own_default_endpoint()
+    {
+        var options = new KotaeOptions
+        {
+            Provider = KotaeProvider.Gemini,
+            ApiKey = "test-key",
+        };
+
+        Assert.Equal("https://generativelanguage.googleapis.com/v1beta", options.ResolveEndpoint());
+        Assert.StartsWith("gemini-", options.ResolveModel());
+    }
 }
