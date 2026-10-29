@@ -124,10 +124,14 @@ install -d -o "$USER_NAME" -g "$USER_NAME" -m 750 "$DATA_DIR" "$DATA_DIR/db" "$D
 install -d -o root -g "$USER_NAME" -m 750 "$CONF_DIR"
 
 echo "== артефакт: $SOURCE -> $APP_DIR"
+# Каталоги других сервисов живут внутри $APP_DIR, но публикуются отдельно:
+# `bot/` — kouki-bot.service, `mcp/` — MCP-сервер. Без исключений `--delete`
+# стирал их при каждом обновлении сервера, и бот молча переставал работать
+# (systemd падал на «Changing to the requested working directory failed»).
 if command -v rsync >/dev/null 2>&1; then
-    rsync -a --delete --exclude 'appsettings.Development.json' "$SOURCE"/ "$APP_DIR"/
+    rsync -a --delete --exclude 'appsettings.Development.json' --exclude 'bot/' --exclude 'mcp/' "$SOURCE"/ "$APP_DIR"/
 else
-    find "$APP_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+    find "$APP_DIR" -mindepth 1 -maxdepth 1 ! -name bot ! -name mcp -exec rm -rf {} +
     cp -a "$SOURCE"/. "$APP_DIR"/
 fi
 chown -R "$USER_NAME:$USER_NAME" "$APP_DIR"

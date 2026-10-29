@@ -59,7 +59,7 @@ curl -H "Authorization: Bearer $(sudo grep '^Kouki__Token=' /etc/kouki/kouki.env
 
 | Путь | Что |
 | --- | --- |
-| `/opt/kouki/app` | артефакт публикации (перезаписывается при обновлении) |
+| `/opt/kouki/app` | артефакт публикации (перезаписывается при обновлении; каталоги `bot/` и `mcp/` не трогаются — они публикуются отдельно) |
 | `/etc/kouki/kouki.env` | конфигурация, права `640 root:kouki` |
 | `/var/lib/kouki/db/kouki.sqlite` | база (WAL рядом) |
 | `/var/lib/kouki/audio` | записи, старше `AudioRetentionDays` удаляются |
