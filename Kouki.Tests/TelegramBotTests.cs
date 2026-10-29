@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Text;
 using System.Text.Json;
 using Kouki.Kagedama.Bot;
@@ -358,6 +358,49 @@ public sealed class TelegramBotTests
         Assert.Contains("не найдена", reply, StringComparison.Ordinal);
     }
 
+[Fact]
+    public async Task Transport_failure_is_retried_quickly_without_long_pause()
+    {
+        var telegram = new FakeTelegram { TransportFailuresBeforeSuccess = 2 };
+        var intake = new FakeIntake();
+        var options = new BotOptions { BotToken = "123:abc", PollTimeoutSeconds = 1 };
+        var runner = new BotRunner(telegram, intake, options, telegram.Log, telegram.Delay);
+        using var cts = new CancellationTokenSource();
+        telegram.OnEmptyPoll = () => cts.Cancel();
+
+        int exitCode = await runner.RunAsync(cts.Token);
+
+        Assert.Equal(BotRunner.ExitOk, exitCode);
+        Assert.Equal(2, telegram.Delays.Count(delay => delay == TimeSpan.FromMilliseconds(250)));
+        Assert.All(telegram.Delays, delay => Assert.True(delay < TimeSpan.FromSeconds(1)));
+        Assert.Contains(telegram.Logs, line => line.Contains("повтор 1/3", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Broken_channel_falls_back_to_short_backoff()
+    {
+        var telegram = new FakeTelegram { TransportFailuresBeforeSuccess = 100 };
+        var intake = new FakeIntake();
+        var options = new BotOptions { BotToken = "123:abc", PollTimeoutSeconds = 1 };
+        using var cts = new CancellationTokenSource();
+        var runner = new BotRunner(telegram, intake, options, telegram.Log, telegram.Delay);
+        telegram.OnDelay = span =>
+        {
+            if (span >= TimeSpan.FromSeconds(3))
+            {
+                cts.Cancel();
+            }
+        };
+
+        int exitCode = await runner.RunAsync(cts.Token);
+
+        Assert.Equal(BotRunner.ExitOk, exitCode);
+        Assert.Equal(TimeSpan.FromMilliseconds(250), telegram.Delays[0]);
+        Assert.Equal(TimeSpan.FromMilliseconds(250), telegram.Delays[1]);
+        Assert.True(telegram.Delays[2] <= TimeSpan.FromSeconds(6), "backoff не должен превышать 6 секунд");
+        Assert.Contains(telegram.Logs, line => line.Contains("сеть недоступна", StringComparison.Ordinal));
+    }
+
     private static async Task<int> RunBotAsync(FakeTelegram telegram, FakeIntake intake)
     {
         var options = new BotOptions { BotToken = "123:abc", PollTimeoutSeconds = 1 };
@@ -414,9 +457,19 @@ public sealed class TelegramBotTests
 
         public Action? OnEmptyPoll { get; set; }
 
+        public int TransportFailuresBeforeSuccess { get; set; }
+
+        public Action<TimeSpan>? OnDelay { get; set; }
+
         public Task<TelegramUpdatesResult> GetUpdatesAsync(long offset, int timeoutSeconds, CancellationToken cancellationToken = default)
         {
-            if (UpdatesQueue.Count > 0)
+            if (TransportFailuresBeforeSuccess > 0)
+            {
+                TransportFailuresBeforeSuccess--;
+                throw new HttpRequestException("Соединение закрыто удалённым хостом");
+            }
+
+if (UpdatesQueue.Count > 0)
             {
                 return Task.FromResult(UpdatesQueue.Dequeue());
             }
@@ -440,6 +493,7 @@ public sealed class TelegramBotTests
         public Task Delay(TimeSpan span, CancellationToken cancellationToken)
         {
             Delays.Add(span);
+            OnDelay?.Invoke(span);
             return Task.CompletedTask;
         }
     }
