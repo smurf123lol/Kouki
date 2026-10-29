@@ -1,4 +1,5 @@
-namespace Kouki.Kagedama.Bot;
+﻿namespace Kouki.Kagedama.Bot;
+using System.Globalization;
 
 /// <summary>
 /// Цикл бота: длинный опрос Telegram → приём задач в Kouki → ответ в чат.
@@ -69,6 +70,12 @@ public sealed class BotRunner
     /// </summary>
     private long _lastChatId;
 
+    /// <summary>Чат, уже записанный в файл (чтобы не писать его на каждое сообщение).</summary>
+    private long _savedChatId;
+
+    /// <summary>Файл, где запоминается чат: после перезапуска напоминания идут туда же.</summary>
+    private readonly string? _chatFile;
+
     /// <summary>
     /// Создаёт цикл бота.
     /// </summary>
@@ -77,18 +84,21 @@ public sealed class BotRunner
     /// <param name="options">Настройки.</param>
     /// <param name="log">Куда писать диагностику.</param>
     /// <param name="delay">Пауза (подменяется в тестах, чтобы не ждать секундами).</param>
+    /// <param name="chatFile">Файл, где запоминается чат (пусто — только в памяти).</param>
     public BotRunner(
         ITelegramApi telegram,
         IKoukiIntake kouki,
         BotOptions options,
         Action<string>? log = null,
-        Func<TimeSpan, CancellationToken, Task>? delay = null)
+        Func<TimeSpan, CancellationToken, Task>? delay = null,
+        string? chatFile = null)
     {
         _telegram = telegram ?? throw new ArgumentNullException(nameof(telegram));
         _kouki = kouki ?? throw new ArgumentNullException(nameof(kouki));
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _log = log ?? Console.WriteLine;
         _delay = delay ?? ((span, token) => Task.Delay(span, token));
+        _chatFile = chatFile;
     }
 
     /// <summary>
@@ -102,8 +112,14 @@ public sealed class BotRunner
         int backoffStep = 0;
 
         // После перезапуска чат ещё неизвестен, а напоминание может быть уже созревшим.
-        // Спрашиваем у Telegram последнее обновление — только чтобы узнать чат, не сдвигая offset.
-        await LearnLastChatAsync(cancellationToken).ConfigureAwait(false);
+        // Сначала пробуем вспомнить чат из файла, и лишь потом спрашиваем Telegram.
+        RememberSavedChat();
+
+        if (_lastChatId == 0)
+        {
+            // Спрашиваем у Telegram последнее обновление — только чтобы узнать чат, не сдвигая offset.
+            await LearnLastChatAsync(cancellationToken).ConfigureAwait(false);
+        }
 
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -236,6 +252,7 @@ public sealed class BotRunner
         if (message.ChatId != 0)
         {
             _lastChatId = message.ChatId;
+        RememberChat(message.ChatId);
         }
 
         if (message.IsCallback)
@@ -637,6 +654,66 @@ public sealed class BotRunner
         }
     }
 
+    /// <summary>Вспоминает чат из файла: после перезапуска напоминания идут в тот же чат.</summary>
+    private void RememberSavedChat()
+    {
+        if (string.IsNullOrWhiteSpace(_chatFile))
+        {
+            return;
+        }
+
+        try
+        {
+            if (!File.Exists(_chatFile))
+            {
+                return;
+            }
+
+            string raw = File.ReadAllText(_chatFile).Trim();
+
+            if (long.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out long saved) && saved != 0)
+            {
+                _lastChatId = saved;
+                _log($"чат напоминаний из файла: {_lastChatId}");
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _log($"файл чата недоступен ({ex.GetType().Name}): чат напоминаний узнаю из первого сообщения");
+        }
+    }
+
+    /// <summary>Запоминает чат: в памяти и в файле (если файл настроен).</summary>
+    private void RememberChat(long chatId)
+    {
+        if (chatId == 0 || chatId == _savedChatId)
+        {
+            return;
+        }
+
+        _savedChatId = chatId;
+
+        if (string.IsNullOrWhiteSpace(_chatFile))
+        {
+            return;
+        }
+
+        try
+        {
+            string? dir = Path.GetDirectoryName(_chatFile);
+
+            if (!string.IsNullOrEmpty(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+
+            File.WriteAllText(_chatFile, chatId.ToString(CultureInfo.InvariantCulture));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _log($"не удалось запомнить чат ({ex.GetType().Name}) — напоминания после перезапуска могут не дойти");
+        }
+    }
     private async Task TrySendAsync(
         long chatId,
         string text,

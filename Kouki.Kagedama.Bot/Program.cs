@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Text;
 using Kouki.Kagedama.Bot;
 
@@ -65,7 +65,14 @@ using var serverHttp = new HttpClient(handler, disposeHandler: true)
 
 var telegram = new TelegramApiClient(telegramHttp, options.BotToken, options.TelegramApiUrl);
 var kouki = new KoukiIntakeClient(serverHttp, options.ServerToken, options.Source);
-var runner = new BotRunner(telegram, kouki, options);
+// Чат запоминается в файле: после перезапуска сервиса напоминания идут в тот же чат,
+// а не «в никуда», пока пользователь не напишет снова.
+string chatFile = Environment.GetEnvironmentVariable("KOUKI_CHAT_FILE")
+    ?? (OperatingSystem.IsLinux()
+        ? "/var/lib/kouki/bot-chat.txt"
+        : Path.Combine(AppContext.BaseDirectory, "bot-chat.txt"));
+
+var runner = new BotRunner(telegram, kouki, options, chatFile: chatFile);
 
 Console.WriteLine($"Бот Kouki запущен. Сервер: {options.ServerUrl}. Остановка — Ctrl+C.");
 

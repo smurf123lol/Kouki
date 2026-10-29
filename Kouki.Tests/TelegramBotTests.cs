@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -648,10 +648,57 @@ public sealed class TelegramBotTests
         Assert.Contains(telegram.Posted, posted => posted.Text.Contains("через 10 минут", StringComparison.Ordinal));
     }
 
-    private static async Task<int> RunBotAsync(FakeTelegram telegram, FakeIntake intake)
+    [Fact]
+    public async Task Reminder_reaches_the_saved_chat_after_restart()
+    {
+        string file = Path.Combine(Path.GetTempPath(), "kouki-chat-" + Guid.NewGuid().ToString("N") + ".txt");
+        File.WriteAllText(file, "777");
+        var telegram = new FakeTelegram();
+        var intake = new FakeIntake();
+        intake.DueReminders.Add(new DueReminderDto(Guid.NewGuid(), "выпить воду", "сегодня в 19:00", "sent"));
+
+        try
+        {
+            // Обновлений нет: после перезапуска бот не получал ни одного сообщения.
+            await RunBotAsync(telegram, intake, file);
+
+            (long chatId, string text, InlineKeyboard? _) = Assert.Single(telegram.Posted);
+            Assert.Equal(777, chatId);
+            Assert.Contains("выпить воду", text, StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(file);
+        }
+    }
+
+    [Fact]
+    public async Task Chat_is_remembered_for_the_next_restart()
+    {
+        string file = Path.Combine(Path.GetTempPath(), "kouki-chat-" + Guid.NewGuid().ToString("N") + ".txt");
+        var telegram = new FakeTelegram();
+        var intake = new FakeIntake();
+        telegram.UpdatesQueue.Enqueue(new TelegramUpdatesResult(true, 200, new[] { new TelegramMessage(1, 555, "привет") }));
+
+        try
+        {
+            await RunBotAsync(telegram, intake, file);
+
+            Assert.True(File.Exists(file));
+            Assert.Equal("555", File.ReadAllText(file).Trim());
+        }
+        finally
+        {
+            File.Delete(file);
+        }
+    }
+    private static Task<int> RunBotAsync(FakeTelegram telegram, FakeIntake intake)
+        => RunBotAsync(telegram, intake, chatFile: null);
+
+    private static async Task<int> RunBotAsync(FakeTelegram telegram, FakeIntake intake, string? chatFile)
     {
         var options = new BotOptions { BotToken = "123:abc", PollTimeoutSeconds = 1 };
-        var runner = new BotRunner(telegram, intake, options, telegram.Log, telegram.Delay);
+        var runner = new BotRunner(telegram, intake, options, telegram.Log, telegram.Delay, chatFile);
         using var cts = new CancellationTokenSource();
 
         // Пустая очередь = «новых сообщений нет»; после третьего пустого ответа останавливаем.
