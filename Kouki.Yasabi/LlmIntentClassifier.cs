@@ -21,7 +21,7 @@ public sealed class LlmIntentClassifier : IIntentClassifier
     public const string ModelName = "llm";
 
     /// <summary>Интенты по умолчанию: те же, что понимает сервер.</summary>
-    public static readonly string[] DefaultIntents = ["add_task", "list_tasks", "complete_task", "ask", "chat"];
+    public static readonly string[] DefaultIntents = ["add_task", "list_tasks", "complete_task", "add_reminder", "list_reminders", "complete_reminder", "ask", "chat"];
 
     private static readonly JsonSerializerOptions Serializer = new()
     {

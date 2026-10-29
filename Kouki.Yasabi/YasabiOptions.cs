@@ -32,4 +32,17 @@ public sealed class YasabiOptions
     /// в сравнении роутеров; <see cref="LlmIntentOptions.UseForIntake"/> ставит его в приём.
     /// </summary>
     public LlmIntentOptions Llm { get; set; } = new();
+
+    /// <summary>
+    /// Порог уверенности правил, ниже которого приём спрашивает модель.
+    /// Работает только когда включены <see cref="LlmIntentOptions.Enabled"/> и
+    /// <see cref="LlmIntentOptions.UseForIntake"/> и <see cref="HybridForIntake"/>.
+    /// </summary>
+    public double HybridFallbackBelow { get; set; } = 0.95d;
+
+    /// <summary>
+    /// Собирать ли связку «правила + модель» для приёма: правила отвечают первыми,
+    /// модель подключается только на неуверенных фразах.
+    /// </summary>
+    public bool HybridForIntake { get; set; } = true;
 }

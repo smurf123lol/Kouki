@@ -41,10 +41,19 @@ public static class ServiceCollectionExtensions
             IClassificationJournal journal = sp.GetService<IClassificationJournal>() ?? NullClassificationJournal.Instance;
 
             // Модель в приёме — осознанный выбор: правила быстрее, модель понимает больше
-            // формулировок. Пока не включено, приём идёт через правила.
-            IIntentClassifier inner = intentOptions.Llm is { Enabled: true, UseForIntake: true }
-                ? new LlmIntentClassifier(new HttpClient(), intentOptions.Llm)
-                : sp.GetRequiredService<RuleIntentClassifier>();
+            // формулировок. По умолчанию они работают связкой: правила отвечают первыми,
+            // модель подключается только на фразах, где правила не уверены.
+            IIntentClassifier rules = sp.GetRequiredService<RuleIntentClassifier>();
+            IIntentClassifier inner = rules;
+
+            if (intentOptions.Llm is { Enabled: true, UseForIntake: true })
+            {
+                var llm = new LlmIntentClassifier(new HttpClient(), intentOptions.Llm);
+
+                inner = intentOptions.HybridForIntake
+                    ? new HybridIntentClassifier(rules, llm, intentOptions.HybridFallbackBelow)
+                    : llm;
+            }
 
             return new LoggingIntentClassifier(inner, journal, intentOptions);
         });
@@ -57,12 +66,25 @@ public static class ServiceCollectionExtensions
         // Модель попадает в дашборд сама: он читает каталог с сервера.
         services.TryAddSingleton<IClassifierCatalog>(sp =>
         {
-            var catalog = new ClassifierCatalog().Add("rules", sp.GetRequiredService<RuleIntentClassifier>());
-            var llm = sp.GetRequiredService<LlmIntentOptions>();
+            ClassifierCatalog catalog = new ClassifierCatalog().Add("rules", sp.GetRequiredService<RuleIntentClassifier>());
+            LlmIntentOptions llm = sp.GetRequiredService<LlmIntentOptions>();
 
             if (llm.Enabled)
             {
-                catalog.Add(LlmIntentClassifier.ModelName, new LlmIntentClassifier(new HttpClient(), llm));
+                var llmClassifier = new LlmIntentClassifier(new HttpClient(), llm);
+                catalog.Add(LlmIntentClassifier.ModelName, llmClassifier);
+
+                YasabiOptions intentOptions = sp.GetRequiredService<YasabiOptions>();
+
+                if (llm.UseForIntake && intentOptions.HybridForIntake)
+                {
+                    catalog.Add(
+                        HybridIntentClassifier.ModelName,
+                        new HybridIntentClassifier(
+                            sp.GetRequiredService<RuleIntentClassifier>(),
+                            llmClassifier,
+                            intentOptions.HybridFallbackBelow));
+                }
             }
 
             return catalog;
