@@ -101,6 +101,10 @@ public sealed class BotRunner
         long offset = 0;
         int backoffStep = 0;
 
+        // После перезапуска чат ещё неизвестен, а напоминание может быть уже созревшим.
+        // Спрашиваем у Telegram последнее обновление — только чтобы узнать чат, не сдвигая offset.
+        await LearnLastChatAsync(cancellationToken).ConfigureAwait(false);
+
         while (!cancellationToken.IsCancellationRequested)
         {
             // Напоминание важнее следующего long-poll: пока ждём обновления 25 секунд,
@@ -592,6 +596,33 @@ public sealed class BotRunner
 
         _log($"напоминание {id:D}: не отложено, HTTP {attempt.StatusCode} ({attempt.Detail ?? "-"})");
         await TrySendAsync(chatId, "Не получилось отложить напоминание — попробуй ещё раз.", cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Узнаёт чат по последнему обновлению Telegram (<c>offset = -1</c>), не обрабатывая его.
+    /// Нужно только чтобы доставить напоминание сразу после перезапуска бота.
+    /// </summary>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    private async Task LearnLastChatAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            TelegramUpdatesResult last = await _telegram.GetUpdatesAsync(-1, 0, cancellationToken).ConfigureAwait(false);
+
+            if (last.Ok && last.Updates.Count > 0 && last.Updates[^1].ChatId != 0)
+            {
+                _lastChatId = last.Updates[^1].ChatId;
+                _log($"напоминания пойдут в чат {_lastChatId}");
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or IOException or TaskCanceledException)
+        {
+            _log($"getUpdates(-1): сеть недоступна ({ex.GetType().Name}) — чат напоминаний неизвестен");
+        }
     }
 
     private async Task TrySendAsync(

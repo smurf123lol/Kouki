@@ -566,6 +566,24 @@ public sealed class TelegramBotTests
     }
 
     [Fact]
+    public async Task Reminder_reaches_the_chat_even_without_a_new_message()
+    {
+        var telegram = new FakeTelegram
+        {
+            LastUpdate = new TelegramUpdatesResult(true, 200, new[] { new TelegramMessage(9, 777, "старое сообщение") }),
+        };
+        var intake = new FakeIntake();
+        intake.DueReminders.Add(new DueReminderDto(Guid.NewGuid(), "выключить чайник", "сейчас", "pending"));
+
+        await RunBotAsync(telegram, intake);
+
+        (long chatId, string text, _) = Assert.Single(telegram.Posted);
+        Assert.Equal(777, chatId);
+        Assert.Contains("выключить чайник", text, StringComparison.Ordinal);
+        Assert.Contains(telegram.Logs, line => line.Contains("напоминания пойдут в чат 777", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task Due_reminder_is_sent_to_the_chat_that_wrote_last()
     {
         var telegram = new FakeTelegram();
@@ -690,8 +708,16 @@ public sealed class TelegramBotTests
 
         public Action<TimeSpan>? OnDelay { get; set; }
 
+        public TelegramUpdatesResult LastUpdate { get; set; } = TelegramUpdatesResult.Empty;
+
         public Task<TelegramUpdatesResult> GetUpdatesAsync(long offset, int timeoutSeconds, CancellationToken cancellationToken = default)
         {
+            // offset = -1 — «последнее обновление, не сдвигая очередь»: бот так узнаёт чат после перезапуска.
+            if (offset < 0)
+            {
+                return Task.FromResult(LastUpdate);
+            }
+
             if (TransportFailuresBeforeSuccess > 0)
             {
                 TransportFailuresBeforeSuccess--;
