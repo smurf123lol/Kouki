@@ -71,5 +71,15 @@ public sealed class RuleIntentClassifier : IIntentClassifier
         IntentRule.Strong("list_tasks", @"\b(list|show)\s+(my\s+)?tasks?\b"),
         IntentRule.Strong("complete_task", @"(готово|выполнил\w*|закрой|заверши\w*|сделал\w*)\s+(задач\w*)"),
         IntentRule.Weak("complete_task", @"^(готово|выполнил\w*|сделал\w*)$"),
+
+        // Вопрос. Правило стоит последним и потому проигрывает по весу явным
+        // командам выше: «Покажи мои задачи?» остаётся `list_tasks`, а
+        // «Запиши задачу купить хлеб?» — `add_task`. Знак вопроса сам по себе
+        // слабый признак (0.5): «это же задача?» — не обязательно вопрос к модели.
+        IntentRule.Strong("ask", @"^\s*(что|сколько|как|какой|какая|какие|каков|где|когда|кто|почему|зачем|чем|куда|откуда)\b"),
+        IntentRule.Strong("ask", @"^\s*(можно|есть|правда|верно|нужно)\s+ли\b"),
+        IntentRule.Strong("ask", @"^\s*(спроси|вопрос)\b"),
+        IntentRule.Strong("ask", @"^\s*(what|how|why|when|where|who|which|whose|is|are|can|could|should|does|do|did)\b"),
+        IntentRule.Weak("ask", @"\?\s*$"),
     };
 }

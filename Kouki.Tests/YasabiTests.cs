@@ -28,6 +28,29 @@ public sealed class YasabiTests
         Assert.True(result.IsConfident(0.75));
     }
 
+    [Theory]
+    [InlineData("сколько варить яйцо")]
+    [InlineData("Что посмотреть вечером из классики")]
+    [InlineData("как пройти в библиотеку")]
+    [InlineData("можно ли есть после шести")]
+    [InlineData("why is the sky blue")]
+    public async Task Questions_are_classified_as_ask(string text)
+    {
+        IntentResult result = await new RuleIntentClassifier().ClassifyAsync(text);
+
+        Assert.Equal("ask", result.Intent);
+        Assert.True(result.IsConfident(0.75));
+    }
+
+    [Fact]
+    public async Task Explicit_commands_still_win_over_question_mark()
+    {
+        IntentResult list = await new RuleIntentClassifier().ClassifyAsync("покажи мои задачи?");
+        IntentResult add = await new RuleIntentClassifier().ClassifyAsync("запиши задачу купить хлеб?");
+
+        Assert.Equal("list_tasks", list.Intent);
+        Assert.Equal("add_task", add.Intent);
+    }
     [Fact]
     public async Task Unrelated_text_is_unclassified()
     {
