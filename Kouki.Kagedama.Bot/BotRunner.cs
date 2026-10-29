@@ -1,4 +1,4 @@
-namespace Kouki.Kagedama.Bot;
+﻿namespace Kouki.Kagedama.Bot;
 
 /// <summary>
 /// Цикл бота: длинный опрос Telegram → приём задач в Kouki → ответ в чат.
@@ -29,7 +29,11 @@ public sealed class BotRunner
         + "• сколько минут варить пельмени?\n\n"
         + "Голосовые задачи — через станцию (кнопка «Записать»).";
 
-    private static readonly TimeSpan MaxBackoff = TimeSpan.FromSeconds(30);
+    // Канал с DPI рвёт часть TLS-соединений, поэтому длинная пауза только вредит:
+    // сначала несколько быстрых повторов на новом соединении, и лишь потом backoff.
+    private static readonly TimeSpan MaxBackoff = TimeSpan.FromSeconds(6);
+    private static readonly TimeSpan QuickRetryDelay = TimeSpan.FromMilliseconds(250);
+    private const int QuickRetryAttempts = 3;
     private static readonly TimeSpan ConflictRetryDelay = TimeSpan.FromSeconds(5);
 
     private readonly ITelegramApi _telegram;
@@ -76,9 +80,7 @@ public sealed class BotRunner
 
             try
             {
-                updates = await _telegram
-                    .GetUpdatesAsync(offset, _options.PollTimeoutSeconds, cancellationToken)
-                    .ConfigureAwait(false);
+                updates = await PollWithQuickRetryAsync(offset, cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -126,6 +128,29 @@ public sealed class BotRunner
     /// Возвращает код выхода, если работать дальше нельзя, иначе <c>-1</c>
     /// (пауза уже выдержана внутри).
     /// </summary>
+    /// <summary>
+    /// Опрашивает Telegram, быстро повторяя оборванные соединения: на канале с DPI часть
+    /// TLS-хендшейков обрывается, и ждать секундами вместо повтора бессмысленно.
+    /// </summary>
+    private async Task<TelegramUpdatesResult> PollWithQuickRetryAsync(long offset, CancellationToken cancellationToken)
+    {
+        for (int attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return await _telegram
+                    .GetUpdatesAsync(offset, _options.PollTimeoutSeconds, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (Exception ex) when (attempt < QuickRetryAttempts
+                                       && ex is HttpRequestException or IOException or TaskCanceledException)
+            {
+                _log($"getUpdates: обрыв связи ({ex.GetType().Name}), повтор {attempt}/{QuickRetryAttempts}");
+                await _delay(QuickRetryDelay, cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
     private async Task<int> HandlePollingFailureAsync(
         TelegramUpdatesResult updates,
         int backoffStep,
