@@ -18,6 +18,17 @@ public sealed class BotRunner
     /// <summary>Сервер приёма не принимает текст длиннее: обрезаем до отправки, а не после отказа.</summary>
     public const int MaxTextLength = 2000;
 
+    /// <summary>
+    /// Ответ на команды Telegram (<c>/start</c>, <c>/help</c> и прочие косые черты).
+    /// Команды бота — не задачи: они не уходят на сервер и не попадают в журнал.
+    /// </summary>
+    public const string HelpText =
+        "Я принимаю задачи и вопросы обычным текстом.\n\n"
+        + "• запиши задачу купить хлеб\n"
+        + "• покажи мои задачи\n"
+        + "• сколько минут варить пельмени?\n\n"
+        + "Голосовые задачи — через станцию (кнопка «Записать»).";
+
     private static readonly TimeSpan MaxBackoff = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan ConflictRetryDelay = TimeSpan.FromSeconds(5);
 
@@ -170,6 +181,14 @@ public sealed class BotRunner
         }
 
         string text = message.Text.Trim();
+
+        // /start, /help и любые другие команды — не фразы: отвечаем подсказкой и не создаём задачу.
+        if (text.StartsWith('/'))
+        {
+            await TrySendAsync(message.ChatId, HelpText, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
         bool truncated = text.Length > MaxTextLength;
         if (truncated)
         {

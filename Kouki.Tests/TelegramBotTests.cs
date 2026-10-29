@@ -233,6 +233,23 @@ public sealed class TelegramBotTests
     }
 
     [Fact]
+    public async Task Bot_answers_help_to_slash_commands_without_calling_the_server()
+    {
+        var telegram = new FakeTelegram();
+        telegram.UpdatesQueue.Enqueue(new TelegramUpdatesResult(true, 200, new[] { new TelegramMessage(1, 7, "/start") }));
+        telegram.UpdatesQueue.Enqueue(TelegramUpdatesResult.Empty);
+
+        var intake = new FakeIntake { Attempt = IntakeAttempt.Success(TaskResponse("не должно случиться")) };
+
+        await RunBotAsync(telegram, intake);
+
+        Assert.Empty(intake.Received);
+        string reply = telegram.Sent.Single().Text;
+        Assert.Contains("задачу", reply, StringComparison.Ordinal);
+        Assert.Contains("станцию", reply, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Reply_failure_texts_are_human()
     {
         string unauthorized = IntakeReplyFormatter.FormatFailure(IntakeFailure.Unauthorized, 401);
