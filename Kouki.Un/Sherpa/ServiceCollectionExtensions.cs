@@ -46,4 +46,36 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
+
+    /// <summary>
+    /// Подключает голос (синтез речи) рядом с распознаванием: и то, и другое
+    /// живёт на одних библиотеках sherpa-onnx, поэтому регистрируются вместе.
+    /// </summary>
+    /// <param name="services">Коллекция сервисов.</param>
+    /// <param name="configure">Настройки голоса: каталог модели, скорость.</param>
+    /// <returns>Та же коллекция — для цепочки вызовов.</returns>
+    public static IServiceCollection AddUnSherpaVoice(
+        this IServiceCollection services,
+        Action<SherpaTtsOptions>? configure = null)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        var options = new SherpaTtsOptions();
+        configure?.Invoke(options);
+
+        ServiceDescriptor? placeholder = services.FirstOrDefault(descriptor =>
+            descriptor.ServiceType == typeof(ISpeechSynthesizer) &&
+            descriptor.ImplementationType == typeof(UnavailableSpeechSynthesizer));
+
+        if (placeholder is not null)
+        {
+            services.Remove(placeholder);
+        }
+
+        services.TryAddSingleton(options);
+        services.TryAddSingleton<ISpeechSynthesizer>(sp => new SherpaSpeechSynthesizer(
+            sp.GetRequiredService<SherpaTtsOptions>()));
+
+        return services;
+    }
 }

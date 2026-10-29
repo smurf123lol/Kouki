@@ -51,14 +51,62 @@ public sealed record TelegramWebhookInfo(bool Ok, string? Url, string? LastError
     public bool HasWebhook => !string.IsNullOrWhiteSpace(Url);
 }
 
+/// <summary>Кнопка под сообщением: нажатие приходит как <c>callback_query</c> с тем же кодом.</summary>
+/// <param name="Text">Подпись кнопки.</param>
+/// <param name="CallbackData">Код, который вернётся в <see cref="TelegramMessage.CallbackData"/>.</param>
+public sealed record InlineButton(string Text, string CallbackData);
+
+/// <summary>
+/// Клавиатура под сообщением. Строки — ряды кнопок: Telegram рисует их как есть,
+/// поэтому «Готово» для каждой задачи ставится в свой ряд.
+/// </summary>
+public sealed record InlineKeyboard(IReadOnlyList<IReadOnlyList<InlineButton>> Rows)
+{
+    /// <summary>Одна кнопка в одном ряду.</summary>
+    /// <param name="text">Подпись.</param>
+    /// <param name="callbackData">Код нажатия.</param>
+    public static InlineKeyboard One(string text, string callbackData)
+        => new(new[] { (IReadOnlyList<InlineButton>)new[] { new InlineButton(text, callbackData) } });
+
+    /// <summary>Кнопки по одной в ряд.</summary>
+    /// <param name="buttons">Кнопки в порядке показа.</param>
+    public static InlineKeyboard Column(params InlineButton[] buttons)
+        => new(buttons.Select(b => (IReadOnlyList<InlineButton>)new[] { b }).ToArray());
+
+    /// <summary>Кнопки в один ряд.</summary>
+    /// <param name="buttons">Кнопки в порядке показа.</param>
+    public static InlineKeyboard Row(params InlineButton[] buttons)
+        => new(new[] { (IReadOnlyList<InlineButton>)buttons });
+}
+
 /// <summary>Что бот ждёт от Telegram (позволяет подменять транспорт в тестах).</summary>
 public interface ITelegramApi
 {
     /// <summary>Забирает обновления длинным опросом.</summary>
     Task<TelegramUpdatesResult> GetUpdatesAsync(long offset, int timeoutSeconds, CancellationToken cancellationToken = default);
 
-    /// <summary>Отправляет текст в чат.</summary>
-    Task<TelegramSendResult> SendMessageAsync(long chatId, string text, CancellationToken cancellationToken = default);
+    /// <summary>Отправляет текст в чат, при необходимости с клавиатурой под ним.</summary>
+    /// <param name="chatId">Чат.</param>
+    /// <param name="text">Текст сообщения.</param>
+    /// <param name="keyboard">Клавиатура или <c>null</c>.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    Task<TelegramSendResult> SendMessageAsync(
+        long chatId,
+        string text,
+        InlineKeyboard? keyboard = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Подтверждает нажатие кнопки: без этого Telegram держит «часики» на кнопке,
+    /// сколько бы бот ни считал.
+    /// </summary>
+    /// <param name="callbackQueryId">Идентификатор нажатия.</param>
+    /// <param name="text">Короткая подпись «сделано» (необязательно).</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    Task<TelegramSendResult> AnswerCallbackAsync(
+        string callbackQueryId,
+        string? text = null,
+        CancellationToken cancellationToken = default);
 
     /// <summary>Спрашивает, установлен ли webhook.</summary>
     Task<TelegramWebhookInfo> GetWebhookInfoAsync(CancellationToken cancellationToken = default);

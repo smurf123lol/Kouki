@@ -10,6 +10,9 @@ public sealed record IntakeRequest(string Text, string? Source = null, string? I
 /// <param name="Text">Фраза.</param>
 /// <param name="Classifiers">Имена классификаторов; <c>null</c> — все зарегистрированные.</param>
 public sealed record ClassifyRequest(string Text, List<string>? Classifiers = null);
+/// <summary>Запрос озвучивания: текст, который станция прочитает вслух.</summary>
+/// <param name="Text">Фраза (до 400 символов — длиннее слушать бессмысленно).</param>
+public sealed record SpeechRequest(string Text);
 
 /// <summary>Частичное обновление задачи.</summary>
 public sealed record TaskPatchRequest(string? Status = null, string? Title = null, int? Priority = null);

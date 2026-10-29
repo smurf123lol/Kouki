@@ -12,7 +12,18 @@ namespace Kouki.Kagedama.Bot;
 /// <param name="UpdateId">Идентификатор обновления: по нему двигается offset.</param>
 /// <param name="ChatId">Идентификатор чата.</param>
 /// <param name="Text">Текст сообщения; пусто, если это не текст.</param>
-public sealed record TelegramMessage(long UpdateId, long ChatId, string Text);
+/// <param name="CallbackQueryId">Идентификатор нажатия кнопки (нужен для подтверждения).</param>
+/// <param name="CallbackData">Код нажатой кнопки.</param>
+public sealed record TelegramMessage(
+    long UpdateId,
+    long ChatId,
+    string Text,
+    string? CallbackQueryId = null,
+    string? CallbackData = null)
+{
+    /// <summary>Нажатие кнопки, а не текстовое сообщение.</summary>
+    public bool IsCallback => !string.IsNullOrEmpty(CallbackQueryId) && CallbackData is not null;
+}
 
 /// <summary>
 /// Минимальный клиент Bot API: получение обновлений, отправка текста и проверка webhook.
@@ -94,6 +105,7 @@ public sealed class TelegramApiClient : ITelegramApi
     public async Task<TelegramSendResult> SendMessageAsync(
         long chatId,
         string text,
+        InlineKeyboard? keyboard = null,
         CancellationToken cancellationToken = default)
     {
         var payload = new JsonObject
@@ -102,6 +114,11 @@ public sealed class TelegramApiClient : ITelegramApi
             ["text"] = text,
             ["disable_web_page_preview"] = true,
         };
+
+        if (keyboard is not null)
+        {
+            payload["reply_markup"] = ToReplyMarkup(keyboard);
+        }
 
         using var content = new StringContent(payload.ToJsonString(PayloadOptions), Encoding.UTF8, "application/json");
         using HttpResponseMessage response = await _http
@@ -119,6 +136,69 @@ public sealed class TelegramApiClient : ITelegramApi
             TelegramUpdatesResult failure = Failure(response, document.RootElement);
             return new TelegramSendResult(false, failure.StatusCode, failure.Error, failure.RetryAfter);
         }
+    }
+
+    /// <inheritdoc />
+    public async Task<TelegramSendResult> AnswerCallbackAsync(
+        string callbackQueryId,
+        string? text = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(callbackQueryId);
+
+        var payload = new JsonObject { ["callback_query_id"] = callbackQueryId };
+
+        if (!string.IsNullOrWhiteSpace(text))
+        {
+            payload["text"] = text;
+        }
+
+        using var content = new StringContent(payload.ToJsonString(PayloadOptions), Encoding.UTF8, "application/json");
+        using HttpResponseMessage response = await _http
+            .PostAsync(BuildUri($"bot{_botToken}/answerCallbackQuery"), content, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return new TelegramSendResult(true, (int)response.StatusCode);
+        }
+
+        JsonDocument document = await ReadJsonAsync(response, cancellationToken).ConfigureAwait(false);
+        using (document)
+        {
+            TelegramUpdatesResult failure = Failure(response, document.RootElement);
+            return new TelegramSendResult(false, failure.StatusCode, failure.Error, failure.RetryAfter);
+        }
+    }
+
+    /// <summary>
+    /// Превращает клавиатуру в <c>reply_markup</c> Bot API.
+    /// </summary>
+    /// <param name="keyboard">Клавиатура.</param>
+    /// <returns>JSON для поля <c>reply_markup</c>.</returns>
+    public static JsonObject ToReplyMarkup(InlineKeyboard keyboard)
+    {
+        ArgumentNullException.ThrowIfNull(keyboard);
+
+        var rows = new JsonArray();
+
+        foreach (IReadOnlyList<InlineButton> row in keyboard.Rows)
+        {
+            var buttons = new JsonArray();
+
+            foreach (InlineButton button in row)
+            {
+                buttons.Add(new JsonObject
+                {
+                    ["text"] = button.Text,
+                    ["callback_data"] = button.CallbackData,
+                });
+            }
+
+            rows.Add(buttons);
+        }
+
+        return new JsonObject { ["inline_keyboard"] = rows };
     }
 
     /// <inheritdoc />
@@ -178,8 +258,37 @@ public sealed class TelegramApiClient : ITelegramApi
         foreach (JsonElement update in result.EnumerateArray())
         {
             if (!update.TryGetProperty("update_id", out JsonElement updateIdElement)
-                || !updateIdElement.TryGetInt64(out long updateId)
-                || !update.TryGetProperty("message", out JsonElement message))
+                || !updateIdElement.TryGetInt64(out long updateId))
+            {
+                continue;
+            }
+
+            // Нажатие кнопки: текст пустой, чат берём из сообщения под клавиатурой.
+            if (update.TryGetProperty("callback_query", out JsonElement callback)
+                && callback.ValueKind == JsonValueKind.Object)
+            {
+                if (!callback.TryGetProperty("id", out JsonElement callbackIdElement)
+                    || callbackIdElement.ValueKind != JsonValueKind.String
+                    || !callback.TryGetProperty("data", out JsonElement dataElement)
+                    || dataElement.ValueKind != JsonValueKind.String
+                    || !callback.TryGetProperty("message", out JsonElement owner)
+                    || !owner.TryGetProperty("chat", out JsonElement ownerChat)
+                    || !ownerChat.TryGetProperty("id", out JsonElement ownerChatId)
+                    || !ownerChatId.TryGetInt64(out long ownerChatIdValue))
+                {
+                    continue;
+                }
+
+                messages.Add(new TelegramMessage(
+                    updateId,
+                    ownerChatIdValue,
+                    string.Empty,
+                    callbackIdElement.GetString(),
+                    dataElement.GetString()));
+                continue;
+            }
+
+            if (!update.TryGetProperty("message", out JsonElement message))
             {
                 continue;
             }

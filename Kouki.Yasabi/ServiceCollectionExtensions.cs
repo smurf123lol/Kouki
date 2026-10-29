@@ -31,15 +31,22 @@ public static class ServiceCollectionExtensions
         }
 
         services.TryAddSingleton(options);
+        services.TryAddSingleton(options.Llm);
 
         services.TryAddSingleton(sp => new RuleIntentClassifier(sp.GetRequiredService<YasabiOptions>().Rules));
 
         services.TryAddSingleton<IIntentClassifier>(sp =>
         {
-            var inner = sp.GetRequiredService<RuleIntentClassifier>();
+            var intentOptions = sp.GetRequiredService<YasabiOptions>();
             IClassificationJournal journal = sp.GetService<IClassificationJournal>() ?? NullClassificationJournal.Instance;
 
-            return new LoggingIntentClassifier(inner, journal, sp.GetRequiredService<YasabiOptions>());
+            // Модель в приёме — осознанный выбор: правила быстрее, модель понимает больше
+            // формулировок. Пока не включено, приём идёт через правила.
+            IIntentClassifier inner = intentOptions.Llm is { Enabled: true, UseForIntake: true }
+                ? new LlmIntentClassifier(new HttpClient(), intentOptions.Llm)
+                : sp.GetRequiredService<RuleIntentClassifier>();
+
+            return new LoggingIntentClassifier(inner, journal, intentOptions);
         });
 
         services.TryAddSingleton<IIntentRouter, IntentRouter>();
@@ -47,9 +54,19 @@ public static class ServiceCollectionExtensions
         // Каталог для сравнения роутеров на одной фразе: только настоящие движки.
         // Журналирующая обёртка — не отдельный движок: она классифицирует теми же правилами,
         // а побочно пишет запись в журнал, из-за чего сравнение ещё и портило датасет.
-        // Будущая BERT-модель добавляется сюда же одной строкой, дашборд её увидит сам.
-        services.TryAddSingleton<IClassifierCatalog>(sp => new ClassifierCatalog()
-            .Add("rules", sp.GetRequiredService<RuleIntentClassifier>()));
+        // Модель попадает в дашборд сама: он читает каталог с сервера.
+        services.TryAddSingleton<IClassifierCatalog>(sp =>
+        {
+            var catalog = new ClassifierCatalog().Add("rules", sp.GetRequiredService<RuleIntentClassifier>());
+            var llm = sp.GetRequiredService<LlmIntentOptions>();
+
+            if (llm.Enabled)
+            {
+                catalog.Add(LlmIntentClassifier.ModelName, new LlmIntentClassifier(new HttpClient(), llm));
+            }
+
+            return catalog;
+        });
 
         return services;
     }

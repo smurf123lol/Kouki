@@ -52,6 +52,8 @@ serverOptions.AudioDirectory = KoukiPaths.Resolve(
     serverOptions.AudioDirectory, "audio", nameof(KoukiServerOptions.AudioDirectory), serverOptions.RequireAbsolutePaths);
 serverOptions.SpeechModelDirectory = KoukiPaths.Resolve(
     serverOptions.SpeechModelDirectory, "models", nameof(KoukiServerOptions.SpeechModelDirectory), serverOptions.RequireAbsolutePaths);
+serverOptions.SpeechVoiceDirectory = KoukiPaths.Resolve(
+    serverOptions.SpeechVoiceDirectory, "models/tts", nameof(KoukiServerOptions.SpeechVoiceDirectory), serverOptions.RequireAbsolutePaths);
 
 // Один экземпляр настроек на всё приложение: и IOptions, и прямой резолв дают уже разрешённые пути.
 builder.Services.AddSingleton(serverOptions);
@@ -105,6 +107,11 @@ string databasePath = serverOptions.DatabasePath;
 Kouki.Kotae.KotaeOptions answererOptions = new();
 builder.Configuration.GetSection($"{KoukiHostSettings.SectionName}:Answerer").Bind(answererOptions);
 
+// Классификатор интентов на языковой модели (Kouki:IntentLlm): по умолчанию выключен,
+// потому что правила быстрее; включённый попадает в сравнение, а UseForIntake — в приём.
+Kouki.Yasabi.LlmIntentOptions intentLlmOptions = new();
+builder.Configuration.GetSection($"{KoukiHostSettings.SectionName}:IntentLlm").Bind(intentLlmOptions);
+
 // Одна композиция домена на все хосты: хранилище, команды, контексты, классификатор, приём.
 builder.Services.AddKoukiCore(new KoukiHostSettings
 {
@@ -112,6 +119,7 @@ builder.Services.AddKoukiCore(new KoukiHostSettings
     ConfidenceThreshold = threshold,
     DefaultSource = TaskSources.Api,
     Answerer = answererOptions,
+    IntentLlm = intentLlmOptions,
 });
 builder.Services.AddUbusuna();
 
@@ -121,6 +129,7 @@ builder.Services.AddUbusuna();
 // без распознавания, а не падать на старте — поэтому каталог проверяем до
 // регистрации распознавателя.
 string? speechFallbackReason = null;
+string? voiceFallbackReason = null;
 #if KOUKI_SHERPA
 if (Kouki.Un.SpeechModelCheck.TryValidate(serverOptions.SpeechModelDirectory, out string? modelProblem))
 {
@@ -131,6 +140,19 @@ if (Kouki.Un.SpeechModelCheck.TryValidate(serverOptions.SpeechModelDirectory, ou
             sherpa.ModelDirectory = serverOptions.SpeechModelDirectory;
             sherpa.Language = serverOptions.SpeechLanguage;
         });
+
+    // Голос — та же библиотека: без каталога голоса озвучивание просто выключается,
+    // распознавание при этом продолжает работать.
+    if (Kouki.Un.SpeechModelCheck.TryValidateVoice(serverOptions.SpeechVoiceDirectory, out string? voiceProblem))
+    {
+        Kouki.Un.Sherpa.ServiceCollectionExtensions.AddUnSherpaVoice(
+            builder.Services,
+            voice => voice.VoiceDirectory = serverOptions.SpeechVoiceDirectory);
+    }
+    else
+    {
+        voiceFallbackReason = voiceProblem;
+    }
 }
 else
 {
@@ -180,6 +202,15 @@ app.Logger.LogInformation(
 LogResolvedPath(app.Logger, nameof(KoukiServerOptions.DatabasePath), configuredDatabase, options.DatabasePath);
 LogResolvedPath(app.Logger, nameof(KoukiServerOptions.AudioDirectory), configuredAudio, options.AudioDirectory);
 LogResolvedPath(app.Logger, nameof(KoukiServerOptions.SpeechModelDirectory), configuredModel, options.SpeechModelDirectory);
+
+// Голос может не найтись и в сборке с sherpa: тогда /api/speech отвечает 503,
+// а станция и бот работают как раньше — текстом.
+if (app.Services.GetService<ISpeechSynthesizer>() is Kouki.Un.UnavailableSpeechSynthesizer)
+{
+    app.Logger.LogWarning(
+        "Kouki: озвучивание ответов выключено — {Reason}. /api/speech будет отвечать 503.",
+        voiceFallbackReason ?? "сборка без пакета sherpa-onnx");
+}
 
 // Ловушка, на которую уже наступали: обычная сборка (без -p:KoukiEnableSherpa=true)
 // перезаписывает assets и тихо оставляет заглушку — станция получает 503 и сообщает

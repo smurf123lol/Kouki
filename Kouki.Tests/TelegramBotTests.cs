@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Kouki.Kagedama.Bot;
 
 namespace Kouki.Tests;
@@ -250,6 +251,151 @@ public sealed class TelegramBotTests
     }
 
     [Fact]
+    public async Task Bot_lists_open_tasks_with_done_buttons()
+    {
+        var telegram = new FakeTelegram();
+        telegram.UpdatesQueue.Enqueue(new TelegramUpdatesResult(true, 200, new[] { new TelegramMessage(1, 7, "/tasks") }));
+        telegram.UpdatesQueue.Enqueue(TelegramUpdatesResult.Empty);
+
+        Guid first = Guid.NewGuid();
+        Guid second = Guid.NewGuid();
+
+        var intake = new FakeIntake
+        {
+            TaskList = new TaskListAttempt(true, 200, new[]
+            {
+                new OpenTaskDto(first, "купить хлеб", "new"),
+                new OpenTaskDto(second, "позвонить маме", "in_progress"),
+            }),
+        };
+
+        await RunBotAsync(telegram, intake);
+
+        (long ChatId, string Text, InlineKeyboard? Keyboard) posted = telegram.Posted.Single();
+        Assert.Equal(7, posted.ChatId);
+        Assert.Contains("купить хлеб", posted.Text, StringComparison.Ordinal);
+        Assert.Contains("(в работе)", posted.Text, StringComparison.Ordinal);
+        Assert.NotNull(posted.Keyboard);
+        Assert.Equal(2, posted.Keyboard!.Rows.Count);
+        Assert.Equal("done:" + first.ToString("D"), posted.Keyboard.Rows[0][0].CallbackData);
+        Assert.Equal("позвонить маме", posted.Keyboard.Rows[1][0].Text);
+    }
+
+    [Fact]
+    public async Task Bot_says_when_there_are_no_open_tasks()
+    {
+        var telegram = new FakeTelegram();
+        telegram.UpdatesQueue.Enqueue(new TelegramUpdatesResult(true, 200, new[] { new TelegramMessage(1, 7, "/tasks") }));
+        telegram.UpdatesQueue.Enqueue(TelegramUpdatesResult.Empty);
+
+        await RunBotAsync(telegram, new FakeIntake());
+
+        Assert.Contains("Открытых задач нет", telegram.Posted.Single().Text, StringComparison.Ordinal);
+        Assert.Null(telegram.Posted.Single().Keyboard);
+    }
+
+    [Fact]
+    public async Task Bot_closes_task_when_done_button_pressed()
+    {
+        Guid taskId = Guid.NewGuid();
+        var telegram = new FakeTelegram();
+        telegram.UpdatesQueue.Enqueue(new TelegramUpdatesResult(true, 200, new[]
+        {
+            new TelegramMessage(1, 7, string.Empty, "cb-1", "done:" + taskId.ToString("D")),
+        }));
+        telegram.UpdatesQueue.Enqueue(TelegramUpdatesResult.Empty);
+
+        var intake = new FakeIntake();
+        await RunBotAsync(telegram, intake);
+
+        Assert.Equal(taskId, Assert.Single(intake.Completed));
+        Assert.Contains("cb-1", telegram.Answered);
+        Assert.Contains("закрыта", telegram.Posted.Single().Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Bot_reports_task_that_cannot_be_closed()
+    {
+        var telegram = new FakeTelegram();
+        telegram.UpdatesQueue.Enqueue(new TelegramUpdatesResult(true, 200, new[]
+        {
+            new TelegramMessage(1, 7, string.Empty, "cb-2", "done:" + Guid.NewGuid().ToString("D")),
+        }));
+        telegram.UpdatesQueue.Enqueue(TelegramUpdatesResult.Empty);
+
+        var intake = new FakeIntake { CompleteResult = new TaskCommandAttempt(false, 400, IntakeFailure.BadRequest) };
+
+        await RunBotAsync(telegram, intake);
+
+        Assert.Contains("уже закрыта", telegram.Posted.Single().Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Bot_passes_ask_intent_from_command()
+    {
+        var telegram = new FakeTelegram();
+        telegram.UpdatesQueue.Enqueue(new TelegramUpdatesResult(true, 200, new[] { new TelegramMessage(1, 7, "/ask сколько минут варить яйцо") }));
+        telegram.UpdatesQueue.Enqueue(TelegramUpdatesResult.Empty);
+
+        var intake = new FakeIntake { Attempt = IntakeAttempt.Success(TaskResponse("ответ")) };
+
+        await RunBotAsync(telegram, intake);
+
+        (string Text, string? Intent) request = Assert.Single(intake.Requests);
+        Assert.Equal("сколько минут варить яйцо", request.Text);
+        Assert.Equal("ask", request.Intent);
+    }
+
+    [Fact]
+    public async Task Bot_offers_done_button_for_created_task()
+    {
+        var telegram = new FakeTelegram();
+        telegram.UpdatesQueue.Enqueue(new TelegramUpdatesResult(true, 200, new[] { new TelegramMessage(1, 7, "купить хлеб") }));
+        telegram.UpdatesQueue.Enqueue(TelegramUpdatesResult.Empty);
+
+        IntakeResponseDto response = TaskResponse("купить хлеб");
+        var intake = new FakeIntake { Attempt = IntakeAttempt.Success(response) };
+
+        await RunBotAsync(telegram, intake);
+
+        (long ChatId, string Text, InlineKeyboard? Keyboard) posted = telegram.Posted.Single();
+        Assert.NotNull(posted.Keyboard);
+        Assert.Equal("done:" + response.Task!.Id.ToString("D"), posted.Keyboard!.Rows[0][0].CallbackData);
+    }
+
+    [Fact]
+    public void Callback_query_is_parsed_into_a_message()
+    {
+        const string json = """
+            {"ok":true,"result":[
+              {"update_id":5,"callback_query":{
+                "id":"cb-9","data":"done:11111111-1111-1111-1111-111111111111",
+                "message":{"message_id":3,"chat":{"id":42},"text":"Задачи"}}}
+            ]}
+            """;
+
+        using JsonDocument document = JsonDocument.Parse(json);
+        TelegramMessage message = Assert.Single(TelegramApiClient.ParseUpdates(document.RootElement));
+
+        Assert.True(message.IsCallback);
+        Assert.Equal("cb-9", message.CallbackQueryId);
+        Assert.Equal("done:11111111-1111-1111-1111-111111111111", message.CallbackData);
+        Assert.Equal(42, message.ChatId);
+        Assert.Equal(5, message.UpdateId);
+    }
+
+    [Fact]
+    public void Reply_markup_is_an_inline_keyboard()
+    {
+        InlineKeyboard keyboard = InlineKeyboard.Column(new InlineButton("Готово", "done:x"), new InlineButton("Ещё", "list"));
+        JsonObject markup = TelegramApiClient.ToReplyMarkup(keyboard);
+
+        JsonArray rows = markup["inline_keyboard"]!.AsArray();
+        Assert.Equal(2, rows.Count);
+        Assert.Equal("Готово", rows[0]!.AsArray()[0]!["text"]!.GetValue<string>());
+        Assert.Equal("done:x", rows[0]!.AsArray()[0]!["callback_data"]!.GetValue<string>());
+    }
+    [Fact]
     public void Reply_failure_texts_are_human()
     {
         string unauthorized = IntakeReplyFormatter.FormatFailure(IntakeFailure.Unauthorized, 401);
@@ -497,9 +643,27 @@ if (UpdatesQueue.Count > 0)
             return Task.FromResult(Updates);
         }
 
-        public Task<TelegramSendResult> SendMessageAsync(long chatId, string text, CancellationToken cancellationToken = default)
+        public List<(long ChatId, string Text, InlineKeyboard? Keyboard)> Posted { get; } = new();
+
+        public List<string> Answered { get; } = new();
+
+        public Task<TelegramSendResult> SendMessageAsync(
+            long chatId,
+            string text,
+            InlineKeyboard? keyboard = null,
+            CancellationToken cancellationToken = default)
         {
             Sent.Add((chatId, text));
+            Posted.Add((chatId, text, keyboard));
+            return Task.FromResult(new TelegramSendResult(true, 200));
+        }
+
+        public Task<TelegramSendResult> AnswerCallbackAsync(
+            string callbackQueryId,
+            string? text = null,
+            CancellationToken cancellationToken = default)
+        {
+            Answered.Add(callbackQueryId);
             return Task.FromResult(new TelegramSendResult(true, 200));
         }
 
@@ -522,10 +686,31 @@ if (UpdatesQueue.Count > 0)
 
         public List<string> Received { get; } = new();
 
+        public List<(string Text, string? Intent)> Requests { get; } = new();
+
+        public TaskListAttempt TaskList { get; set; } = new(true, 200, Array.Empty<OpenTaskDto>());
+
+        public List<Guid> Completed { get; } = new();
+
+        public TaskCommandAttempt CompleteResult { get; set; } = new(true, 200);
+
         public Task<IntakeAttempt> SubmitAsync(string text, CancellationToken cancellationToken = default)
+            => SubmitAsync(text, intent: null, cancellationToken);
+
+        public Task<IntakeAttempt> SubmitAsync(string text, string? intent, CancellationToken cancellationToken = default)
         {
             Received.Add(text);
+            Requests.Add((text, intent));
             return Task.FromResult(Attempt);
+        }
+
+        public Task<TaskListAttempt> ListOpenTasksAsync(int limit = 5, CancellationToken cancellationToken = default)
+            => Task.FromResult(TaskList);
+
+        public Task<TaskCommandAttempt> CompleteTaskAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            Completed.Add(id);
+            return Task.FromResult(CompleteResult);
         }
     }
 

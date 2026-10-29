@@ -1,4 +1,4 @@
-using System.Text.Json.Nodes;
+﻿using System.Text.Json.Nodes;
 using Kouki.Kagedama.Contracts;
 using Kouki.Mugura.Attributes;
 using Kouki.Mugura.Commands;
@@ -209,6 +209,48 @@ public sealed class LabelClassificationHandler(IClassificationJournal journal)
             ["label"] = labeled ? label : null,
             ["reason"] = labeled ? null : "not-found",
             ["error"] = labeled ? null : $"Запись {command.Id} не найдена.",
+        };
+    }
+}
+
+/// <summary>
+/// Выгрузка размеченных фраз в датасет для обучения классификатора.
+/// </summary>
+/// <param name="Limit">Сколько записей брать; по умолчанию 1000.</param>
+public sealed record ExportDatasetCommand(int? Limit = null) : ICommand;
+
+/// <summary>
+/// Отдаёт датасет в виде JSON Lines: по примеру на строку.
+/// </summary>
+/// <remarks>
+/// Датасет собирается из живого журнала: чем больше фраз размечено вручную
+/// в дашборде, тем полезнее файл. Формат и подсчёт — в <see cref="DatasetExport"/>.
+/// </remarks>
+/// <param name="journal">Журнал классификаций.</param>
+[Command("export_dataset", Description = "Выгружает размеченные фразы в датасет", Category = CommandCategory.Admin, RequiresConfirmation = false, Example = "выгрузи датасет")]
+public sealed class ExportDatasetHandler(IClassificationJournal journal)
+    : ICommandHandler<ExportDatasetCommand>
+{
+    /// <summary>Сколько записей берём, если вызывающий не сказал иначе.</summary>
+    public const int DefaultLimit = 1000;
+
+    /// <inheritdoc />
+    public async Task<JsonNode> HandleAsync(
+        ExportDatasetCommand command,
+        IExecutionContext? context = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        int take = Math.Clamp(command.Limit ?? DefaultLimit, 1, DatasetExport.MaxEntries);
+        IReadOnlyList<ClassificationEntry> entries = await journal
+            .ListLabeledAsync(take, cancellationToken)
+            .ConfigureAwait(false);
+
+        return new JsonObject
+        {
+            ["count"] = DatasetExport.Count(entries),
+            ["jsonl"] = DatasetExport.ToJsonLines(entries),
         };
     }
 }

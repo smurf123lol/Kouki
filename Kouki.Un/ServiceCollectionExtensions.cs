@@ -19,6 +19,7 @@ public static class ServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
         services.TryAddSingleton<ISpeechTranscriber, UnavailableSpeechTranscriber>();
+        services.TryAddSingleton<ISpeechSynthesizer, UnavailableSpeechSynthesizer>();
         return services;
     }
 }

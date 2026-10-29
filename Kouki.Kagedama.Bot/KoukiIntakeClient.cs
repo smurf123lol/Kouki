@@ -69,11 +69,63 @@ public sealed record IntakeAttempt(
         => new(false, statusCode, null, failure, detail);
 }
 
+/// <summary>Задача для списка в чате.</summary>
+/// <param name="Id">Идентификатор задачи.</param>
+/// <param name="Title">Заголовок.</param>
+/// <param name="Status">Статус (<c>new</c>, <c>in_progress</c>, …).</param>
+public sealed record OpenTaskDto(Guid Id, string Title, string Status);
+
+/// <summary>Итог запроса списка задач.</summary>
+/// <param name="Ok">Список получен.</param>
+/// <param name="StatusCode">HTTP-код.</param>
+/// <param name="Tasks">Открытые задачи (свежие сверху).</param>
+/// <param name="Failure">Причина отказа.</param>
+/// <param name="Detail">Подробность для лога.</param>
+public sealed record TaskListAttempt(
+    bool Ok,
+    int StatusCode,
+    IReadOnlyList<OpenTaskDto> Tasks,
+    IntakeFailure Failure = IntakeFailure.None,
+    string? Detail = null);
+
+/// <summary>Итог команды над задачей (например, «готово»).</summary>
+/// <param name="Ok">Команда выполнена.</param>
+/// <param name="StatusCode">HTTP-код.</param>
+/// <param name="Failure">Причина отказа.</param>
+/// <param name="Detail">Подробность для лога.</param>
+public sealed record TaskCommandAttempt(
+    bool Ok,
+    int StatusCode,
+    IntakeFailure Failure = IntakeFailure.None,
+    string? Detail = null);
+
 /// <summary>Приём фразы сервером Kouki (позволяет подменять транспорт в тестах).</summary>
 public interface IKoukiIntake
 {
     /// <summary>Отправляет фразу в <c>POST /api/intake</c>.</summary>
     Task<IntakeAttempt> SubmitAsync(string text, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Отправляет фразу с подсказкой интента: кнопка «Спросить» не должна
+    /// зависеть от того, угадает ли правило слово «сколько».
+    /// </summary>
+    /// <param name="text">Фраза.</param>
+    /// <param name="intent">Интент (<c>ask</c>, <c>add_task</c>) или <c>null</c>.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    Task<IntakeAttempt> SubmitAsync(string text, string? intent, CancellationToken cancellationToken = default)
+        => SubmitAsync(text, cancellationToken);
+
+    /// <summary>Открытые задачи для кнопок «Готово».</summary>
+    /// <param name="limit">Сколько показать.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    Task<TaskListAttempt> ListOpenTasksAsync(int limit = 5, CancellationToken cancellationToken = default)
+        => Task.FromResult(new TaskListAttempt(false, 0, Array.Empty<OpenTaskDto>(), IntakeFailure.ServerUnavailable, "список задач не поддерживается"));
+
+    /// <summary>Закрывает задачу (кнопка «Готово»).</summary>
+    /// <param name="id">Задача.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    Task<TaskCommandAttempt> CompleteTaskAsync(Guid id, CancellationToken cancellationToken = default)
+        => Task.FromResult(new TaskCommandAttempt(false, 0, IntakeFailure.ServerUnavailable, "закрытие задачи не поддерживается"));
 }
 
 /// <summary>
@@ -113,6 +165,13 @@ public sealed class KoukiIntakeClient : IKoukiIntake
 
     /// <inheritdoc />
     public async Task<IntakeAttempt> SubmitAsync(string text, CancellationToken cancellationToken = default)
+        => await SubmitAsync(text, intent: null, cancellationToken).ConfigureAwait(false);
+
+    /// <inheritdoc />
+    public async Task<IntakeAttempt> SubmitAsync(
+        string text,
+        string? intent,
+        CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
@@ -121,6 +180,11 @@ public sealed class KoukiIntakeClient : IKoukiIntake
             ["text"] = text,
             ["source"] = _source,
         };
+
+        if (!string.IsNullOrWhiteSpace(intent))
+        {
+            body["intent"] = intent;
+        }
 
         using var request = new HttpRequestMessage(HttpMethod.Post, "api/intake")
         {
@@ -167,6 +231,101 @@ public sealed class KoukiIntakeClient : IKoukiIntake
             {
                 return IntakeAttempt.Fail(status, IntakeFailure.InvalidResponse, ex.Message);
             }
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<TaskListAttempt> ListOpenTasksAsync(int limit = 5, CancellationToken cancellationToken = default)
+    {
+        int take = Math.Clamp(limit, 1, 50);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"api/tasks?limit={take}");
+        AddAuthorization(request);
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or IOException)
+        {
+            return new TaskListAttempt(false, 0, Array.Empty<OpenTaskDto>(), IntakeFailure.ServerUnavailable, ex.Message);
+        }
+
+        using (response)
+        {
+            string json = await ReadLimitedAsync(response, cancellationToken).ConfigureAwait(false);
+            int status = (int)response.StatusCode;
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return new TaskListAttempt(false, status, Array.Empty<OpenTaskDto>(), Classify(status), Partial(json));
+            }
+
+            try
+            {
+                List<OpenTaskDto>? tasks = JsonSerializer.Deserialize<List<OpenTaskDto>>(json, JsonOptions);
+
+                // Сервер отдаёт всё по лимиту, а «открытые» — это те, что ещё не закрыты.
+                IReadOnlyList<OpenTaskDto> open = (tasks ?? new List<OpenTaskDto>())
+                    .Where(t => t.Status is not ("done" or "cancelled"))
+                    .Take(take)
+                    .ToArray();
+
+                return new TaskListAttempt(true, status, open);
+            }
+            catch (JsonException ex)
+            {
+                return new TaskListAttempt(false, status, Array.Empty<OpenTaskDto>(), IntakeFailure.InvalidResponse, ex.Message);
+            }
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<TaskCommandAttempt> CompleteTaskAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var body = new Dictionary<string, string> { ["status"] = "done" };
+
+        using var request = new HttpRequestMessage(HttpMethod.Patch, $"api/tasks/{id:D}")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(body, PayloadOptions), Encoding.UTF8, "application/json"),
+        };
+        AddAuthorization(request);
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or IOException)
+        {
+            return new TaskCommandAttempt(false, 0, IntakeFailure.ServerUnavailable, ex.Message);
+        }
+
+        using (response)
+        {
+            string json = await ReadLimitedAsync(response, cancellationToken).ConfigureAwait(false);
+            int status = (int)response.StatusCode;
+
+            return response.IsSuccessStatusCode
+                ? new TaskCommandAttempt(true, status)
+                : new TaskCommandAttempt(false, status, Classify(status), Partial(json));
+        }
+    }
+
+    private void AddAuthorization(HttpRequestMessage request)
+    {
+        if (!string.IsNullOrWhiteSpace(_serverToken))
+        {
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _serverToken);
         }
     }
 

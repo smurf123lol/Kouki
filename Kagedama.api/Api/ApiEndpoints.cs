@@ -1,4 +1,4 @@
-using System.Text.Json.Nodes;
+﻿using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Routing;
 using Kouki.Kagedama;
@@ -43,6 +43,7 @@ public static class ApiEndpoints
         api.MapPost("/api/voice", voiceHandler);
         api.MapPost("/api/classify", classifyHandler);
         api.MapPost("/api/transcribe", transcribeHandler);
+    api.MapPost("/api/speech", speechHandler).RequireRateLimiting("api");
         api.MapGet("/api/classifiers", (IClassifierCatalog catalog) => Results.Ok(new { classifiers = catalog.Names }));
         api.MapGet("/api/tasks", listTasksHandler);
         api.MapGet("/api/tasks/{id:guid}", getTaskHandler);
@@ -51,10 +52,31 @@ public static class ApiEndpoints
         api.MapGet("/api/context", contextHandler);
         api.MapGet("/api/classifications", listClassificationsHandler);
         api.MapPost("/api/classifications/{id:guid}/label", labelClassificationHandler);
+        api.MapGet("/api/dataset", exportDatasetHandler);
 
         return endpoints;
     }
 
+    /// <summary>
+    /// Выгружает размеченные фразы в датасет (JSON Lines) — заготовка для обучения
+    /// или для few-shot примеров модели.
+    /// </summary>
+    /// <param name="limit">Сколько записей брать.</param>
+    /// <param name="router">Маршрутизатор команд: журнал читается командой, как и всё остальное.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    private static async Task<IResult> exportDatasetHandler(
+        int? limit,
+        MuguraRouter router,
+        CancellationToken cancellationToken)
+    {
+        int take = Math.Clamp(limit ?? ExportDatasetHandler.DefaultLimit, 1, DatasetExport.MaxEntries);
+        JsonNode? result = await router
+            .RouteAsync("export_dataset", new JsonObject { ["limit"] = take }, context: null, cancellationToken)
+            .ConfigureAwait(false);
+
+        string jsonl = result?["jsonl"]?.GetValue<string>() ?? string.Empty;
+        return Results.Text(jsonl, "application/x-jsonlines");
+    }
     /// <summary>
     /// Что за окружение исполняет команды: имя контекста и объявленные сервисы.
     /// Нужно и человеку, и агенту — чтобы понимать, чего в этом окружении нет.
@@ -231,6 +253,48 @@ public static class ApiEndpoints
     /// Только распознавание: WAV на входе, текст на выходе. Без маршрутизации и задач —
     /// чтобы проверять качество ASR отдельно от понимания фразы.
     /// </summary>
+    /// <summary>
+    /// Озвучивает текст: станция и бот забирают WAV 16 кГц моно и играют его.
+    /// </summary>
+    /// <param name="request">Текст для синтеза.</param>
+    /// <param name="synthesizer">Голос (заглушка, если сборка без sherpa).</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    private static async Task<IResult> speechHandler(
+        SpeechRequest? request,
+        ISpeechSynthesizer synthesizer,
+        CancellationToken cancellationToken)
+    {
+        if (request is null || string.IsNullOrWhiteSpace(request.Text))
+        {
+            return Results.BadRequest(new { error = "Поле 'text' обязательно." });
+        }
+
+        if (!synthesizer.IsConfigured)
+        {
+            return Results.Json(
+                new { error = synthesizer.UnavailableReason ?? "Озвучивание не подключено." },
+                statusCode: StatusCodes.Status503ServiceUnavailable);
+        }
+
+        try
+        {
+            SpeechSynthesisResult result = await synthesizer
+                .SynthesizeAsync(request.Text, cancellationToken)
+                .ConfigureAwait(false);
+
+            return Results.File(result.Wav, "audio/wav", "speech.wav");
+        }
+        catch (ArgumentException ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return Results.Json(
+                new { error = $"Не удалось озвучить: {ex.Message}" },
+                statusCode: StatusCodes.Status500InternalServerError);
+        }
+    }
     private static async Task<IResult> transcribeHandler(
         HttpRequest request,
         ISpeechTranscriber transcriber,

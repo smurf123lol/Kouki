@@ -26,4 +26,10 @@ public sealed class YasabiOptions
     /// он не должен отменять сохранение задачи.
     /// </summary>
     public bool JournalFailuresAreFatal { get; set; }
+
+    /// <summary>
+    /// Классификатор на языковой модели: по умолчанию выключен и только показывает себя
+    /// в сравнении роутеров; <see cref="LlmIntentOptions.UseForIntake"/> ставит его в приём.
+    /// </summary>
+    public LlmIntentOptions Llm { get; set; } = new();
 }

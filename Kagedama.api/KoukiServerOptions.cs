@@ -83,4 +83,10 @@ public sealed class KoukiServerOptions
     /// Язык распознавания. По умолчанию русский; пустая строка — автоопределение.
     /// </summary>
     public string SpeechLanguage { get; set; } = "ru";
+
+    /// <summary>
+    /// Каталог голоса для озвучивания ответов (<c>*.onnx</c>, <c>tokens.txt</c>);
+    /// пустая строка — озвучивание выключено, <c>/api/speech</c> отвечает 503.
+    /// </summary>
+    public string SpeechVoiceDirectory { get; set; } = "models/tts";
 }

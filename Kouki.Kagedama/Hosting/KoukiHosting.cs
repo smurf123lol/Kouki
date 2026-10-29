@@ -34,6 +34,12 @@ public sealed record KoukiHostSettings
 
     /// <summary>Ответчик на вопросы; <c>null</c> или выключенный провайдер — команда <c>ask</c> отвечает заглушкой.</summary>
     public KotaeOptions? Answerer { get; init; }
+
+    /// <summary>
+    /// Классификатор интентов на языковой модели; <c>null</c> или <c>Enabled = false</c> —
+    /// интенты определяют правила, модель даже не попадает в сравнение.
+    /// </summary>
+    public LlmIntentOptions? IntentLlm { get; init; }
 }
 
 /// <summary>
@@ -73,6 +79,11 @@ public static class KoukiHosting
         {
             options.ConfidenceThreshold = settings.ConfidenceThreshold;
             options.Source = settings.DefaultSource;
+
+            if (settings.IntentLlm is { } llm)
+            {
+                options.Llm = llm;
+            }
         });
         services.AddSingleton(new IntakeOptions
         {
