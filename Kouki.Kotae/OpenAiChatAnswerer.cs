@@ -90,7 +90,7 @@ public sealed class OpenAiChatAnswerer : IAnswerer
                 throw new AnswererException(DescribeFailure(response.StatusCode, body));
             }
 
-            var text = ExtractText(body);
+            var text = KotaePrompt.Clean(ExtractText(body));
 
             stopwatch.Stop();
             return new Answer(text, Signature, stopwatch.ElapsedMilliseconds);
@@ -109,7 +109,7 @@ public sealed class OpenAiChatAnswerer : IAnswerer
         {
             ["model"] = options.ResolveModel(),
             ["messages"] = new JsonArray(
-                new JsonObject { ["role"] = "system", ["content"] = options.SystemPrompt },
+                new JsonObject { ["role"] = "system", ["content"] = KotaePrompt.BuildSystem(options.SystemPrompt, DateTimeOffset.Now, TimeZoneInfo.Local) },
                 new JsonObject { ["role"] = "user", ["content"] = question }),
             ["max_tokens"] = options.MaxOutputTokens,
             ["temperature"] = 0.4,

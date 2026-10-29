@@ -100,7 +100,7 @@ public sealed class GeminiAnswerer : IAnswerer
         {
             ["system_instruction"] = new JsonObject
             {
-                ["parts"] = new JsonArray(new JsonObject { ["text"] = _options.SystemPrompt }),
+                ["parts"] = new JsonArray(new JsonObject { ["text"] = KotaePrompt.BuildSystem(_options.SystemPrompt, DateTimeOffset.Now, TimeZoneInfo.Local) }),
             },
             ["contents"] = new JsonArray(new JsonObject
             {
