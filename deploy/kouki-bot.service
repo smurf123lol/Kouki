@@ -2,9 +2,12 @@
 Description=Kouki Telegram bot
 Documentation=file:///opt/kouki/app/deploy/README.md
 # Боту нужен сервер: ждём сеть и стартуем после самого сервера.
-After=network-online.target kouki.service
-Wants=network-online.target
+After=network.target kouki.service
+Wants=network.target
 PartOf=kouki.service
+# Предел перезапусков — в [Unit]: в [Service] systemd это ключ не знает.
+StartLimitIntervalSec=300
+StartLimitBurst=5
 
 [Service]
 Type=simple
@@ -19,9 +22,7 @@ ExecStart=/usr/bin/dotnet /opt/kouki/app/bot/Kouki.Kagedama.Bot.dll
 
 Restart=on-failure
 RestartSec=10
-# Bot API Telegram — не наш сервис: падение не должно крутиться в цикле каждые 5 секунд.
-StartLimitIntervalSec=300
-StartLimitBurst=5
+# SIGINT боту, но не бесконечно: через 20 секунд systemd добьёт процесс.
 TimeoutStopSec=20
 KillSignal=SIGINT
 
