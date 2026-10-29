@@ -42,6 +42,16 @@ public sealed class YasabiTests
         Assert.True(result.IsConfident(0.75));
     }
 
+    [Theory]
+    [InlineData("гугол это сколько")]
+    [InlineData("а почему небо синее")]
+    public async Task Question_word_inside_sentence_is_ask(string text)
+    {
+        IntentResult result = await new RuleIntentClassifier().ClassifyAsync(text);
+
+        Assert.Equal("ask", result.Intent);
+        Assert.True(result.Score >= 0.8d);
+    }
     [Fact]
     public async Task Explicit_commands_still_win_over_question_mark()
     {

@@ -235,3 +235,20 @@ ss -ltnp | grep 5300                   # слушает ли порт
 - **Бэкапы.** `sqlite3 .backup` + rsync аудио — задача T50, скрипт появится рядом.
 - **Секреты в git.** Токен живёт только в `/etc/kouki/kouki.env`; в репозитории
   лежит `CHANGE_ME`.
+### Обновление сервера без потери бота
+
+Порядок, который не оставляет бота лежать:
+
+```sh
+sudo systemctl stop kouki          # PartOf погасит и kouki-bot
+sudo rsync -a --delete --exclude 'bot/' --exclude 'mcp/' <артефакт>/ /opt/kouki/app/
+sudo chown -R kouki:kouki /opt/kouki/app
+sudo systemctl start kouki
+sudo systemctl start kouki-bot     # PartOf не поднимает бота обратно
+```
+
+`--exclude 'bot/' --exclude 'mcp/'` обязательны: внутри `/opt/kouki/app` живут
+каталоги других сервисов, и `--delete` без исключений удалял бота (systemd падал
+на `Changing to the requested working directory failed`, бот молча не отвечал).
+`deploy/install.sh` делает это сам: он кладёт артефакт с исключениями и
+перезапускает бота после сервера.

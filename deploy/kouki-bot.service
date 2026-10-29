@@ -4,10 +4,10 @@ Documentation=file:///opt/kouki/app/deploy/README.md
 # Боту нужен сервер: ждём сеть и стартуем после самого сервера.
 After=network.target kouki.service
 Wants=network.target
-# PartOf — перезапуск/остановка сервера тянет бота за собой;
-# Upholds — запуск сервера поднимает и бота (одного PartOf для этого мало).
+# PartOf: остановка сервера гасит и бота. Обратного действия у PartOf нет,
+# поэтому после обновления сервера бота надо явно поднять — это делает
+# deploy/install.sh и любой скрипт деплоя (systemctl start kouki-bot).
 PartOf=kouki.service
-Upholds=kouki.service
 # Предел перезапусков — в [Unit]: в [Service] systemd это ключ не знает.
 StartLimitIntervalSec=300
 StartLimitBurst=5

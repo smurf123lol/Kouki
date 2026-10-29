@@ -81,5 +81,9 @@ public sealed class RuleIntentClassifier : IIntentClassifier
         IntentRule.Strong("ask", @"^\s*(спроси|вопрос)\b"),
         IntentRule.Strong("ask", @"^\s*(what|how|why|when|where|who|which|whose|is|are|can|could|should|does|do|did)\b"),
         IntentRule.Weak("ask", @"\?\s*$"),
+        // Вопрос «наоборот»: «гугол это сколько», «а как же ужин». Вопросительное
+        // слово может стоять не первым, поэтому вес ниже явной команды (0.8):
+        // «запиши задачу, когда будет время» остаётся задачей.
+        new IntentRule("ask", @"\b(сколько|почему|зачем|какой|какая|какие|каков|куда|откуда)\b", 0.8d),
     };
 }

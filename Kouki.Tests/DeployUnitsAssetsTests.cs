@@ -47,13 +47,17 @@ public sealed class DeployUnitsAssetsTests
     }
 
     [Fact]
-    public void Bot_unit_starts_with_the_server()
+    public void Install_script_starts_bot_after_server()
     {
-        // PartOf останавливает бота вместе с сервером, но не поднимает его обратно.
-        // Без Upholds остановка сервера (любой деплой) оставляла бота лежать.
-        string text = File.ReadAllText(TestPaths.Path("deploy", "kouki-bot.service"));
+        // PartOf гасит бота вместе с сервером и обратно не поднимает: если
+        // install.sh перезапустит только сервер, бот останется лежать молча.
+        string text = File.ReadAllText(TestPaths.Path("deploy", "install.sh"));
 
-        Assert.Contains("Upholds=kouki.service", Section(text, "Unit"), StringComparison.Ordinal);
+        int server = text.IndexOf("systemctl restart kouki.service", StringComparison.Ordinal);
+        int bot = text.IndexOf("systemctl restart kouki-bot.service", StringComparison.Ordinal);
+
+        Assert.True(server >= 0, "install.sh не перезапускает сервер");
+        Assert.True(bot > server, "бот перезапускается раньше сервера или не перезапускается вовсе");
     }
     private static string Section(string text, string name)
     {

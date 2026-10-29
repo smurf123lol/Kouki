@@ -218,7 +218,7 @@ public sealed class TaskIntakeService
             // Запись под вопрос: ответ команды кладём в мету задачи — это и есть «result таска».
             if (recorded is not null)
             {
-                string metaJson = BuildMeta(route, route.Executed, outcome, asrConfidence, audioPath, ExtractAnswer(route.Result), text, classifierVerdict);
+                string metaJson = BuildMeta(route, route.Executed, outcome, asrConfidence, audioPath, ExtractAnswer(route.Result), text, classifierVerdict, ExtractString(route.Result, "answerer"));
                 await _store.UpdateAsync(recorded.Id, null, null, null, metaJson, cancellationToken).ConfigureAwait(false);
                 recorded.MetaJson = metaJson;
             }
@@ -512,6 +512,13 @@ public sealed class TaskIntakeService
             ? answer
             : null;
 
+    private static string? ExtractString(JsonNode? result, string name)
+        => result is JsonObject payload
+           && payload[name] is JsonValue value
+           && value.TryGetValue(out string? text)
+            ? text
+            : null;
+
     private static string BuildMeta(
         IntentRoute route,
         bool commandExecuted,
@@ -520,7 +527,8 @@ public sealed class TaskIntakeService
         string? audioPath = null,
         string? answer = null,
         string? text = null,
-        IntentResult? classifierVerdict = null)
+        IntentResult? classifierVerdict = null,
+        string? answerer = null)
     {
         var meta = new JsonObject
         {
@@ -565,6 +573,11 @@ public sealed class TaskIntakeService
         if (answer is not null)
         {
             meta["answer"] = answer;
+        }
+
+        if (answerer is not null)
+        {
+            meta["answerer"] = answerer;
         }
 
         return meta.ToJsonString();
