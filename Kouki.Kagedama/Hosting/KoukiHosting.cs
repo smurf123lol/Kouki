@@ -9,6 +9,7 @@ using Kouki.Shimi.ServiceAbstractions;
 using Kouki.Kotae;
 using Kouki.Yasabi;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Kouki.Kagedama.Hosting;
 
@@ -40,6 +41,12 @@ public sealed record KoukiHostSettings
     /// интенты определяют правила, модель даже не попадает в сравнение.
     /// </summary>
     public LlmIntentOptions? IntentLlm { get; init; }
+
+    /// <summary>
+    /// Часовой пояс человека для напоминаний (IANA или имя Windows).
+    /// <c>null</c> — переменная окружения <c>KOUKI_TIMEZONE</c>, а если её нет — пояс сервера.
+    /// </summary>
+    public string? TimeZone { get; init; }
 }
 
 /// <summary>
@@ -91,6 +98,8 @@ public static class KoukiHosting
             DefaultSource = settings.DefaultSource,
         });
         services.AddSingleton<TaskIntakeService>();
+        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton(_ => ReminderTimeZones.Resolve(settings.TimeZone));
 
         // Ответчик подключается всегда: без ключа это DisabledAnswerer, и в
         // диагностике видно причину, а команда ask отвечает заглушкой.

@@ -185,4 +185,40 @@ public static class ApiMapping
             return null;
         }
     }
+    /// <summary>
+    /// Ответ команды <c>list_reminders</c> или <c>take_due_reminders</c> → список DTO.
+    /// </summary>
+    /// <param name="node">Объект вида <c>{count, reminders[]}</c>.</param>
+    public static IReadOnlyList<ReminderDto> ToReminderList(JsonNode? node)
+    {
+        if (node is not JsonObject payload || payload["reminders"] is not JsonArray array)
+        {
+            return Array.Empty<ReminderDto>();
+        }
+
+        var reminders = new List<ReminderDto>(array.Count);
+
+        foreach (JsonNode? item in array)
+        {
+            if (item is null)
+            {
+                continue;
+            }
+
+            try
+            {
+                ReminderDto? dto = item.Deserialize<ReminderDto>(WebJson);
+                if (dto is not null)
+                {
+                    reminders.Add(dto);
+                }
+            }
+            catch (JsonException)
+            {
+                // Один битый элемент не должен ронять весь список.
+            }
+        }
+
+        return reminders;
+    }
 }

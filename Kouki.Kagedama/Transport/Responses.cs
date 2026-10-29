@@ -100,3 +100,24 @@ public sealed record VoiceResponse(
     double DurationSec,
     string? AudioPath,
     IntakeResponse Intake);
+
+/// <summary>
+/// Напоминание в ответе HTTP-слоя.
+/// </summary>
+/// <param name="Id">Идентификатор.</param>
+/// <param name="Text">О чём напомнить.</param>
+/// <param name="DueAt">Когда напомнить.</param>
+/// <param name="DueText">Тот же срок по-человечески («завтра в 09:00»).</param>
+/// <param name="State">Состояние.</param>
+/// <param name="Repeat">Повтор или null.</param>
+/// <param name="TaskId">Карточка задачи или null.</param>
+/// <param name="Source">Источник.</param>
+public sealed record ReminderDto(
+    Guid Id,
+    string Text,
+    DateTimeOffset DueAt,
+    string DueText,
+    string State,
+    string? Repeat,
+    Guid? TaskId,
+    string Source);

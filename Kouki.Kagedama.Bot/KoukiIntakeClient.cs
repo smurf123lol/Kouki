@@ -126,7 +126,50 @@ public interface IKoukiIntake
     /// <param name="cancellationToken">Токен отмены.</param>
     Task<TaskCommandAttempt> CompleteTaskAsync(Guid id, CancellationToken cancellationToken = default)
         => Task.FromResult(new TaskCommandAttempt(false, 0, IntakeFailure.ServerUnavailable, "закрытие задачи не поддерживается"));
+
+    /// <summary>
+    /// Забирает напоминания, у которых наступил срок. Сервер помечает их отправленными
+    /// в той же операции, поэтому повторный вызов не пришлёт то же напоминание второй раз.
+    /// </summary>
+    /// <param name="limit">Сколько забрать за один раз.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    Task<DueReminderAttempt> TakeDueRemindersAsync(int limit = 5, CancellationToken cancellationToken = default)
+        => Task.FromResult(new DueReminderAttempt(false, 0, Array.Empty<DueReminderDto>(), IntakeFailure.ServerUnavailable, "напоминания не поддерживаются"));
+
+    /// <summary>Подтверждает напоминание («Готово» под сообщением).</summary>
+    /// <param name="id">Напоминание.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    Task<TaskCommandAttempt> AcknowledgeReminderAsync(Guid id, CancellationToken cancellationToken = default)
+        => Task.FromResult(new TaskCommandAttempt(false, 0, IntakeFailure.ServerUnavailable, "напоминания не поддерживаются"));
+
+    /// <summary>Откладывает напоминание на несколько минут («+10 минут»).</summary>
+    /// <param name="id">Напоминание.</param>
+    /// <param name="minutes">На сколько минут отложить.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    Task<TaskCommandAttempt> SnoozeReminderAsync(Guid id, int minutes, CancellationToken cancellationToken = default)
+        => Task.FromResult(new TaskCommandAttempt(false, 0, IntakeFailure.ServerUnavailable, "напоминания не поддерживаются"));
 }
+
+/// <summary>Напоминание, у которого наступил срок.</summary>
+/// <param name="Id">Напоминание.</param>
+/// <param name="Text">О чём напомнить.</param>
+/// <param name="DueText">Срок по-человечески, как его посчитал сервер.</param>
+/// <param name="State">Состояние.</param>
+/// <param name="TaskId">Задача-карточка, если напоминание к ней привязано.</param>
+public sealed record DueReminderDto(Guid Id, string Text, string DueText, string State, Guid? TaskId = null);
+
+/// <summary>Итог запроса созревших напоминаний.</summary>
+/// <param name="Ok">Список получен.</param>
+/// <param name="StatusCode">HTTP-код.</param>
+/// <param name="Reminders">Созревшие напоминания.</param>
+/// <param name="Failure">Причина отказа.</param>
+/// <param name="Detail">Подробность для лога.</param>
+public sealed record DueReminderAttempt(
+    bool Ok,
+    int StatusCode,
+    IReadOnlyList<DueReminderDto> Reminders,
+    IntakeFailure Failure = IntakeFailure.None,
+    string? Detail = null);
 
 /// <summary>
 /// Клиент сервера Kouki: отправляет текст в приём задач.
@@ -294,6 +337,94 @@ public sealed class KoukiIntakeClient : IKoukiIntake
         {
             Content = new StringContent(JsonSerializer.Serialize(body, PayloadOptions), Encoding.UTF8, "application/json"),
         };
+        AddAuthorization(request);
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or IOException)
+        {
+            return new TaskCommandAttempt(false, 0, IntakeFailure.ServerUnavailable, ex.Message);
+        }
+
+        using (response)
+        {
+            string json = await ReadLimitedAsync(response, cancellationToken).ConfigureAwait(false);
+            int status = (int)response.StatusCode;
+
+            return response.IsSuccessStatusCode
+                ? new TaskCommandAttempt(true, status)
+                : new TaskCommandAttempt(false, status, Classify(status), Partial(json));
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<DueReminderAttempt> TakeDueRemindersAsync(int limit = 5, CancellationToken cancellationToken = default)
+    {
+        int take = Math.Clamp(limit, 1, 50);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"api/reminders/due?limit={take}");
+        AddAuthorization(request);
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or IOException)
+        {
+            return new DueReminderAttempt(false, 0, Array.Empty<DueReminderDto>(), IntakeFailure.ServerUnavailable, ex.Message);
+        }
+
+        using (response)
+        {
+            string json = await ReadLimitedAsync(response, cancellationToken).ConfigureAwait(false);
+            int status = (int)response.StatusCode;
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return new DueReminderAttempt(false, status, Array.Empty<DueReminderDto>(), Classify(status), Partial(json));
+            }
+
+            try
+            {
+                List<DueReminderDto>? reminders = JsonSerializer.Deserialize<List<DueReminderDto>>(json, JsonOptions);
+                return new DueReminderAttempt(true, status, reminders ?? new List<DueReminderDto>());
+            }
+            catch (JsonException ex)
+            {
+                return new DueReminderAttempt(false, status, Array.Empty<DueReminderDto>(), IntakeFailure.InvalidResponse, ex.Message);
+            }
+        }
+    }
+
+    /// <inheritdoc />
+    public Task<TaskCommandAttempt> AcknowledgeReminderAsync(Guid id, CancellationToken cancellationToken = default)
+        => PostReminderAsync($"api/reminders/{id:D}/ack", cancellationToken);
+
+    /// <inheritdoc />
+    public Task<TaskCommandAttempt> SnoozeReminderAsync(Guid id, int minutes, CancellationToken cancellationToken = default)
+    {
+        int delay = Math.Clamp(minutes, 1, 1440);
+        return PostReminderAsync($"api/reminders/{id:D}/snooze?minutes={delay}", cancellationToken);
+    }
+
+    /// <summary>POST без тела на маршруты напоминаний: успех — задача выполнена.</summary>
+    /// <param name="path">Относительный адрес.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    private async Task<TaskCommandAttempt> PostReminderAsync(string path, CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, path);
         AddAuthorization(request);
 
         HttpResponseMessage response;

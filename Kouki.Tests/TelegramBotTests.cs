@@ -565,6 +565,71 @@ public sealed class TelegramBotTests
         Assert.Contains(telegram.Logs, line => line.Contains("сеть недоступна", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task Due_reminder_is_sent_to_the_chat_that_wrote_last()
+    {
+        var telegram = new FakeTelegram();
+        var intake = new FakeIntake();
+        var reminderId = Guid.NewGuid();
+        intake.DueReminders.Add(new DueReminderDto(reminderId, "полить цветы", "сегодня в 18:00", "sent"));
+
+        telegram.UpdatesQueue.Enqueue(new TelegramUpdatesResult(
+            true,
+            200,
+            new[] { new TelegramMessage(1, 555, "привет") }));
+
+        await RunBotAsync(telegram, intake);
+
+        (long chatId, string text, InlineKeyboard? keyboard) =
+            Assert.Single(telegram.Posted, posted => posted.Text.Contains("полить цветы", StringComparison.Ordinal));
+
+        Assert.Equal(555, chatId);
+        Assert.Contains("⏰", text, StringComparison.Ordinal);
+        Assert.Contains("сегодня в 18:00", text, StringComparison.Ordinal);
+        Assert.NotNull(keyboard);
+
+        InlineButton done = Assert.Single(keyboard!.Rows.SelectMany(row => row).Where(button => button.Text == "Готово"));
+        Assert.Equal("rem:ack:" + reminderId.ToString("D"), done.CallbackData);
+    }
+
+    [Fact]
+    public async Task Reminder_can_be_acknowledged_by_button()
+    {
+        var telegram = new FakeTelegram();
+        var intake = new FakeIntake();
+        var reminderId = Guid.NewGuid();
+
+        telegram.UpdatesQueue.Enqueue(new TelegramUpdatesResult(
+            true,
+            200,
+            new[] { new TelegramMessage(2, 555, string.Empty, "cb-1", "rem:ack:" + reminderId.ToString("D")) }));
+
+        await RunBotAsync(telegram, intake);
+
+        Assert.Equal(reminderId, Assert.Single(intake.Acknowledged));
+        Assert.Contains(telegram.AnsweredWithText, answer => answer.Text == "Отмечено");
+    }
+
+    [Fact]
+    public async Task Reminder_can_be_postponed_by_button()
+    {
+        var telegram = new FakeTelegram();
+        var intake = new FakeIntake();
+        var reminderId = Guid.NewGuid();
+
+        telegram.UpdatesQueue.Enqueue(new TelegramUpdatesResult(
+            true,
+            200,
+            new[] { new TelegramMessage(3, 555, string.Empty, "cb-2", "rem:snooze:" + reminderId.ToString("D")) }));
+
+        await RunBotAsync(telegram, intake);
+
+        (Guid id, int minutes) = Assert.Single(intake.Snoozed);
+        Assert.Equal(reminderId, id);
+        Assert.Equal(10, minutes);
+        Assert.Contains(telegram.Posted, posted => posted.Text.Contains("через 10 минут", StringComparison.Ordinal));
+    }
+
     private static async Task<int> RunBotAsync(FakeTelegram telegram, FakeIntake intake)
     {
         var options = new BotOptions { BotToken = "123:abc", PollTimeoutSeconds = 1 };
@@ -647,6 +712,8 @@ if (UpdatesQueue.Count > 0)
 
         public List<string> Answered { get; } = new();
 
+        public List<(string CallbackId, string? Text)> AnsweredWithText { get; } = new();
+
         public Task<TelegramSendResult> SendMessageAsync(
             long chatId,
             string text,
@@ -664,6 +731,7 @@ if (UpdatesQueue.Count > 0)
             CancellationToken cancellationToken = default)
         {
             Answered.Add(callbackQueryId);
+            AnsweredWithText.Add((callbackQueryId, text));
             return Task.FromResult(new TelegramSendResult(true, 200));
         }
 
@@ -693,6 +761,32 @@ if (UpdatesQueue.Count > 0)
         public List<Guid> Completed { get; } = new();
 
         public TaskCommandAttempt CompleteResult { get; set; } = new(true, 200);
+
+        /// <summary>Напоминания, которые «созрели»: после выдачи список очищается, как на сервере.</summary>
+        public List<DueReminderDto> DueReminders { get; } = new();
+
+        public List<Guid> Acknowledged { get; } = new();
+
+        public List<(Guid Id, int Minutes)> Snoozed { get; } = new();
+
+        public Task<DueReminderAttempt> TakeDueRemindersAsync(int limit = 5, CancellationToken cancellationToken = default)
+        {
+            DueReminderDto[] due = DueReminders.Take(limit).ToArray();
+            DueReminders.Clear();
+            return Task.FromResult(new DueReminderAttempt(true, 200, due));
+        }
+
+        public Task<TaskCommandAttempt> AcknowledgeReminderAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            Acknowledged.Add(id);
+            return Task.FromResult(new TaskCommandAttempt(true, 200));
+        }
+
+        public Task<TaskCommandAttempt> SnoozeReminderAsync(Guid id, int minutes, CancellationToken cancellationToken = default)
+        {
+            Snoozed.Add((id, minutes));
+            return Task.FromResult(new TaskCommandAttempt(true, 200));
+        }
 
         public Task<IntakeAttempt> SubmitAsync(string text, CancellationToken cancellationToken = default)
             => SubmitAsync(text, intent: null, cancellationToken);

@@ -156,6 +156,22 @@ public static class DatabaseInitializer
             value      TEXT NOT NULL,
             updated_at TEXT NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS reminders (
+            id              TEXT PRIMARY KEY,
+            created_at      TEXT NOT NULL,
+            due_at          TEXT NOT NULL,
+            text            TEXT NOT NULL,
+            repeat_rule     TEXT NULL,
+            state           TEXT NOT NULL,
+            source          TEXT NOT NULL,
+            task_id         TEXT NULL REFERENCES tasks (id),
+            sent_at         TEXT NULL,
+            acknowledged_at TEXT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS ix_reminders_due ON reminders (state, due_at);
+        CREATE INDEX IF NOT EXISTS ix_reminders_task ON reminders (task_id);
         """;
 }
 

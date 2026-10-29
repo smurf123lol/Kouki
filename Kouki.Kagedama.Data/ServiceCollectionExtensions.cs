@@ -37,6 +37,7 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IClassificationJournal>(sp => new SqliteClassificationJournal(sp.GetRequiredService<SqliteSession>()));
         services.TryAddSingleton<IActionLog>(sp => new SqliteActionLog(sp.GetRequiredService<SqliteSession>()));
         services.TryAddSingleton<IStateStore>(sp => new SqliteStateStore(sp.GetRequiredService<SqliteSession>()));
+        services.TryAddSingleton<IReminderStore>(sp => new SqliteReminderStore(sp.GetRequiredService<SqliteSession>()));
 
         return services;
     }

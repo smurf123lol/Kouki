@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Nodes;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Routing;
 using Kouki.Kagedama;
@@ -53,6 +53,10 @@ public static class ApiEndpoints
         api.MapGet("/api/classifications", listClassificationsHandler);
         api.MapPost("/api/classifications/{id:guid}/label", labelClassificationHandler);
         api.MapGet("/api/dataset", exportDatasetHandler);
+        api.MapGet("/api/reminders", listRemindersHandler);
+        api.MapGet("/api/reminders/due", dueRemindersHandler);
+        api.MapPost("/api/reminders/{id:guid}/ack", acknowledgeReminderHandler);
+        api.MapPost("/api/reminders/{id:guid}/snooze", snoozeReminderHandler);
 
         return endpoints;
     }
@@ -560,5 +564,109 @@ public static class ApiEndpoints
         return reason == "invalid"
             ? Results.BadRequest(new { error })
             : Results.NotFound(new { error });
+    }
+
+    /// <summary>
+    /// Список напоминаний: по умолчанию все, с <c>open=true</c> — только живые.
+    /// </summary>
+    /// <param name="open">Только ожидающие срока или реакции.</param>
+    /// <param name="limit">Сколько вернуть.</param>
+    /// <param name="router">Маршрутизатор команд.</param>
+    /// <param name="cancellationToken">Отмена.</param>
+    private static async Task<IResult> listRemindersHandler(
+        bool? open,
+        int? limit,
+        MuguraRouter router,
+        CancellationToken cancellationToken)
+    {
+        var payload = new JsonObject
+        {
+            ["openOnly"] = open ?? false,
+            ["limit"] = limit ?? 20,
+        };
+
+        JsonNode? result = await router
+            .RouteAsync("list_reminders", payload, context: null, cancellationToken)
+            .ConfigureAwait(false);
+
+        return Results.Ok(new { reminders = ApiMapping.ToReminderList(result) });
+    }
+
+    /// <summary>
+    /// Забирает созревшие напоминания: канал доставки получает их и идёт отправлять.
+    /// </summary>
+    /// <param name="limit">Сколько забрать.</param>
+    /// <param name="router">Маршрутизатор команд.</param>
+    /// <param name="cancellationToken">Отмена.</param>
+    private static async Task<IResult> dueRemindersHandler(
+        int? limit,
+        MuguraRouter router,
+        CancellationToken cancellationToken)
+    {
+        var payload = new JsonObject { ["limit"] = limit ?? 5 };
+        JsonNode? result = await router
+            .RouteAsync("take_due_reminders", payload, context: null, cancellationToken)
+            .ConfigureAwait(false);
+
+        return Results.Ok(new { reminders = ApiMapping.ToReminderList(result) });
+    }
+
+    /// <summary>
+    /// Подтверждает напоминание.
+    /// </summary>
+    /// <param name="id">Идентификатор.</param>
+    /// <param name="router">Маршрутизатор команд.</param>
+    /// <param name="cancellationToken">Отмена.</param>
+    private static async Task<IResult> acknowledgeReminderHandler(
+        Guid id,
+        MuguraRouter router,
+        CancellationToken cancellationToken)
+    {
+        var payload = new JsonObject { ["id"] = id.ToString() };
+        JsonNode? result = await router
+            .RouteAsync("complete_reminder", payload, context: null, cancellationToken)
+            .ConfigureAwait(false);
+
+        bool done = result?["done"]?.GetValue<bool>() ?? false;
+        return done
+            ? Results.Ok(new { done = true })
+            : Results.NotFound(new { error = "Напоминание не найдено." });
+    }
+
+    /// <summary>
+    /// Откладывает напоминание.
+    /// </summary>
+    /// <param name="id">Идентификатор.</param>
+    /// <param name="minutes">На сколько минут отложить.</param>
+    /// <param name="router">Маршрутизатор команд.</param>
+    /// <param name="cancellationToken">Отмена.</param>
+    private static async Task<IResult> snoozeReminderHandler(
+        Guid id,
+        int? minutes,
+        MuguraRouter router,
+        CancellationToken cancellationToken)
+    {
+        var payload = new JsonObject
+        {
+            ["id"] = id.ToString(),
+            ["minutes"] = minutes ?? 10,
+        };
+
+        JsonNode? result = await router
+            .RouteAsync("snooze_reminder", payload, context: null, cancellationToken)
+            .ConfigureAwait(false);
+
+        bool snoozed = result?["snoozed"]?.GetValue<bool>() ?? false;
+        if (!snoozed)
+        {
+            return Results.NotFound(new { error = "Напоминание не найдено." });
+        }
+
+        return Results.Ok(new
+        {
+            snoozed = true,
+            dueAt = result?["dueAt"]?.GetValue<string>(),
+            dueText = result?["dueText"]?.GetValue<string>(),
+        });
     }
 }

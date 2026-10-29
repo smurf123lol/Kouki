@@ -72,6 +72,16 @@ public sealed class RuleIntentClassifier : IIntentClassifier
         IntentRule.Strong("complete_task", @"(готово|выполнил\w*|закрой|заверши\w*|сделал\w*)\s+(задач\w*)"),
         IntentRule.Weak("complete_task", @"^(готово|выполнил\w*|сделал\w*)$"),
 
+        // Напоминания. Сильные правила требуют явного глагола: «напомни …»,
+        // «поставь напоминание …». Слово «напоминание» само по себе — слабый
+        // признак: «добавь задачу напомнить маме» остаётся задачей.
+        IntentRule.Strong("add_reminder", @"^\s*напомн(и|ить|и-ка)\b"),
+        IntentRule.Strong("add_reminder", @"^\s*(поставь|создай|сделай)\s+напоминани\w*"),
+        IntentRule.Strong("add_reminder", @"\b(remind me|set a reminder)\b"),
+        IntentRule.Weak("add_reminder", @"\bнапоминани\w*"),
+        IntentRule.Strong("list_reminders", @"(покажи|список|какие|что)\s+(?:у\s+меня\s+|мои\s+|все\s+|все\s+мои\s+)*(напоминани\w*)"),
+        IntentRule.Strong("complete_reminder", @"\b(готово|выполнил\w*|сделал\w*)\s+(?:с\s+)?напоминани\w*"),
+
         // Вопрос. Правило стоит последним и потому проигрывает по весу явным
         // командам выше: «Покажи мои задачи?» остаётся `list_tasks`, а
         // «Запиши задачу купить хлеб?» — `add_task`. Знак вопроса сам по себе

@@ -34,6 +34,15 @@ public sealed class BotRunner
     /// <summary>Кнопка «Готово» под задачей: закрывает её без текста.</summary>
     private const string DonePrefix = "done:";
 
+    /// <summary>Нажатие «Готово» под напоминанием.</summary>
+    private const string ReminderAckPrefix = "rem:ack:";
+
+    /// <summary>Нажатие «+10 минут» под напоминанием.</summary>
+    private const string ReminderSnoozePrefix = "rem:snooze:";
+
+    /// <summary>На сколько откладывается напоминание кнопкой.</summary>
+    private const int SnoozeMinutes = 10;
+
     /// <summary>Кнопка «Показать задачи».</summary>
     private const string ListCallback = "list";
 
@@ -52,6 +61,13 @@ public sealed class BotRunner
     private readonly BotOptions _options;
     private readonly Action<string> _log;
     private readonly Func<TimeSpan, CancellationToken, Task> _delay;
+
+    /// <summary>
+    /// Последний чат, из которого писали: напоминания доставляются туда же.
+    /// Отдельной привязки «напоминание → чат» пока нет, а держать её в памяти
+    /// достаточно: бот и так живёт в одном процессе с одним человеком.
+    /// </summary>
+    private long _lastChatId;
 
     /// <summary>
     /// Создаёт цикл бота.
@@ -87,6 +103,10 @@ public sealed class BotRunner
 
         while (!cancellationToken.IsCancellationRequested)
         {
+            // Напоминание важнее следующего long-poll: пока ждём обновления 25 секунд,
+            // напоминание уже могло созреть.
+            await DeliverRemindersAsync(cancellationToken).ConfigureAwait(false);
+
             TelegramUpdatesResult updates;
 
             try
@@ -209,6 +229,11 @@ public sealed class BotRunner
 
     private async Task HandleMessageAsync(TelegramMessage message, CancellationToken cancellationToken)
     {
+        if (message.ChatId != 0)
+        {
+            _lastChatId = message.ChatId;
+        }
+
         if (message.IsCallback)
         {
             await HandleCallbackAsync(message, cancellationToken).ConfigureAwait(false);
@@ -337,6 +362,22 @@ public sealed class BotRunner
             await AnswerCallbackAsync(message.CallbackQueryId, null, cancellationToken).ConfigureAwait(false);
             await TrySendAsync(message.ChatId, "Напиши вопрос после /ask — например: /ask почему небо синее", cancellationToken)
                 .ConfigureAwait(false);
+            return;
+        }
+
+        if (data.StartsWith(ReminderAckPrefix, StringComparison.Ordinal)
+            && Guid.TryParse(data[ReminderAckPrefix.Length..], out Guid acknowledged))
+        {
+            await AcknowledgeReminderAsync(message.ChatId, acknowledged, cancellationToken).ConfigureAwait(false);
+            await AnswerCallbackAsync(message.CallbackQueryId, "Отмечено", cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        if (data.StartsWith(ReminderSnoozePrefix, StringComparison.Ordinal)
+            && Guid.TryParse(data[ReminderSnoozePrefix.Length..], out Guid snoozed))
+        {
+            await SnoozeReminderAsync(message.ChatId, snoozed, cancellationToken).ConfigureAwait(false);
+            await AnswerCallbackAsync(message.CallbackQueryId, $"+{SnoozeMinutes} минут", cancellationToken).ConfigureAwait(false);
             return;
         }
 
@@ -472,6 +513,85 @@ public sealed class BotRunner
         {
             _log($"answerCallbackQuery: сеть недоступна ({ex.GetType().Name})");
         }
+    }
+
+    /// <summary>
+    /// Доставляет созревшие напоминания в последний чат, из которого писали.
+    /// Ошибки только логируются: напоминание — не повод останавливать бота.
+    /// </summary>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    private async Task DeliverRemindersAsync(CancellationToken cancellationToken)
+    {
+        if (_lastChatId == 0)
+        {
+            return;
+        }
+
+        DueReminderAttempt due;
+        try
+        {
+            due = await _kouki.TakeDueRemindersAsync(5, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or IOException or TaskCanceledException)
+        {
+            _log($"напоминания: сеть недоступна ({ex.GetType().Name})");
+            return;
+        }
+
+        if (!due.Ok)
+        {
+            _log($"напоминания: HTTP {due.StatusCode} ({due.Detail ?? due.Failure.ToString()})");
+            return;
+        }
+
+        foreach (DueReminderDto reminder in due.Reminders)
+        {
+            string when = string.IsNullOrWhiteSpace(reminder.DueText) ? string.Empty : $"\n{reminder.DueText}";
+            string body = $"⏰ {reminder.Text}{when}";
+
+            InlineKeyboard keyboard = InlineKeyboard.Row(
+                new InlineButton("Готово", ReminderAckPrefix + reminder.Id.ToString("D")),
+                new InlineButton($"+{SnoozeMinutes} минут", ReminderSnoozePrefix + reminder.Id.ToString("D")));
+
+            await TrySendAsync(_lastChatId, body, cancellationToken, keyboard).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>Подтверждает напоминание и говорит об этом в чат.</summary>
+    /// <param name="chatId">Чат.</param>
+    /// <param name="id">Напоминание.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    private async Task AcknowledgeReminderAsync(long chatId, Guid id, CancellationToken cancellationToken)
+    {
+        TaskCommandAttempt attempt = await _kouki.AcknowledgeReminderAsync(id, cancellationToken).ConfigureAwait(false);
+
+        if (!attempt.Ok)
+        {
+            _log($"напоминание {id:D}: не подтверждено, HTTP {attempt.StatusCode} ({attempt.Detail ?? "-"})");
+            await TrySendAsync(chatId, "Не получилось отметить напоминание — попробуй ещё раз.", cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>Откладывает напоминание на <see cref="SnoozeMinutes"/> минут.</summary>
+    /// <param name="chatId">Чат.</param>
+    /// <param name="id">Напоминание.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    private async Task SnoozeReminderAsync(long chatId, Guid id, CancellationToken cancellationToken)
+    {
+        TaskCommandAttempt attempt = await _kouki.SnoozeReminderAsync(id, SnoozeMinutes, cancellationToken).ConfigureAwait(false);
+
+        if (attempt.Ok)
+        {
+            await TrySendAsync(chatId, $"Хорошо, напомню через {SnoozeMinutes} минут.", cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        _log($"напоминание {id:D}: не отложено, HTTP {attempt.StatusCode} ({attempt.Detail ?? "-"})");
+        await TrySendAsync(chatId, "Не получилось отложить напоминание — попробуй ещё раз.", cancellationToken).ConfigureAwait(false);
     }
 
     private async Task TrySendAsync(
