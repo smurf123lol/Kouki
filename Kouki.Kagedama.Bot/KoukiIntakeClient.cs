@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Encodings.Web;
@@ -398,8 +398,7 @@ public sealed class KoukiIntakeClient : IKoukiIntake
 
             try
             {
-                List<DueReminderDto>? reminders = JsonSerializer.Deserialize<List<DueReminderDto>>(json, JsonOptions);
-                return new DueReminderAttempt(true, status, reminders ?? new List<DueReminderDto>());
+                return new DueReminderAttempt(true, status, ParseDueReminders(json));
             }
             catch (JsonException ex)
             {
@@ -412,6 +411,48 @@ public sealed class KoukiIntakeClient : IKoukiIntake
     public Task<TaskCommandAttempt> AcknowledgeReminderAsync(Guid id, CancellationToken cancellationToken = default)
         => PostReminderAsync($"api/reminders/{id:D}/ack", cancellationToken);
 
+    /// <summary>
+    /// Разбирает ответ <c>/api/reminders/due</c>: сервер отдаёт объект <c>{"reminders":[…]}</c>,
+    /// но старый формат с голым массивом тоже принимаем — чтобы бот не терял напоминания.
+    /// </summary>
+    private static List<DueReminderDto> ParseDueReminders(string json)
+    {
+        using JsonDocument document = JsonDocument.Parse(json);
+        JsonElement root = document.RootElement;
+
+        JsonElement list = root.ValueKind == JsonValueKind.Array
+            ? root
+            : root.TryGetProperty("reminders", out JsonElement wrapped) ? wrapped : default;
+
+        if (list.ValueKind != JsonValueKind.Array)
+        {
+            return new List<DueReminderDto>();
+        }
+
+        var reminders = new List<DueReminderDto>();
+
+        foreach (JsonElement item in list.EnumerateArray())
+        {
+            Guid id = item.TryGetProperty("id", out JsonElement idValue) && Guid.TryParse(idValue.GetString(), out Guid parsedId)
+                ? parsedId
+                : Guid.Empty;
+            string text = item.TryGetProperty("text", out JsonElement textValue) ? textValue.GetString() ?? string.Empty : string.Empty;
+            string dueText = item.TryGetProperty("dueText", out JsonElement dueValue) ? dueValue.GetString() ?? string.Empty : string.Empty;
+            string state = item.TryGetProperty("state", out JsonElement stateValue) ? stateValue.GetString() ?? string.Empty : string.Empty;
+            Guid? taskId = item.TryGetProperty("taskId", out JsonElement taskValue)
+                && taskValue.ValueKind == JsonValueKind.String
+                && Guid.TryParse(taskValue.GetString(), out Guid parsedTask)
+                    ? parsedTask
+                    : null;
+
+            if (id != Guid.Empty)
+            {
+                reminders.Add(new DueReminderDto(id, text, dueText, state, taskId));
+            }
+        }
+
+        return reminders;
+    }
     /// <inheritdoc />
     public Task<TaskCommandAttempt> SnoozeReminderAsync(Guid id, int minutes, CancellationToken cancellationToken = default)
     {

@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -105,6 +105,25 @@ public sealed class TelegramBotTests
         Assert.Equal(expected, attempt.Failure);
     }
 
+    [Fact]
+    public async Task Intake_client_reads_due_reminders_from_the_wrapped_response()
+    {
+        Guid id = Guid.NewGuid();
+        string body = "{\"reminders\":[{\"id\":\"" + id.ToString("D") + "\",\"text\":\"полить цветы\",\"dueText\":\"сегодня в 18:00\",\"state\":\"sent\",\"taskId\":null}]}";
+        var handler = new StubHandler(_ => Json(HttpStatusCode.OK, body));
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://kouki.test/") };
+        var client = new KoukiIntakeClient(http, "secret", "telegram");
+
+        DueReminderAttempt attempt = await client.TakeDueRemindersAsync(5);
+
+        Assert.True(attempt.Ok);
+        DueReminderDto reminder = Assert.Single(attempt.Reminders);
+        Assert.Equal(id, reminder.Id);
+        Assert.Equal("полить цветы", reminder.Text);
+        Assert.Equal("сегодня в 18:00", reminder.DueText);
+        Assert.Equal("sent", reminder.State);
+        Assert.Null(reminder.TaskId);
+    }
     [Fact]
     public async Task Intake_client_reports_unavailable_when_network_fails()
     {
