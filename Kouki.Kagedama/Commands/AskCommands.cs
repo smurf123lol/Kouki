@@ -8,35 +8,36 @@ using Kouki.Shimi.Context;
 namespace Kouki.Kagedama.Commands;
 
 /// <summary>
-/// Вопрос, на который ассистент пока не умеет отвечать.
+/// Вопрос ассистенту.
 /// </summary>
 /// <param name="Text">Текст вопроса.</param>
 /// <param name="TaskId">Задача-запись, созданная приёмом: в неё же попадёт ответ.</param>
 public record AskCommand(string? Text = null, string? TaskId = null) : ICommand;
 
 /// <summary>
-/// Заглушка ответа на вопрос.
+/// Отвечает на вопрос через <see cref="IAnswerer"/>.
 /// </summary>
 /// <remarks>
-/// Команда существует с самого начала намеренно: когда появится настоящий ответчик
-/// (локальная модель или внешний сервис), он подменит только тело <c>answer</c>,
-/// а маршрут «вопрос → команда <c>ask</c> → ответ в задаче» останется тем же.
+/// Если ответчик не настроен (нет ключа, провайдер выключен) — отвечает
+/// <see cref="StubAnswer"/>, а причина попадает в поле <c>stubReason</c>. Если модель
+/// отказала, в <c>error</c> будет её текст, а человек увидит короткое объяснение.
 /// Ответ пишется и в результат команды, и в мету задачи — см. <c>TaskIntakeService</c>.
 /// </remarks>
+/// <param name="answerer">Ответчик; может отсутствовать в контейнере.</param>
 [Command(
     "ask",
-    Description = "Отвечает на вопрос (пока заглушкой)",
+    Description = "Отвечает на вопрос",
     Category = CommandCategory.Navigation,
     Example = "Сколько минут варить пельмени?")]
-public sealed class AskHandler : ICommandHandler<AskCommand>
+public sealed class AskHandler(IAnswerer? answerer = null) : ICommandHandler<AskCommand>
 {
-    /// <summary>Текст заглушки: он же попадает в задачу как ответ.</summary>
+    /// <summary>Текст заглушки: он же попадает в задачу как ответ, если модели нет.</summary>
     public const string StubAnswer =
         "Отвечать на вопросы я пока не умею: вопрос сохранён и попал в разбор. " +
         "Ответы появятся, когда подключим модель.";
 
     /// <inheritdoc />
-    public Task<JsonNode> HandleAsync(
+    public async Task<JsonNode> HandleAsync(
         AskCommand command,
         IExecutionContext? context = null,
         CancellationToken cancellationToken = default)
@@ -45,9 +46,7 @@ public sealed class AskHandler : ICommandHandler<AskCommand>
 
         var payload = new JsonObject
         {
-            ["answer"] = StubAnswer,
             ["question"] = command.Text,
-            ["stub"] = true,
         };
 
         if (command.TaskId is not null)
@@ -55,6 +54,39 @@ public sealed class AskHandler : ICommandHandler<AskCommand>
             payload["taskId"] = command.TaskId;
         }
 
-        return Task.FromResult<JsonNode>(payload);
+        var question = command.Text?.Trim();
+        if (string.IsNullOrEmpty(question) || answerer is null || !answerer.IsConfigured)
+        {
+            payload["answer"] = StubAnswer;
+            payload["stub"] = true;
+
+            var reason = answerer?.UnavailableReason;
+            if (!string.IsNullOrWhiteSpace(reason))
+            {
+                payload["stubReason"] = reason;
+            }
+
+            return payload;
+        }
+
+        try
+        {
+            var answer = await answerer.AnswerAsync(question, cancellationToken).ConfigureAwait(false);
+
+            payload["answer"] = answer.Text;
+            payload["stub"] = false;
+            payload["answerer"] = answer.Signature;
+            payload["answerMs"] = answer.ElapsedMs;
+        }
+        catch (AnswererException ex)
+        {
+            // Отказ модели — это не пустой ответ: вопрос остаётся в задаче, а человек
+            // видит, почему ответа нет. Текст исключения уже человекочитаемый.
+            payload["answer"] = $"Ответить не получилось: {ex.Message}";
+            payload["stub"] = false;
+            payload["error"] = ex.Message;
+        }
+
+        return payload;
     }
 }

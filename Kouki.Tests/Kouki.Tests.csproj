@@ -24,6 +24,7 @@
     <ProjectReference Include="..\Kouki.Kagedama.Data\Kouki.Kagedama.Data.csproj" />
     <ProjectReference Include="..\Kouki.Kagedama\Kouki.Kagedama.csproj" />
     <ProjectReference Include="..\Kouki.Kagedama.Bot\Kouki.Kagedama.Bot.csproj" />
+    <ProjectReference Include="..\Kouki.Kotae\Kouki.Kotae.csproj" />
     <ProjectReference Include="..\Kouki.Mugura\Kouki.Mugura.csproj" />
     <ProjectReference Include="..\Kouki.Un\Kouki.Un.csproj" />
     <ProjectReference Include="..\Kouki.Yasabi\Kouki.Yasabi.csproj" />

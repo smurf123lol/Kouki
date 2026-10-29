@@ -6,6 +6,7 @@ using Kouki.Mugura.DependencyInjection;
 using Kouki.Shimi.Context;
 using Kouki.Shimi.DependencyInjection;
 using Kouki.Shimi.ServiceAbstractions;
+using Kouki.Kotae;
 using Kouki.Yasabi;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -30,6 +31,9 @@ public sealed record KoukiHostSettings
 
     /// <summary>Сборки, где искать команды; по умолчанию — сборка домена.</summary>
     public IReadOnlyList<Assembly> CommandAssemblies { get; init; } = new[] { typeof(AddTaskHandler).Assembly };
+
+    /// <summary>Ответчик на вопросы; <c>null</c> или выключенный провайдер — команда <c>ask</c> отвечает заглушкой.</summary>
+    public KotaeOptions? Answerer { get; init; }
 }
 
 /// <summary>
@@ -76,6 +80,24 @@ public static class KoukiHosting
             DefaultSource = settings.DefaultSource,
         });
         services.AddSingleton<TaskIntakeService>();
+
+        // Ответчик подключается всегда: без ключа это DisabledAnswerer, и в
+        // диагностике видно причину, а команда ask отвечает заглушкой.
+        services.AddKotae(options =>
+        {
+            if (settings.Answerer is not { } answerer)
+            {
+                return;
+            }
+
+            options.Provider = answerer.Provider;
+            options.ApiKey = answerer.ApiKey;
+            options.Model = answerer.Model;
+            options.Endpoint = answerer.Endpoint;
+            options.TimeoutSeconds = answerer.TimeoutSeconds;
+            options.MaxOutputTokens = answerer.MaxOutputTokens;
+            options.SystemPrompt = answerer.SystemPrompt;
+        });
 
         return services;
     }

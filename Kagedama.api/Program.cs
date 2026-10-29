@@ -100,12 +100,18 @@ builder.Services.AddHttpLogging(options =>
 double threshold = serverOptions.ConfidenceThreshold;
 string databasePath = serverOptions.DatabasePath;
 
+// Ответчик на вопросы (команда ask): провайдер, ключ и модель — из Kouki:Answerer.
+// Ключа может не быть — тогда отвечает заглушка, а причина видна в /api/context и логе.
+Kouki.Kotae.KotaeOptions answererOptions = new();
+builder.Configuration.GetSection($"{KoukiHostSettings.SectionName}:Answerer").Bind(answererOptions);
+
 // Одна композиция домена на все хосты: хранилище, команды, контексты, классификатор, приём.
 builder.Services.AddKoukiCore(new KoukiHostSettings
 {
     DatabasePath = databasePath,
     ConfidenceThreshold = threshold,
     DefaultSource = TaskSources.Api,
+    Answerer = answererOptions,
 });
 builder.Services.AddUbusuna();
 

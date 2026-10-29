@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Kouki.Kotae</AssemblyName>
+    <RootNamespace>Kouki.Kotae</RootNamespace>
+    <PackageId>Kouki.Kotae</PackageId>
+    <Description>Ответчик на вопросы: команда ask получает настоящий ответ от внешней модели (Kouki.Kotae).</Description>
+    <PackageTags>kouki;llm;answers;gemini</PackageTags>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Kouki.Kagedama.Contracts\Kouki.Kagedama.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -13,6 +13,7 @@
   <Folder Name="/tools/">
     <Project Path="tools/Kouki.SpeechLab/Kouki.SpeechLab.csproj" />
   </Folder>
+  <Project Path="Kouki.Kotae/Kouki.Kotae.csproj" />
   <Project Path="Kouki.Mugura/Kouki.Mugura.csproj" />
   <Project Path="Kouki.Un/Kouki.Un.csproj" />
   <Project Path="Kouki.Yasabi/Kouki.Yasabi.csproj" />

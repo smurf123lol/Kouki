@@ -61,6 +61,11 @@ services.AddLogging(logging =>
     });
 });
 
+// Ответчик на вопросы: тот же конфиг, что в API (ключ можно задать переменной
+// окружения Kouki__Answerer__ApiKey). Без ключа команда ask отвечает заглушкой.
+Kouki.Kotae.KotaeOptions answererOptions = new();
+configuration.GetSection($"{section}:Answerer").Bind(answererOptions);
+
 // Хранилище, команды и контекст собираются общим слоем: MCP и API в одном процессе
 // работают одинаково, различается только транспорт и источник.
 services.AddKoukiCore(new KoukiHostSettings
@@ -68,6 +73,7 @@ services.AddKoukiCore(new KoukiHostSettings
     DatabasePath = databasePath,
     ConfidenceThreshold = threshold,
     DefaultSource = TaskSources.Mcp,
+    Answerer = answererOptions,
     CommandAssemblies =
     [
         typeof(Kouki.Ubusuna.Commands.PingHandler).Assembly,

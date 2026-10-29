@@ -23,6 +23,7 @@
     <ProjectReference Include="..\Kouki.Mugura\Kouki.Mugura.csproj" />
     <ProjectReference Include="..\Kouki.Yasabi\Kouki.Yasabi.csproj" />
     <ProjectReference Include="..\Kouki.Kagedama.Data\Kouki.Kagedama.Data.csproj" />
+    <ProjectReference Include="..\Kouki.Kotae\Kouki.Kotae.csproj" />
     <ProjectReference Include="..\Shimi\Shimi.csproj" />
   </ItemGroup>
 
