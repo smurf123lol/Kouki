@@ -609,7 +609,19 @@ public sealed class BotRunner
         {
             TelegramUpdatesResult last = await _telegram.GetUpdatesAsync(-1, 0, cancellationToken).ConfigureAwait(false);
 
-            if (last.Ok && last.Updates.Count > 0 && last.Updates[^1].ChatId != 0)
+            if (!last.Ok)
+            {
+                _log($"getUpdates(-1): HTTP {last.StatusCode} ({last.Error ?? "без описания"}) — чат напоминаний неизвестен");
+                return;
+            }
+
+            if (last.Updates.Count == 0)
+            {
+                _log("getUpdates(-1): последних обновлений нет — чат напоминаний узнаю из первого сообщения");
+                return;
+            }
+
+            if (last.Updates[^1].ChatId != 0)
             {
                 _lastChatId = last.Updates[^1].ChatId;
                 _log($"напоминания пойдут в чат {_lastChatId}");
