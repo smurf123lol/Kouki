@@ -43,6 +43,14 @@ public sealed record KoukiHostSettings
     public LlmIntentOptions? IntentLlm { get; init; }
 
     /// <summary>
+    /// Приём идёт связкой «правила + модель»: правила отвечают первыми, модель — на неуверенных фразах.
+    /// </summary>
+    public bool HybridIntents { get; init; } = true;
+
+    /// <summary>Порог уверенности правил, ниже которого приём спрашивает модель.</summary>
+    public double HybridFallbackBelow { get; init; } = 0.95d;
+
+    /// <summary>
     /// Часовой пояс человека для напоминаний (IANA или имя Windows).
     /// <c>null</c> — переменная окружения <c>KOUKI_TIMEZONE</c>, а если её нет — пояс сервера.
     /// </summary>
@@ -91,6 +99,9 @@ public static class KoukiHosting
             {
                 options.Llm = llm;
             }
+
+            options.HybridForIntake = settings.HybridIntents;
+            options.HybridFallbackBelow = settings.HybridFallbackBelow;
         });
         services.AddSingleton(new IntakeOptions
         {
