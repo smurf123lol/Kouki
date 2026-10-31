@@ -81,9 +81,19 @@ function Get-WorkspaceRoot {
 
 function Invoke-Git {
     param([string[]]$Arguments)
-    $output = & git -C $Repo @Arguments 2>&1
-    if ($LASTEXITCODE -ne 0) { throw "git $($Arguments -join ' ') — код $LASTEXITCODE`n$output" }
-    return ($output | Out-String).TrimEnd()
+    # Вывод git декодируется кодировкой консоли (PowerShell 5.1). На cp866 русские пути
+    # искажаются и в пакете, и в отпечатке, а отпечаток обязан совпадать на Windows и Linux:
+    # поэтому на время вызова — UTF-8, с восстановлением прежней кодировки; stderr не мешаем с diff.
+    $previous = [Console]::OutputEncoding
+    try {
+        [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false
+        $output = & git -C $Repo @Arguments 2>$null
+        if ($LASTEXITCODE -ne 0) { throw "git $($Arguments -join ' ') — код $LASTEXITCODE" }
+        return ($output | Out-String).TrimEnd()
+    }
+    finally {
+        [Console]::OutputEncoding = $previous
+    }
 }
 
 function Get-TaskSection {
@@ -197,6 +207,7 @@ $taskLine
 | База | ``$Base`` ($baseSha, ``$baseFull``) |
 | Голова | ``$Head`` ($headSha, ``$headFull``) |
 | Ветка | ``$branch`` |
+| Репозиторий | ``$Repo`` |
 | **Отпечаток** | ``$fp`` (sha256 по ``git diff --raw``, 16 символов) |
 
 > Повторное ревью запрашивайте по отпечатку: если ``$fp`` не изменился,
@@ -242,9 +253,9 @@ $diffBlock
    ``KoukiHosting``; чтение/запись — командами (кроме ``GET /api/tasks/{id}`` с комментарием);
    токен fail-closed; ``[Command]`` на обработчике; фразу не режем; магических чисел нет;
    пользователю — человеческий текст; правила приёма — в ``IntakeRequestPolicy``; версии —
-   в ``Directory.Packages.props``.
-3. **Тесты.** Новое поведение покрыто; тесты падали до правки; нет ``[Theory]``, ``Skip``,
-   закомментированных проверок и ``catch { }`` без лога.
+   в ``Directory.Packages.props`` / ``Directory.Build.props``.
+3. **Тесты.** Новое поведение покрыто; тесты падали до правки; нет отключённых проверок,
+   ``Skip`` и ``catch { }`` без лога.
 4. **Ошибки и тексты.** Наружу не уходит ``ex.Message``; у отказов есть код и человеческое
    сообщение; логи содержат контекст, но не секреты.
 5. **Доки и заметки.** Если менялись контракты — обновлены ``notes-updated`` (архитектура,
@@ -262,7 +273,7 @@ $diffBlock
 Blockers (пушить нельзя):
 - файл:строка — что не так, почему это нарушение (инвариант/контракт), что сделать
 
-Major (пушить можно после правки в этом же PR):
+Major (можно после правки в этом PR):
 - …
 
 Minor / nit (можно отдельной задачей):
