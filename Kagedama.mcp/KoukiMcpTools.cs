@@ -72,6 +72,25 @@ public sealed class KoukiMcpTools
             "Закрывает задачу. Без taskId закрывается последняя открытая задача.",
             Schema(new[] { ("taskId", "string", "Идентификатор задачи (GUID).") })),
         new McpToolDescriptor(
+            "kouki_add_reminder",
+            "Создаёт напоминание из фразы со временем: «напомни через 20 минут полить цветы», «завтра в 9 позвонить маме».",
+            Schema(
+                new[] { ("text", "string", "Фраза целиком, включая время напоминания.") },
+                required: "text")),
+        new McpToolDescriptor(
+            "kouki_list_reminders",
+            "Показывает напоминания: ожидающие или все.",
+            Schema(
+                new[]
+                {
+                    ("open", "boolean", "true — только незакрытые (по умолчанию), false — все."),
+                    ("limit", "integer", "Сколько вернуть, по умолчанию 10, максимум 100."),
+                })),
+        new McpToolDescriptor(
+            "kouki_complete_reminder",
+            "Закрывает напоминание по идентификатору.",
+            Schema(new[] { ("reminderId", "string", "Идентификатор напоминания (GUID).") }, required: "reminderId")),
+        new McpToolDescriptor(
             "kouki_unresolved_classifications",
             "Показывает записи журнала, которые ждут ручного разбора (low confidence и ошибки).",
             Schema(new[] { ("limit", "integer", "Сколько записей вернуть, по умолчанию 20, максимум 200.") })),
@@ -134,6 +153,9 @@ public sealed class KoukiMcpTools
             "kouki_list_tasks" => await ListTasksAsync(args, cancellationToken).ConfigureAwait(false),
             "kouki_complete_task" => await CompleteTaskAsync(args, cancellationToken).ConfigureAwait(false),
             "kouki_task_history" => await TaskHistoryAsync(args, cancellationToken).ConfigureAwait(false),
+            "kouki_add_reminder" => await AddReminderAsync(args, cancellationToken).ConfigureAwait(false),
+            "kouki_list_reminders" => await ListRemindersAsync(args, cancellationToken).ConfigureAwait(false),
+            "kouki_complete_reminder" => await CompleteReminderAsync(args, cancellationToken).ConfigureAwait(false),
             "kouki_unresolved_classifications" => await UnresolvedAsync(args, cancellationToken).ConfigureAwait(false),
             "kouki_label_classification" => await LabelAsync(args, cancellationToken).ConfigureAwait(false),
             "kouki_context" => Context(),
@@ -232,6 +254,43 @@ public sealed class KoukiMcpTools
         }
 
         return await _router.RouteAsync("list_tasks", slots, _contexts.GetDefaultContext(), cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<JsonNode> AddReminderAsync(JsonObject args, CancellationToken cancellationToken)
+    {
+        string text = RequiredString(args, "text");
+        var slots = new JsonObject { ["text"] = text, ["source"] = _intake.DefaultSource };
+
+        // Время разбирает команда (ReminderTime): у HTTP и MCP одна и та же логика,
+        // а «не понял, когда» приходит обычным отказом в поле error.
+        return await _router.RouteAsync("add_reminder", slots, _contexts.GetDefaultContext(), cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<JsonNode> ListRemindersAsync(JsonObject args, CancellationToken cancellationToken)
+    {
+        var slots = new JsonObject();
+
+        if (args["open"] is JsonNode open && open.GetValueKind() is JsonValueKind.True or JsonValueKind.False)
+        {
+            slots["openOnly"] = open.GetValue<bool>();
+        }
+
+        if (OptionalInt(args, "limit") is { } limit)
+        {
+            slots["limit"] = limit;
+        }
+
+        return await _router.RouteAsync("list_reminders", slots, _contexts.GetDefaultContext(), cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<JsonNode> CompleteReminderAsync(JsonObject args, CancellationToken cancellationToken)
+    {
+        var slots = new JsonObject { ["id"] = RequiredString(args, "reminderId") };
+
+        return await _router.RouteAsync("complete_reminder", slots, _contexts.GetDefaultContext(), cancellationToken)
             .ConfigureAwait(false);
     }
 
