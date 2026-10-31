@@ -34,7 +34,8 @@ else
 fi
 
 usage() {
-    sed -n '3,20p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    awk 'NR > 2 && /^set -euo pipefail$/ { exit } NR > 2' "${BASH_SOURCE[0]}" |
+        sed 's/^# \{0,1\}//'
 }
 
 need_value() {
@@ -66,6 +67,13 @@ if [ "$MAX_LINES" -lt 1 ]; then
     exit 2
 fi
 
+# Путь из -r может быть относительным (или «.»): нормализуем до абсолютного, иначе
+# поиск воркспейса вверх по dirname зацикливается на каталоге «.».
+REPO="$(cd "$REPO" 2>/dev/null && pwd)" || {
+    echo "Каталог не найден" >&2
+    exit 2
+}
+
 git -C "$REPO" rev-parse --git-dir >/dev/null 2>&1 || {
     echo "Не репозиторий: $REPO" >&2
     exit 2
@@ -80,7 +88,10 @@ find_workspace() {
             printf '%s\n' "$dir"
             return 0
         fi
-        dir="$(dirname "$dir")"
+        local next
+        next="$(dirname "$dir")"
+        [ "$next" = "$dir" ] && break
+        dir="$next"
     done
     dirname "$1"
 }
@@ -95,7 +106,10 @@ STAT="$(git -C "$REPO" diff --stat "$BASE..$HEAD_REF" || true)"
 NAME_STATUS="$(git -C "$REPO" diff --name-status "$BASE..$HEAD_REF" || true)"
 DIFF="$(git -C "$REPO" diff "$BASE..$HEAD_REF" || true)"
 
-if [ -z "${DIFF//[[:space:]]/}" ]; then
+# Пустой дифф — это пустая строка: git diff заканчивает вывод переводом строки,
+# команда подстановки его срезает. Проверка через printf|grep здесь не годится:
+# grep -q закрывает канал раньше, и pipefail роняет сроку как «пустой дифф».
+if [ -z "$DIFF" ]; then
     DIFF_LINES=0
     DIFF=""
 else

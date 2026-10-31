@@ -35,7 +35,6 @@ param(
     [string]$Head = 'HEAD',
 
     # Сколько строк дифа вкладывать в пакет (хвост обрезается с пометкой).
-    [ValidateRange(1, [int]::MaxValue)]
     [int]$MaxDiffLines = 4000,
 
     # Файл задач; по умолчанию ищется вверх от репозитория (notes-updated\Задачи Kouki.md).
@@ -46,6 +45,16 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+if ($MaxDiffLines -lt 1) {
+    Write-Host "Число строк дифа должно быть положительным, а не $MaxDiffLines" -ForegroundColor Red
+    exit 2
+}
+
+if ([string]::IsNullOrWhiteSpace($Task)) {
+    Write-Host 'Нужен -Task Txx. Справка: Get-Help .\tools\review.ps1 -Detailed' -ForegroundColor Red
+    exit 2
+}
 
 # $PSScriptRoot в значениях параметров задаётся не всегда (pwsh -File), поэтому
 # каталог репозитория вычисляется уже после старта скрипта.
