@@ -101,13 +101,47 @@ function Get-TaskSection {
     return $hit.Trim()
 }
 
+foreach ($ref in @($Base, $Head)) {
+    & git -C $Repo rev-parse --verify --quiet "$ref^{commit}" 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Неизвестная ревизия: $ref" -ForegroundColor Red
+        exit 2
+    }
+}
+
 $branch = Invoke-Git @('rev-parse', '--abbrev-ref', 'HEAD')
 $headSha = Invoke-Git @('rev-parse', '--short', $Head)
 $baseSha = Invoke-Git @('rev-parse', '--short', $Base)
+$baseFull = (Invoke-Git @('rev-parse', "$Base^{commit}")).Trim()
+$headFull = (Invoke-Git @('rev-parse', "$Head^{commit}")).Trim()
 $commits = Invoke-Git @('log', '--oneline', "$Base..$Head")
 $stat = Invoke-Git @('diff', '--stat', "$Base..$Head")
 $nameStatus = Invoke-Git @('diff', '--name-status', "$Base..$Head")
 $diff = Invoke-Git @('diff', "$Base..$Head")
+$raw = Invoke-Git @('diff', '--raw', "$Base..$Head")
+
+# Отпечаток набора изменений: sha256 по `git diff --raw` (blob-хеши «было→стало» и пути).
+# Тот же алгоритм в tools/review.sh — отпечатки совпадают на одной и той же паре коммитов.
+$fpInput = (($raw -split "`n") | ForEach-Object { $_.TrimEnd("`r") } |
+    Where-Object { $_.Trim().Length -gt 0 } | Sort-Object) -join "`n"
+$sha256 = [System.Security.Cryptography.SHA256]::Create()
+$fp = ([System.BitConverter]::ToString(
+        $sha256.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($fpInput))
+    ) -replace '-', '').ToLowerInvariant().Substring(0, 16)
+
+$fileRows = if ([string]::IsNullOrWhiteSpace($raw)) {
+    '| _(нет изменений)_ | — | — | — |'
+} else {
+    (($raw -split "`n") | Where-Object { $_.Trim().Length -gt 0 } | ForEach-Object {
+        $line = $_.TrimEnd("`r")
+        $meta, $path = $line -split "`t", 2
+        $m = $meta -split '\s+'
+        $oldHash = if ($m[2] -match '^0+$') { '—' } else { $m[2].Substring(0, [Math]::Min(10, $m[2].Length)) }
+        $newHash = if ($m[3] -match '^0+$') { '—' } else { $m[3].Substring(0, [Math]::Min(10, $m[3].Length)) }
+        $status = $m[4].Substring(0, 1)
+        "| ``$path`` | $status | $oldHash | $newHash |"
+    }) -join "`n"
+}
 
 $diffLines = ($diff -split "`n")
 $truncated = $false
@@ -148,9 +182,13 @@ $taskLine
 
 | Что | Значение |
 | --- | --- |
-| База | ``$Base`` ($baseSha) |
-| Голова | ``$Head`` ($headSha) |
+| База | ``$Base`` ($baseSha, ``$baseFull``) |
+| Голова | ``$Head`` ($headSha, ``$headFull``) |
 | Ветка | ``$branch`` |
+| **Отпечаток** | ``$fp`` (sha256 по ``git diff --raw``, 16 символов) |
+
+> Повторное ревью запрашивайте по отпечатку: если ``$fp`` не изменился,
+> набор изменений тот же, даже если пакет собран заново.
 
 ### Коммиты
 
@@ -158,7 +196,13 @@ $taskLine
 $commits
 ``````
 
-### Файлы
+### Файлы и blob-хеши
+
+| Файл | Статус | Было | Стало |
+| --- | --- | --- | --- |
+$fileRows
+
+### Список файлов
 
 ``````
 $nameStatus
@@ -221,7 +265,7 @@ Minor / nit (можно отдельной задачей):
 "@
 
 [IO.File]::WriteAllText($Out, $packet, (New-Object Text.UTF8Encoding($false)))
-Write-Host "Пакет для ревью: $Out"
+Write-Host "Пакет для ревью: $Out · отпечаток $fp"
 $filesCount = if ([string]::IsNullOrWhiteSpace($nameStatus)) { 0 } else { ($nameStatus -split "`n").Length }
 $diffCount = if ([string]::IsNullOrWhiteSpace($diff)) { 0 } else { $diffLines.Length }
 Write-Host ("Файлов в дифе: {0} · строк дифа: {1}{2}" -f $filesCount, $diffCount, ($(if ($truncated) { ' (обрезано)' } else { '' })))

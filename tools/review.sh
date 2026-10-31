@@ -35,7 +35,8 @@ fi
 
 usage() {
     awk 'NR > 2 && /^set -euo pipefail$/ { exit } NR > 2' "${BASH_SOURCE[0]}" |
-        sed 's/^# \{0,1\}//'
+        sed 's/^# \{0,1\}//' |
+        awk 'NF || seen { seen = 1; print }'
 }
 
 need_value() {
@@ -69,8 +70,9 @@ fi
 
 # Путь из -r может быть относительным (или «.»): нормализуем до абсолютного, иначе
 # поиск воркспейса вверх по dirname зацикливается на каталоге «.».
+REPO_IN="$REPO"
 REPO="$(cd "$REPO" 2>/dev/null && pwd)" || {
-    echo "Каталог не найден" >&2
+    echo "Каталог не найден: $REPO_IN" >&2
     exit 2
 }
 
@@ -98,6 +100,13 @@ find_workspace() {
 
 WORKSPACE="$(find_workspace "$REPO")"
 
+for ref in "$BASE" "$HEAD_REF"; do
+    git -C "$REPO" rev-parse --verify --quiet "$ref^{commit}" >/dev/null || {
+        echo "Неизвестная ревизия: $ref" >&2
+        exit 2
+    }
+done
+
 BRANCH="$(git -C "$REPO" rev-parse --abbrev-ref HEAD)"
 HEAD_SHA="$(git -C "$REPO" rev-parse --short "$HEAD_REF")"
 BASE_SHA="$(git -C "$REPO" rev-parse --short "$BASE")"
@@ -105,6 +114,14 @@ COMMITS="$(git -C "$REPO" log --oneline "$BASE..$HEAD_REF" || true)"
 STAT="$(git -C "$REPO" diff --stat "$BASE..$HEAD_REF" || true)"
 NAME_STATUS="$(git -C "$REPO" diff --name-status "$BASE..$HEAD_REF" || true)"
 DIFF="$(git -C "$REPO" diff "$BASE..$HEAD_REF" || true)"
+RAW="$(git -C "$REPO" diff --raw "$BASE..$HEAD_REF" || true)"
+BASE_FULL="$(git -C "$REPO" rev-parse "$BASE^{commit}")"
+HEAD_FULL="$(git -C "$REPO" rev-parse "$HEAD_REF^{commit}")"
+
+# Отпечаток набора изменений: sha256 по `git diff --raw` (blob-хеши «было→стало» и пути).
+# При повторном ревью достаточно сверить отпечаток: если он тот же — набор изменений тот же.
+FP_INPUT="$(printf '%s\n' "$RAW" | tr -d '\r' | sed '/^[[:space:]]*$/d' | sort)"
+FP="$(printf '%s' "$FP_INPUT" | sha256sum | cut -c1-16)"
 
 # Пустой дифф — это пустая строка: git diff заканчивает вывод переводом строки,
 # команда подстановки его срезает. Проверка через printf|grep здесь не годится:
@@ -163,10 +180,14 @@ fi
     echo
     echo "| Что | Значение |"
     echo "| --- | --- |"
-    echo "| База | \`$BASE\` ($BASE_SHA) |"
-    echo "| Голова | \`$HEAD_REF\` ($HEAD_SHA) |"
+    echo "| База | \`$BASE\` ($BASE_SHA, \`$BASE_FULL\`) |"
+    echo "| Голова | \`$HEAD_REF\` ($HEAD_SHA, \`$HEAD_FULL\`) |"
     echo "| Ветка | \`$BRANCH\` |"
     echo "| Репозиторий | \`$REPO\` |"
+    echo "| **Отпечаток** | \`$FP\` (sha256 по \`git diff --raw\`, 16 символов) |"
+    echo
+    echo "> Повторное ревью запрашивайте по отпечатку: если \`$FP\` не изменился,"
+    echo "> набор изменений тот же, даже если пакет собран заново."
     echo
     echo "### Коммиты"
     echo
@@ -174,7 +195,23 @@ fi
     echo "${COMMITS:-_(нет коммитов)_}"
     echo '```'
     echo
-    echo "### Файлы"
+    echo "### Файлы и blob-хеши"
+    echo
+    echo "| Файл | Статус | Было | Стало |"
+    echo "| --- | --- | --- | --- |"
+    if [ -z "$RAW" ]; then
+        echo "| _(нет изменений)_ | — | — | — |"
+    else
+        printf '%s\n' "$RAW" | tr -d '\r' | awk -F"\t" '{
+            split($1, meta, " ");
+            old = substr(meta[3], 1, 10); new = substr(meta[4], 1, 10);
+            if (old == "") old = "—";
+            if (new == "—" || new ~ /^0+$/) new = "—";
+            printf "| `%s` | %s | %s | %s |\n", $2, substr(meta[5], 1, 1), old, new
+        }'
+    fi
+    echo
+    echo "### Список файлов"
     echo
     echo '```'
     echo "${NAME_STATUS:-_(нет изменений)_}"
@@ -244,5 +281,5 @@ Minor / nit (отдельной задачей):
 CHECKLIST
 } > "$OUT"
 
-echo "Пакет для ревью: $OUT"
+echo "Пакет для ревью: $OUT · отпечаток $FP"
 echo "Файлов в дифе: $FILES_COUNT · строк дифа: $DIFF_LINES${TRUNCATED:+ (обрезано)}"
