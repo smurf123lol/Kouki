@@ -70,6 +70,13 @@ public sealed class AudioRetentionService : BackgroundService
             return;
         }
 
+        // Чистка по объёму не зависит от хранилища: она ходит напрямую по каталогу,
+        // поэтому выполняется даже если IAudioStore ещё не зарегистрирован.
+        if (options.AudioMaxBytes > 0)
+        {
+            SweepBySize(options);
+        }
+
         IAudioStore? store = _services.GetService(typeof(IAudioStore)) as IAudioStore;
         if (store is null)
         {
@@ -93,6 +100,72 @@ public sealed class AudioRetentionService : BackgroundService
                 () => store.RemoveLabeledAsync(labeledCutoff, cancellationToken),
                 $"Аудио, размеченное более {options.AudioLabeledRetentionDays} дн. назад,",
                 cancellationToken).ConfigureAwait(false);
+        }
+
+    }
+
+    // Возраст не спасает, когда фраз много: смотрим суммарный объём и удаляем самое
+    // старое, пока не влезем в предел. Ошибки файловой системы не валят приём.
+    private void SweepBySize(KoukiServerOptions options)
+    {
+        try
+        {
+            if (!Directory.Exists(options.AudioDirectory))
+            {
+                return;
+            }
+
+            var files = new DirectoryInfo(options.AudioDirectory)
+                .EnumerateFiles("*.wav", SearchOption.AllDirectories)
+                .OrderBy(file => file.LastWriteTimeUtc)
+                .ToList();
+
+            long total = files.Sum(file => file.Length);
+            if (total <= options.AudioMaxBytes)
+            {
+                return;
+            }
+
+            int removed = 0;
+            long freed = 0;
+
+            foreach (FileInfo file in files)
+            {
+                if (total <= options.AudioMaxBytes)
+                {
+                    break;
+                }
+
+                long size = file.Length;
+                try
+                {
+                    file.Delete();
+                    total -= size;
+                    freed += size;
+                    removed++;
+                }
+                catch (IOException ex)
+                {
+                    _logger.LogWarning(ex, "Аудио {Name}: удалить не удалось", file.Name);
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    _logger.LogWarning(ex, "Аудио {Name}: нет доступа", file.Name);
+                }
+            }
+
+            if (removed > 0)
+            {
+                _logger.LogInformation(
+                    "Аудио по размеру: удалено {Count} файлов, освобождено {Freed} МБ (предел {Limit} МБ)",
+                    removed,
+                    freed / (1024 * 1024),
+                    options.AudioMaxBytes / (1024 * 1024));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Чистка аудио по размеру не удалась");
         }
     }
 

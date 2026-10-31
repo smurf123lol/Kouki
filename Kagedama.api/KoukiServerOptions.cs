@@ -35,6 +35,16 @@ public sealed class KoukiServerOptions
     /// </summary>
     public bool AllowAnonymous { get; set; }
 
+    /// <summary>
+    /// Дополнительные пути API, доступные без токена (кроме всегда открытого <c>/api/health</c>).
+    /// </summary>
+    /// <remarks>
+    /// Список здесь, а не в коде, чтобы временно открыть проверку или приёмник уведомлений
+    /// без пересборки: <c>Kouki:PublicPaths:0=/api/telemetry</c>. Совпадение — по префиксу
+    /// пути, регистр не важен.
+    /// </remarks>
+    public string[] PublicPaths { get; set; } = [];
+
     /// <summary>Порог уверенности распознавания.</summary>
     public double ConfidenceThreshold { get; set; } = 0.75d;
 
@@ -49,6 +59,16 @@ public sealed class KoukiServerOptions
     /// <c>0</c> или отрицательное значение — не удалять по возрасту (удаление по разметке остаётся).
     /// </summary>
     public int AudioRetentionDays { get; set; } = 30;
+
+    /// <summary>
+    /// Предел объёма аудио на диске в байтах. <c>0</c> — без предела.
+    /// </summary>
+    /// <remarks>
+    /// Возраст не спасает, если за сутки прилетела тысяча записей: при превышении
+    /// лимита чистка удаляет самые старые файлы, пока суммарный размер не влезет.
+    /// На сервере стоит 2 ГиБ (<c>Kouki__AudioMaxBytes</c>).
+    /// </remarks>
+    public long AudioMaxBytes { get; set; }
 
     /// <summary>
     /// Сколько дней хранить аудио после того, как его разметили, по умолчанию 90.

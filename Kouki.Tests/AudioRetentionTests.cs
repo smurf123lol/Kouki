@@ -1,6 +1,10 @@
 using Kouki.Kagedama;
 using Kouki.Kagedama.Contracts;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using System.Reflection;
+using Kouki.Kagedama.Api;
+using Kouki.Kagedama.Api.Services;
 
 namespace Kouki.Tests;
 
@@ -160,5 +164,47 @@ public sealed class AudioRetentionTests : IDisposable
 
         public Task<bool> LabelAsync(Guid id, string label, CancellationToken cancellationToken = default)
             => Task.FromResult(true);
+    }
+
+    [Fact]
+    public async Task Oldest_files_go_first_when_total_exceeds_the_limit()
+    {
+        // Три файла по 1 КБ, предел — 2 КБ: должен уйти самый старый.
+        string oldest = Path.Combine(_root, "a.wav");
+        string middle = Path.Combine(_root, "b.wav");
+        string newest = Path.Combine(_root, "c.wav");
+
+        await File.WriteAllBytesAsync(oldest, new byte[1024]);
+        await File.WriteAllBytesAsync(middle, new byte[1024]);
+        await File.WriteAllBytesAsync(newest, new byte[1024]);
+
+        File.SetLastWriteTimeUtc(oldest, DateTime.UtcNow.AddHours(-3));
+        File.SetLastWriteTimeUtc(middle, DateTime.UtcNow.AddHours(-2));
+        File.SetLastWriteTimeUtc(newest, DateTime.UtcNow.AddHours(-1));
+
+        var options = new KoukiServerOptions { AudioDirectory = _root, AudioMaxBytes = 2048 };
+        var service = new AudioRetentionService(
+            new EmptyServices(),
+            Options.Create(options),
+            NullLogger<AudioRetentionService>.Instance);
+
+        await InvokeSweepAsync(service);
+
+        Assert.False(File.Exists(oldest));
+        Assert.True(File.Exists(middle));
+        Assert.True(File.Exists(newest));
+    }
+
+    private static async Task InvokeSweepAsync(AudioRetentionService service)
+    {
+        MethodInfo sweep = typeof(AudioRetentionService)
+            .GetMethod("SweepAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        await (Task)sweep.Invoke(service, new object[] { CancellationToken.None })!;
+    }
+
+    // Хранилище в этих проверках не нужно: чистка по размеру ходит напрямую по диску.
+    private sealed class EmptyServices : IServiceProvider
+    {
+        public object? GetService(Type serviceType) => null;
     }
 }

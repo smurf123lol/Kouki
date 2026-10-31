@@ -81,10 +81,27 @@ public sealed class TokenAuthMiddleware(
     }
 
     // Токен закрывает API, но не сам дашборд: иначе браузер не смог бы загрузить страницу
-    // и скрипты, а без них неоткуда взять и передать токен.
-    private static bool IsPublicPath(PathString path)
-        => path.StartsWithSegments("/api/health", StringComparison.OrdinalIgnoreCase)
-           || !path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase);
+    // и скрипты, а без них неоткуда взять и передать токен. Дополнительные открытые
+    // пути приходят из настроек (Kouki:PublicPaths), а не правятся в коде.
+    private bool IsPublicPath(PathString path)
+    {
+        if (!path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWithSegments("/api/health", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        foreach (string open in options.Value.PublicPaths)
+        {
+            if (!string.IsNullOrWhiteSpace(open)
+                && path.StartsWithSegments(open.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private static string? ReadToken(HttpRequest request)
     {
