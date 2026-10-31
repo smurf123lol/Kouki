@@ -102,8 +102,15 @@ function Get-TaskSection {
 }
 
 foreach ($ref in @($Base, $Head)) {
+    # Нативные команды пишут в stderr, а при $ErrorActionPreference = 'Stop' это
+    # становится завершающей ошибкой: на время проверки ревизии глушим строгий режим,
+    # иначе для `-Base 'HEAD^{tree}'` скрипт падал кодом 1 вместо понятного сообщения.
+    $savedPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
     & git -C $Repo rev-parse --verify --quiet "$ref^{commit}" 2>$null | Out-Null
-    if ($LASTEXITCODE -ne 0) {
+    $verifyCode = $LASTEXITCODE
+    $ErrorActionPreference = $savedPreference
+    if ($verifyCode -ne 0) {
         Write-Host "Неизвестная ревизия: $ref" -ForegroundColor Red
         exit 2
     }
@@ -118,7 +125,7 @@ $commits = Invoke-Git @('log', '--oneline', "$Base..$Head")
 $stat = Invoke-Git @('diff', '--stat', "$Base..$Head")
 $nameStatus = Invoke-Git @('diff', '--name-status', "$Base..$Head")
 $diff = Invoke-Git @('diff', "$Base..$Head")
-$raw = Invoke-Git @('diff', '--raw', "$Base..$Head")
+$raw = Invoke-Git @('-c', 'core.quotePath=false', 'diff', '--raw', '--abbrev=10', "$Base..$Head")
 
 # Отпечаток набора изменений: sha256 по `git diff --raw` (blob-хеши «было→стало» и пути).
 # Тот же алгоритм в tools/review.sh — отпечатки совпадают на одной и той же паре коммитов.
@@ -139,6 +146,11 @@ $fileRows = if ([string]::IsNullOrWhiteSpace($raw)) {
         $oldHash = if ($m[2] -match '^0+$') { '—' } else { $m[2].Substring(0, [Math]::Min(10, $m[2].Length)) }
         $newHash = if ($m[3] -match '^0+$') { '—' } else { $m[3].Substring(0, [Math]::Min(10, $m[3].Length)) }
         $status = $m[4].Substring(0, 1)
+        if ($status -eq 'R' -or $status -eq 'C') {
+            # У переименования в строке --raw два пути через таб: старое → новое.
+            $paths = $path -split "`t"
+            if ($paths.Count -ge 2) { $path = "$($paths[0]) → $($paths[1])" }
+        }
         "| ``$path`` | $status | $oldHash | $newHash |"
     }) -join "`n"
 }

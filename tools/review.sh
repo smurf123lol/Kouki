@@ -101,7 +101,7 @@ find_workspace() {
 WORKSPACE="$(find_workspace "$REPO")"
 
 for ref in "$BASE" "$HEAD_REF"; do
-    git -C "$REPO" rev-parse --verify --quiet "$ref^{commit}" >/dev/null || {
+    git -C "$REPO" rev-parse --verify --quiet "$ref^{commit}" >/dev/null 2>&1 || {
         echo "Неизвестная ревизия: $ref" >&2
         exit 2
     }
@@ -114,13 +114,13 @@ COMMITS="$(git -C "$REPO" log --oneline "$BASE..$HEAD_REF" || true)"
 STAT="$(git -C "$REPO" diff --stat "$BASE..$HEAD_REF" || true)"
 NAME_STATUS="$(git -C "$REPO" diff --name-status "$BASE..$HEAD_REF" || true)"
 DIFF="$(git -C "$REPO" diff "$BASE..$HEAD_REF" || true)"
-RAW="$(git -C "$REPO" diff --raw "$BASE..$HEAD_REF" || true)"
+RAW="$(git -C "$REPO" -c core.quotePath=false diff --raw --abbrev=10 "$BASE..$HEAD_REF" || true)"
 BASE_FULL="$(git -C "$REPO" rev-parse "$BASE^{commit}")"
 HEAD_FULL="$(git -C "$REPO" rev-parse "$HEAD_REF^{commit}")"
 
 # Отпечаток набора изменений: sha256 по `git diff --raw` (blob-хеши «было→стало» и пути).
 # При повторном ревью достаточно сверить отпечаток: если он тот же — набор изменений тот же.
-FP_INPUT="$(printf '%s\n' "$RAW" | tr -d '\r' | sed '/^[[:space:]]*$/d' | sort)"
+FP_INPUT="$(printf '%s\n' "$RAW" | tr -d '\r' | sed '/^[[:space:]]*$/d' | LC_ALL=C sort)"
 FP="$(printf '%s' "$FP_INPUT" | sha256sum | cut -c1-16)"
 
 # Пустой дифф — это пустая строка: git diff заканчивает вывод переводом строки,
@@ -205,9 +205,12 @@ fi
         printf '%s\n' "$RAW" | tr -d '\r' | awk -F"\t" '{
             split($1, meta, " ");
             old = substr(meta[3], 1, 10); new = substr(meta[4], 1, 10);
-            if (old == "") old = "—";
-            if (new == "—" || new ~ /^0+$/) new = "—";
-            printf "| `%s` | %s | %s | %s |\n", $2, substr(meta[5], 1, 1), old, new
+            if (old == "" || old ~ /^0+$/) old = "—";
+            if (new == "" || new ~ /^0+$/) new = "—";
+            status = substr(meta[5], 1, 1);
+            path = $2;
+            if (status == "R" || status == "C") path = $2 " → " $3;
+            printf "| `%s` | %s | %s | %s |\n", path, status, old, new
         }'
     fi
     echo
