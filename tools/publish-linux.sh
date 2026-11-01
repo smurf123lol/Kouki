@@ -28,6 +28,7 @@ usage() {
   --no-speech             собрать без sherpa-onnx: /api/voice будет отвечать 503
   --self-contained        оставить рантайм .NET в артефакте (это и так значение
                           по умолчанию; флаг принимается для совместимости)
+  --self-contained        положить рантайм .NET в артефакт (по умолчанию)
   --framework-dependent   не класть рантайм .NET в артефакт (нужен aspnetcore-runtime-10.0
                           на целевой машине; прод собран self-contained, поэтому deploy
                           такой артефакт отклонит)
@@ -127,7 +128,7 @@ cleanup() {
     # Функция обязана вернуть 0: EXIT-trap с `set -e` иначе перевернёт код успешной
     # публикации в 1 (после `mv "$STAGE"` каталога уже нет).
     if [ -d "$STAGE" ]; then
-        rm -rf "$STAGE"
+        rm -rf "$STAGE" || true
     fi
     return 0
 }
@@ -146,7 +147,7 @@ dotnet publish "$API_PROJECT" \
     -r "$RUNTIME" \
     --self-contained "$SELF_CONTAINED" \
     -m:1 -nodeReuse:false \
-    -o "$STAGE"
+    -o "$STAGE" || die "dotnet publish API завершился с кодом $?"
 
 echo "Публикация бота -> $STAGE/bot"
 dotnet publish "$BOT_PROJECT" \
@@ -154,7 +155,7 @@ dotnet publish "$BOT_PROJECT" \
     -r "$RUNTIME" \
     --self-contained "$SELF_CONTAINED" \
     -m:1 -nodeReuse:false \
-    -o "$STAGE/bot"
+    -o "$STAGE/bot" || die "dotnet publish бота завершился с кодом $?"
 
 echo "Публикация MCP -> $STAGE/mcp"
 dotnet publish "$MCP_PROJECT" \
@@ -163,7 +164,7 @@ dotnet publish "$MCP_PROJECT" \
     -r "$RUNTIME" \
     --self-contained "$SELF_CONTAINED" \
     -m:1 -nodeReuse:false \
-    -o "$STAGE/mcp"
+    -o "$STAGE/mcp" || die "dotnet publish MCP завершился с кодом $?"
 
 missing=()
 for name in Kagedama.api.dll appsettings.json wwwroot/app.js \
@@ -199,6 +200,6 @@ if [ -e "$OUTPUT_NORMALIZED" ]; then
 fi
 mv "$STAGE" "$OUTPUT_NORMALIZED"
 
-files=$(find "$OUTPUT_NORMALIZED" -type f | wc -l | tr -d ' ')
-size_mb=$(du -sm "$OUTPUT_NORMALIZED" | awk '{print $1}')
+files=$(find "$OUTPUT_NORMALIZED" -type f 2>/dev/null | wc -l | tr -d ' ' || true)
+size_mb=$(du -sm "$OUTPUT_NORMALIZED" 2>/dev/null | awk '{print $1}' || true)
 echo "Готово: $files файлов, ${size_mb} МБ — $OUTPUT_NORMALIZED"

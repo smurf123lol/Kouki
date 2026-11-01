@@ -203,26 +203,32 @@ else
     echo "Копия не делается (--no-backup): откат только вручную" >&2
 fi
 
+# Коды отката: 0 — восстановлено, 2 — копии нет (--no-backup), 1 — откат не удался.
+# Глушить ошибки rsync нельзя: сообщение «прод возвращён» при неудавшемся восстановлении
+# хуже, чем честное «восстанавливайте руками».
 rollback() {
     if [ "$ROLLBACK_READY" -eq 0 ]; then
         echo "Откат невозможен: копии нет (--no-backup)." >&2
-        return 0
+        return 2
     fi
     echo "Откат к предыдущему артефакту…" >&2
-    rsync -a --delete "$PREV_APP"/ "$APP_DIR_REAL"/ || echo "откат app не удался — восстановите вручную из $PREV_APP" >&2
-    rsync -a --delete "$PREV_MCP"/ "$MCP_DIR_REAL"/ || echo "откат mcp не удался — восстановите вручную из $PREV_MCP" >&2
-    sudo -n kouki-admin restart-kouki >/dev/null 2>&1 || echo "restart-kouki после отката не удался" >&2
-    sudo -n kouki-admin restart-bot >/dev/null 2>&1 || echo "restart-bot после отката не удался" >&2
+    local failed=0
+    rsync -a --delete "$PREV_APP"/ "$APP_DIR_REAL"/ || { echo "откат app не удался ($PREV_APP)" >&2; failed=1; }
+    rsync -a --delete "$PREV_MCP"/ "$MCP_DIR_REAL"/ || { echo "откат mcp не удался ($PREV_MCP)" >&2; failed=1; }
+    sudo -n kouki-admin restart-kouki >/dev/null 2>&1 || { echo "restart-kouki после отката не удался" >&2; failed=1; }
+    sudo -n kouki-admin restart-bot >/dev/null 2>&1 || { echo "restart-bot после отката не удался" >&2; failed=1; }
+    return "$failed"
 }
 
 # Провал после замены файлов: откатиться, если есть копия, и сказать правду в обоих случаях.
 fail_after_change() {
-    local reason="$1"
-    rollback
-    if [ "$ROLLBACK_READY" -eq 1 ]; then
-        die "$reason — прод возвращён к предыдущему артефакту ($PREV_APP)"
-    fi
-    die "$reason — откат отключён (--no-backup): прод остался на новом артефакте"
+    local reason="$1" rb=0
+    rollback || rb=$?
+    case "$rb" in
+        0) die "$reason — прод возвращён к предыдущему артефакту ($PREV_APP)" ;;
+        2) die "$reason — откат отключён (--no-backup): прод остался на новом артефакте" ;;
+        *) die "$reason — откат НЕ удался: восстановите вручную из $PREV_APP и $PREV_MCP" ;;
+    esac
 }
 
 rsync -a --delete \

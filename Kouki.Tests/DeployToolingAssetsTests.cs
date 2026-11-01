@@ -113,6 +113,9 @@ public sealed class DeployToolingAssetsTests
         Assert.Contains("прод возвращён к предыдущему артефакту", script, StringComparison.Ordinal);
         Assert.Contains("откат отключён (--no-backup): прод остался на новом артефакте", script, StringComparison.Ordinal);
         Assert.Contains("копии нет (--no-backup)", script, StringComparison.Ordinal);
+        // Неудавшийся откат нельзя выдавать за успешный.
+        Assert.Contains("откат НЕ удался: восстановите вручную", script, StringComparison.Ordinal);
+        Assert.Contains("return \"$failed\"", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -187,6 +190,133 @@ public sealed class DeployToolingAssetsTests
         }
         finally
         {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Publish_writes_to_the_default_publish_directory_of_a_fresh_repo()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        string root = Directory.CreateTempSubdirectory("kouki-fresh-repo-").FullName;
+        try
+        {
+            // Фейковый репозиторий: скрипт считает своё расположение, поэтому копируем
+            // его в <repo>/tools и создаём ожидаемые csproj. Каталога publish/ нет —
+            // именно этот случай ломался до правки нормализации.
+            string tools = Path.Combine(root, "tools");
+            Directory.CreateDirectory(tools);
+            File.Copy(
+                TestPaths.Path("tools", "publish-linux.sh"),
+                Path.Combine(tools, "publish-linux.sh"));
+            foreach (var project in new[]
+                     {
+                         "Kagedama.api/Kagedama.api.csproj",
+                         "Kouki.Kagedama.Bot/Kouki.Kagedama.Bot.csproj",
+                         "Kagedama.mcp/Kagedama.mcp.csproj",
+                     })
+            {
+                string path = Path.Combine(root, project);
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                File.WriteAllText(path, "<Project />");
+            }
+
+            string stub = Path.Combine(root, "stub");
+            Directory.CreateDirectory(stub);
+            string stubPath = Path.Combine(stub, "dotnet");
+            File.WriteAllText(stubPath, DotnetStub, new UTF8Encoding(false));
+            Assert.Equal(0, RunBash("-c", $"chmod +x '{stubPath}'").Rc);
+
+            var env = new Dictionary<string, string>
+            {
+                ["PATH"] = stub + ":" + (Environment.GetEnvironmentVariable("PATH") ?? "/usr/bin:/bin"),
+            };
+            var result = RunBashWithEnv(Path.Combine(tools, "publish-linux.sh"), env);
+
+            Assert.True(result.Rc == 0, $"rc={result.Rc} err={result.Error}");
+            Assert.True(
+                File.Exists(Path.Combine(root, "publish", "linux-x64", "Kagedama.api.dll")),
+                "дефолтный publish/linux-x64 не создан");
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Deploy_reports_a_failed_rollback_instead_of_promising_restore()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        string root = Directory.CreateTempSubdirectory("kouki-rb-fail-").FullName;
+        string artifact = Path.Combine(root, "artifact");
+        string app = Path.Combine(root, "app");
+        string mcp = Path.Combine(root, "mcp");
+        string stub = Path.Combine(root, "stub");
+        try
+        {
+            foreach (var dir in new[]
+                     {
+                         Path.Combine(artifact, "wwwroot"), Path.Combine(artifact, "bot"),
+                         Path.Combine(artifact, "mcp"), Path.Combine(app, "bot"), mcp, stub,
+                     })
+            {
+                Directory.CreateDirectory(dir);
+            }
+
+            File.WriteAllText(Path.Combine(artifact, "Kagedama.api.dll"), "NEW-API");
+            File.WriteAllText(Path.Combine(artifact, "appsettings.json"), "{}");
+            File.WriteAllText(Path.Combine(artifact, "wwwroot", "app.js"), "x");
+            File.WriteAllText(Path.Combine(artifact, "bot", "Kouki.Kagedama.Bot.dll"), "NEW-BOT");
+            File.WriteAllText(Path.Combine(artifact, "bot", "appsettings.json"), "{}");
+            File.WriteAllText(Path.Combine(artifact, "mcp", "Kagedama.mcp.dll"), "NEW-MCP");
+            File.WriteAllText(Path.Combine(artifact, "mcp", "appsettings.json"), "{}");
+            File.WriteAllText(Path.Combine(app, "Kagedama.api.dll"), "OLD-API");
+            File.WriteAllText(Path.Combine(app, "bot", "Kouki.Kagedama.Bot.dll"), "OLD-BOT");
+            File.WriteAllText(Path.Combine(mcp, "Kagedama.mcp.dll"), "OLD-MCP");
+
+            // Подставной sudo: валит restart и одновременно лишает копию прав,
+            // чтобы rsync отката не смог её вернуть.
+            string sudoPath = Path.Combine(stub, "sudo");
+            File.WriteAllText(sudoPath, """
+                #!/usr/bin/env bash
+                case "$*" in
+                  *restart-kouki*)
+                    if [ -n "${ROLLBACK_PREV:-}" ] && [ -d "$ROLLBACK_PREV" ]; then
+                      chmod -R 000 "$ROLLBACK_PREV" 2>/dev/null || true
+                    fi
+                    exit 1 ;;
+                esac
+                exit 0
+                """, new UTF8Encoding(false));
+            Assert.Equal(0, RunBash("-c", $"chmod +x '{sudoPath}'").Rc);
+
+            string deploy = TestPaths.Path("deploy", "deploy-code.sh");
+            var env = new Dictionary<string, string>
+            {
+                ["PATH"] = stub + ":" + (Environment.GetEnvironmentVariable("PATH") ?? "/usr/bin:/bin"),
+                ["ROLLBACK_PREV"] = Path.Combine(app + ".prev"),
+            };
+            var result = RunBashWithEnv(
+                deploy, env,
+                "--from", artifact, "--app-dir", app, "--mcp-dir", mcp);
+
+            Assert.Equal(1, result.Rc);
+            Assert.Contains("откат НЕ удался", result.Error, StringComparison.Ordinal);
+            Assert.DoesNotContain("прод возвращён к предыдущему артефакту", result.Error, StringComparison.Ordinal);
+        }
+        finally
+        {
+            // Снимаем 000, иначе временный каталог не удалить.
+            RunBash("-c", $"chmod -R u+rwX '{root}' 2>/dev/null || true");
             Directory.Delete(root, recursive: true);
         }
     }
