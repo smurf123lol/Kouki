@@ -573,6 +573,44 @@ public sealed class InstallGuardsTests
         Assert.Contains("uid=1000 gid=999 group= create=3", result.Stdout, StringComparison.Ordinal);
     }
     [Fact]
+    public void Empty_create_field_is_still_a_valid_line()
+    {
+        // Контракт: «-» — пустое значение для любого поля, включая create_group.
+        // Раньше последнее `[ … ] && VAR=…` в функции возвращало 1, и валидная
+        // строка с пустым create_group считалась ошибкой разбора.
+        GuardResult result = Run(
+            """
+            if read_share_ids "kouki-id:-:1000:smurf123lol:-"; then
+                echo "ok uid=$SHARE_UID gid=$SHARE_GID create=$SHARE_CREATE_GROUP"
+            else
+                echo "fail"
+            fi
+            echo "rc=$?"
+            """,
+            new Dictionary<string, string>());
+
+        Assert.Contains("ok uid= gid=1000 create=", result.Stdout, StringComparison.Ordinal);
+        Assert.DoesNotContain("fail", result.Stdout, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Broken_line_resets_the_previous_values()
+    {
+        // Установщик идёт под `set -u`: после ошибки разбора он не должен
+        // увидеть значения от предыдущего вызова.
+        GuardResult result = Run(
+            """
+            read_share_ids "kouki-id:-:1000:smurf123lol:0" || exit 9
+            if read_share_ids "::0"; then echo "принят"; else echo "отвергнут"; fi
+            echo "uid=[${SHARE_UID}] gid=[${SHARE_GID}] create=[${SHARE_CREATE_GROUP}]"
+            echo "rc=$?"
+            """,
+            new Dictionary<string, string>());
+
+        Assert.Contains("отвергнут", result.Stdout, StringComparison.Ordinal);
+        Assert.Contains("uid=[] gid=[] create=[]", result.Stdout, StringComparison.Ordinal);
+    }
+    [Fact]
     public void Create_share_user_passes_group_only_when_known()
     {
         // Пустой gid не должен превращаться в `useradd --gid ""`:

@@ -137,19 +137,31 @@ emit_share_ids() {
 read_share_ids() {
     local tag uid gid group create
     IFS=: read -r tag uid gid group create <<< "$1"
-    if [ "$tag" != "kouki-id" ]; then
-        return 1
-    fi
 
+    # Сбрасываем поля до разбора: при ошибке вызывающий видит пустые значения,
+    # а не остатки от предыдущего вызова (установщик идёт под `set -u`).
     # shellcheck disable=SC2034  # эти переменные читает вызывающий (install.sh)
     SHARE_UID=""
     SHARE_GID=""
     SHARE_GROUP=""
     SHARE_CREATE_GROUP=""
-    [ "$uid" != "-" ] && SHARE_UID="$uid"
-    [ "$gid" != "-" ] && SHARE_GID="$gid"
-    [ "$group" != "-" ] && SHARE_GROUP="$group"
-    [ "$create" != "-" ] && SHARE_CREATE_GROUP="$create"
+    if [ "$tag" != "kouki-id" ]; then
+        return 1
+    fi
+
+    if [ -n "$uid" ] && [ "$uid" != "-" ]; then
+        SHARE_UID="$uid"
+    fi
+    if [ -n "$gid" ] && [ "$gid" != "-" ]; then
+        SHARE_GID="$gid"
+    fi
+    if [ -n "$group" ] && [ "$group" != "-" ]; then
+        SHARE_GROUP="$group"
+    fi
+    if [ -n "$create" ] && [ "$create" != "-" ]; then
+        SHARE_CREATE_GROUP="$create"
+    fi
+    return 0
 }
 
 resolve_share_ids() {
@@ -167,7 +179,9 @@ resolve_share_ids() {
         # stat не ответил (нет прав, сломанная ФС): молчать нельзя — иначе
         # установщик создаст пользователя без группы шары и «успешно» завершится.
         echo "ВНИМАНИЕ: не удалось узнать владельца $dir — SMB-доступ к шаре не настроить" >&2
-        emit_share_ids "" "" "" 0
+        # create_group=4: владелец неизвестен, установщик должен пропустить SMB
+        # и завершиться с кодом 1, а не создать пользователя без группы шары.
+        emit_share_ids "" "" "" 4
         return 0
     fi
 

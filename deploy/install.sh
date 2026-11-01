@@ -572,15 +572,17 @@ if [ -n "$SMB_USER" ]; then
         # Разбор — в guards: `read` с IFS=: съедает ведущие разделители, поэтому
         # пустые поля кодируются «-» и разбираются только через read_share_ids.
         skip_smb=0
+        share_uid=""; share_gid=""; share_group=""; share_create_group=0
         if ! read_share_ids "$share_ids"; then
             echo "ОШИБКА: не удалось разобрать сведения о /srv/files — SMB не настроен" >&2
             PROBLEMS=1
             skip_smb=1
+        else
+            share_uid="${SHARE_UID:-}"
+            share_gid="${SHARE_GID:-}"
+            share_group="${SHARE_GROUP:-}"
+            share_create_group="${SHARE_CREATE_GROUP:-0}"
         fi
-        share_uid="$SHARE_UID"
-        share_gid="$SHARE_GID"
-        share_group="$SHARE_GROUP"
-        share_create_group="${SHARE_CREATE_GROUP:-0}"
         SMB_GROUP="$SMB_USER"
         case "$share_create_group" in
             2)
@@ -594,6 +596,12 @@ if [ -n "$SMB_USER" ]; then
                 echo "ОШИБКА: /srv/files принадлежит системной группе ${share_group:-gid $share_gid} —" \
                      "членство в ней даёт лишние права, шару надо перевесить:" \
                      "sudo chown -R $SMB_USER:$SMB_USER /srv/files" >&2
+                PROBLEMS=1
+                skip_smb=1
+                ;;
+            4)
+                echo "ОШИБКА: не удалось узнать владельца /srv/files (диск не смонтирован?) —" \
+                     "проверьте mount /srv/files и повторите установку" >&2
                 PROBLEMS=1
                 skip_smb=1
                 ;;
