@@ -100,7 +100,7 @@ MCP_DIR_REAL=$(cd "$MCP_DIR" 2>/dev/null && pwd -P || true)
 for name in Kagedama.api.dll appsettings.json wwwroot/app.js \
             bot/Kouki.Kagedama.Bot.dll bot/appsettings.json \
             mcp/Kagedama.mcp.dll mcp/appsettings.json; do
-    [ -e "$FROM/$name" ] || die "в артефакте нет $name — это не тот каталог (нужен корень publish)"
+    [ -e "$FROM/$name" ] || die "в артефакте нет $name — это не тот каталог (нужен корень артефакта publish/linux-x64)"
 done
 
 # Маркеры целей: иначе --delete доберётся до чужого каталога (например, --mcp-dir /opt/kouki
@@ -142,7 +142,7 @@ if [ "$target_self_contained" -ne "$artifact_self_contained" ]; then
     die "в $APP_DIR_REAL framework-dependent сборка, а в артефакте — self-contained: пересоберите tools/publish-linux.sh --framework-dependent"
 fi
 
-# Распознавание речи: без него /api/speech отвечает 503, поэтому потеря нативок sherpa
+# Распознавание речи: без него /api/voice отвечает 503, поэтому потеря нативок sherpa
 # в проде — это ошибка, а не «уменьшили размер». Тот же флаг, что при публикации.
 has_native() {
     find "$1" -type f -name "$2" -print -quit | grep -q .
@@ -185,7 +185,7 @@ if [ "$DRY_RUN" -eq 1 ]; then
 fi
 
 # Права на запись нужны только реальному деплою: read-only предпросмотр должен
-# работать и от пользователя без доступа к /opt.
+# работать и от пользователя без права записи в /opt.
 [ -w "$APP_DIR_REAL" ] || die "нет прав на запись в $APP_DIR_REAL (нужен пользователь-владелец)"
 [ -w "$MCP_DIR_REAL" ] || die "нет прав на запись в $MCP_DIR_REAL"
 
@@ -233,9 +233,9 @@ fail_after_change() {
 
 rsync -a --delete \
     --exclude 'appsettings.Development.json' --exclude 'bot/' --exclude 'mcp/' \
-    "$FROM_REAL"/ "$APP_DIR_REAL"/ || { rollback; die "rsync API завершился с ошибкой"; }
-rsync -a --delete "$FROM_REAL/bot/" "$APP_DIR_REAL/bot/" || { rollback; die "rsync бота завершился с ошибкой"; }
-rsync -a --delete "$FROM_REAL/mcp/" "$MCP_DIR_REAL"/ || { rollback; die "rsync MCP завершился с ошибкой"; }
+    "$FROM_REAL"/ "$APP_DIR_REAL"/ || fail_after_change "rsync API завершился с ошибкой"
+rsync -a --delete "$FROM_REAL/bot/" "$APP_DIR_REAL/bot/" || fail_after_change "rsync бота завершился с ошибкой"
+rsync -a --delete "$FROM_REAL/mcp/" "$MCP_DIR_REAL"/ || fail_after_change "rsync MCP завершился с ошибкой"
 echo "Файлы обновлены"
 
 if [ "$NO_RESTART" -eq 1 ]; then

@@ -272,7 +272,7 @@ public sealed class DeployToolingAssetsTests
                 Directory.CreateDirectory(dir);
             }
 
-            File.WriteAllText(Path.Combine(artifact, "Kagedama.api.dll"), "NEW-API");
+            File.WriteAllText(Path.Combine(artifact, "Kagedama.api.dll"), "NEW-API-CONTENT");
             File.WriteAllText(Path.Combine(artifact, "appsettings.json"), "{}");
             File.WriteAllText(Path.Combine(artifact, "wwwroot", "app.js"), "x");
             File.WriteAllText(Path.Combine(artifact, "bot", "Kouki.Kagedama.Bot.dll"), "NEW-BOT");
@@ -319,6 +319,240 @@ public sealed class DeployToolingAssetsTests
             RunBash("-c", $"chmod -R u+rwX '{root}' 2>/dev/null || true");
             Directory.Delete(root, recursive: true);
         }
+    }
+
+    [Fact]
+    public void Deploy_rolls_back_when_a_target_rsync_fails()
+    {
+        // Регрессия M1: `rollback` последней командой `||`-группы под set -e гасил `die`,
+        // и скрипт выходил с кодом отката, не сказав, что именно сломалось.
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        string root = Directory.CreateTempSubdirectory("kouki-rsync-fail-").FullName;
+        string artifact = Path.Combine(root, "artifact");
+        string app = Path.Combine(root, "app");
+        string mcp = Path.Combine(root, "mcp");
+        string stub = Path.Combine(root, "stub");
+        try
+        {
+            CreateDeployShape(artifact, app, mcp, stub);
+
+            // rsync валит только раскладку артефакта в app: откат идёт из app.prev и проходит.
+            string rsyncPath = Path.Combine(stub, "rsync");
+            File.WriteAllText(rsyncPath, "#!/usr/bin/env bash\ncase \"$*\" in\n  *artifact*app*) exit 23 ;;\nesac\nexec /usr/bin/rsync \"$@\"\n", new UTF8Encoding(false));
+            Assert.Equal(0, RunBash("-c", $"chmod +x '{rsyncPath}'").Rc);
+
+            var env = new Dictionary<string, string>
+            {
+                ["PATH"] = stub + ":" + (Environment.GetEnvironmentVariable("PATH") ?? "/usr/bin:/bin"),
+            };
+            var result = RunBashWithEnv(
+                TestPaths.Path("deploy", "deploy-code.sh"), env,
+                "--from", artifact, "--app-dir", app, "--mcp-dir", mcp);
+
+            Assert.Equal(1, result.Rc);
+            Assert.Contains("rsync API завершился с ошибкой", result.Error, StringComparison.Ordinal);
+            Assert.Contains("прод возвращён к предыдущему артефакту", result.Error, StringComparison.Ordinal);
+            Assert.Equal("OLD-API", File.ReadAllText(Path.Combine(app, "Kagedama.api.dll")));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Deploy_refuses_an_mcp_target_without_marker_before_writing()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        string root = Directory.CreateTempSubdirectory("kouki-mcp-marker-").FullName;
+        string artifact = Path.Combine(root, "artifact");
+        string app = Path.Combine(root, "app");
+        string mcp = Path.Combine(root, "mcp");
+        string stub = Path.Combine(root, "stub");
+        try
+        {
+            CreateDeployShape(artifact, app, mcp, stub);
+            // Цель MCP без маркера: --delete в ней снёс бы чужой каталог.
+            File.Delete(Path.Combine(mcp, "Kagedama.mcp.dll"));
+            File.WriteAllText(Path.Combine(mcp, "stranger.dll"), "NOT-MCP");
+
+            var env = new Dictionary<string, string>
+            {
+                ["PATH"] = stub + ":" + (Environment.GetEnvironmentVariable("PATH") ?? "/usr/bin:/bin"),
+            };
+            var result = RunBashWithEnv(
+                TestPaths.Path("deploy", "deploy-code.sh"), env,
+                "--from", artifact, "--app-dir", app, "--mcp-dir", mcp);
+
+            Assert.Equal(1, result.Rc);
+            Assert.Contains("не похож на MCP-сервер (нет Kagedama.mcp.dll)", result.Error, StringComparison.Ordinal);
+            Assert.Equal("OLD-API", File.ReadAllText(Path.Combine(app, "Kagedama.api.dll")));
+            Assert.False(Directory.Exists(app + ".prev"), "до проверки маркеров копия создаваться не должна");
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Deploy_reports_disabled_rollback_when_restart_fails_without_backup()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        string root = Directory.CreateTempSubdirectory("kouki-no-backup-").FullName;
+        string artifact = Path.Combine(root, "artifact");
+        string app = Path.Combine(root, "app");
+        string mcp = Path.Combine(root, "mcp");
+        string stub = Path.Combine(root, "stub");
+        try
+        {
+            CreateDeployShape(artifact, app, mcp, stub);
+
+            string sudoPath = Path.Combine(stub, "sudo");
+            File.WriteAllText(sudoPath, "#!/usr/bin/env bash\ncase \"$*\" in\n  *restart-kouki*) exit 1 ;;\nesac\nexit 0\n", new UTF8Encoding(false));
+            Assert.Equal(0, RunBash("-c", $"chmod +x '{sudoPath}'").Rc);
+
+            var env = new Dictionary<string, string>
+            {
+                ["PATH"] = stub + ":" + (Environment.GetEnvironmentVariable("PATH") ?? "/usr/bin:/bin"),
+            };
+            var result = RunBashWithEnv(
+                TestPaths.Path("deploy", "deploy-code.sh"), env,
+                "--from", artifact, "--app-dir", app, "--mcp-dir", mcp, "--no-backup");
+
+            Assert.Equal(1, result.Rc);
+            Assert.Contains("restart-kouki завершился с ошибкой", result.Error, StringComparison.Ordinal);
+            Assert.Contains("откат отключён (--no-backup): прод остался на новом артефакте", result.Error, StringComparison.Ordinal);
+            Assert.Equal("NEW-API-CONTENT", File.ReadAllText(Path.Combine(app, "Kagedama.api.dll")));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Publish_keeps_the_previous_artifact_when_dotnet_fails()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        string root = Directory.CreateTempSubdirectory("kouki-pub-fail-").FullName;
+        try
+        {
+            string stub = Path.Combine(root, "stub");
+            Directory.CreateDirectory(stub);
+            string stubPath = Path.Combine(stub, "dotnet");
+            File.WriteAllText(stubPath, "#!/usr/bin/env bash\necho 'dotnet publish failed' >&2\nexit 1\n", new UTF8Encoding(false));
+            Assert.Equal(0, RunBash("-c", $"chmod +x '{stubPath}'").Rc);
+
+            string output = Path.Combine(root, "out", "linux-x64");
+            Directory.CreateDirectory(output);
+            File.WriteAllText(Path.Combine(output, "Kagedama.api.dll"), "OLD-API");
+
+            var env = new Dictionary<string, string>
+            {
+                ["PATH"] = stub + ":" + (Environment.GetEnvironmentVariable("PATH") ?? "/usr/bin:/bin"),
+            };
+            var result = RunBashWithEnv(TestPaths.Path("tools", "publish-linux.sh"), env, "--output", output);
+
+            Assert.Equal(1, result.Rc);
+            Assert.Equal("OLD-API", File.ReadAllText(Path.Combine(output, "Kagedama.api.dll")));
+            Assert.False(Directory.Exists(output + ".prev"), "неудачная сборка не должна трогать .prev");
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Worktree_merge_refuses_a_dirty_task_tree()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        string root = Directory.CreateTempSubdirectory("kouki-wt-dirty-").FullName;
+        try
+        {
+            string repo = Path.Combine(root, "Kouki");
+            Directory.CreateDirectory(Path.Combine(repo, "tools"));
+            File.Copy(TestPaths.Path("tools", "worktree.sh"), Path.Combine(repo, "tools", "worktree.sh"));
+            var env = new Dictionary<string, string>
+            {
+                ["GIT_AUTHOR_NAME"] = "Test",
+                ["GIT_AUTHOR_EMAIL"] = "test@example.com",
+                ["GIT_COMMITTER_NAME"] = "Test",
+                ["GIT_COMMITTER_EMAIL"] = "test@example.com",
+            };
+
+            Assert.Equal(0, RunBashWithEnv(null, env, "-c", $"cd '{repo}' && git init -q -b master && git add -A && git commit -qm init").Rc);
+
+            string script = Path.Combine(repo, "tools", "worktree.sh");
+            var created = RunBashWithEnv(script, env, "new", "--task", "T1", "--slug", "demo");
+            Assert.True(created.Rc == 0, $"rc={created.Rc} err={created.Error}");
+
+            string tree = Path.Combine(root, "_scratch", "wt", "kouki-t1-demo");
+            File.AppendAllText(Path.Combine(tree, "tools", "worktree.sh"), "\n# dirty\n");
+            string masterBefore = RunBashWithEnv(null, env, "-c", $"cd '{repo}' && git rev-parse master").Output.Trim();
+
+            var merged = RunBashWithEnv(script, env, "merge", "--name", "kouki-t1-demo");
+            Assert.Equal(1, merged.Rc);
+            Assert.Contains("дерево задачи грязное", merged.Error, StringComparison.Ordinal);
+            Assert.Equal(masterBefore, RunBashWithEnv(null, env, "-c", $"cd '{repo}' && git rev-parse master").Output.Trim());
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>Артефакт, цели деплоя со старыми файлами и каталог для подставных команд.</summary>
+    private static void CreateDeployShape(string artifact, string app, string mcp, string stub)
+    {
+        foreach (var dir in new[]
+                 {
+                     Path.Combine(artifact, "wwwroot"), Path.Combine(artifact, "bot"),
+                     Path.Combine(artifact, "mcp"), Path.Combine(app, "bot"), mcp, stub,
+                 })
+        {
+            Directory.CreateDirectory(dir);
+        }
+
+        File.WriteAllText(Path.Combine(artifact, "Kagedama.api.dll"), "NEW-API-CONTENT");
+        File.WriteAllText(Path.Combine(artifact, "appsettings.json"), "{}");
+        File.WriteAllText(Path.Combine(artifact, "wwwroot", "app.js"), "x");
+        File.WriteAllText(Path.Combine(artifact, "bot", "Kouki.Kagedama.Bot.dll"), "NEW-BOT");
+        File.WriteAllText(Path.Combine(artifact, "bot", "appsettings.json"), "{}");
+        File.WriteAllText(Path.Combine(artifact, "mcp", "Kagedama.mcp.dll"), "NEW-MCP");
+        File.WriteAllText(Path.Combine(artifact, "mcp", "appsettings.json"), "{}");
+        File.WriteAllText(Path.Combine(artifact, "libcoreclr.so"), "x");
+        File.WriteAllText(Path.Combine(artifact, "libsherpa-onnx-c-api.so"), "x");
+        File.WriteAllText(Path.Combine(artifact, "libonnxruntime.so"), "x");
+        File.WriteAllText(Path.Combine(app, "Kagedama.api.dll"), "OLD-API");
+        File.WriteAllText(Path.Combine(app, "libcoreclr.so"), "OLD-RUNTIME");
+        File.WriteAllText(Path.Combine(app, "bot", "Kouki.Kagedama.Bot.dll"), "OLD-BOT");
+        File.WriteAllText(Path.Combine(mcp, "Kagedama.mcp.dll"), "OLD-MCP");
+
+        string sudoPath = Path.Combine(stub, "sudo");
+        File.WriteAllText(sudoPath, "#!/usr/bin/env bash\nexit 0\n", new UTF8Encoding(false));
+        Assert.Equal(0, RunBash("-c", $"chmod +x '{sudoPath}'").Rc);
     }
 
     [Fact]
