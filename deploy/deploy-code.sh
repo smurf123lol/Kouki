@@ -161,15 +161,19 @@ fi
 
 # Планируемые удаления: показываем до записи, чтобы --delete не был сюрпризом.
 # Считаем только API-каталог; bot/ и mcp/ исключены и обновляются своими rsync.
-planned_deletes=$(
-    rsync -a --delete --dry-run --itemize-changes \
+if ! rsync_dry="$(rsync -a --delete --dry-run --itemize-changes \
         --exclude 'appsettings.Development.json' --exclude 'bot/' --exclude 'mcp/' \
-        "$FROM_REAL"/ "$APP_DIR_REAL"/ 2>/dev/null |
-        grep -c '^\*deleting' || true
-)
+        "$FROM_REAL"/ "$APP_DIR_REAL"/ 2>/dev/null)"; then
+    # Ошибку rsync не глушим: «0 удалений» при сломанном rsync — ложь, за которой
+    # легко не заметить, что --delete вот-вот снесёт файлы.
+    echo "ВНИМАНИЕ: rsync --dry-run не смог спланировать удаления (продолжаю)" >&2
+    planned_deletes="?"
+else
+    planned_deletes="$(printf '%s\n' "$rsync_dry" | grep -c '^\*deleting' || true)"
+fi
 echo "Артефакт: $FROM_REAL"
 echo "Цель:     $APP_DIR_REAL (+ bot), $MCP_DIR_REAL"
-echo "rsync удалит файлов в API-каталоге: $planned_deletes (bot/ и mcp/ считаются отдельно)"
+echo "rsync удалит файлов в API-каталоге: $planned_deletes (bot/ и mcp/ обновляются отдельными rsync по своим каталогам)"
 
 if [ "$DRY_RUN" -eq 1 ]; then
     echo "--- dry-run: API ---"
@@ -200,6 +204,13 @@ for prev in "$PREV_APP" "$PREV_MCP"; do
     fi
 done
 ROLLBACK_READY=0
+
+# sudoers проверяем до копирования 300+ МБ: иначе деплой упадёт на рестарте, а откат
+# не сможет перезапустить сервис — при живых старых файлах и мёртвом процессе.
+if [ "$NO_RESTART" -eq 0 ]; then
+    sudo -n kouki-admin status >/dev/null 2>&1 ||
+        die "нет sudo -n kouki-admin status: деплой не сможет перезапустить сервисы (см. deploy/README.md)"
+fi
 
 if [ "$BACKUP" -eq 1 ]; then
     echo "Копия текущего артефакта: $PREV_APP, $PREV_MCP"
@@ -239,14 +250,14 @@ fail_after_change() {
     esac
 }
 
-# Ctrl+C или systemd stop между rsync'ами оставляли бы смешанное дерево:
-# откатываемся тем же путём, что и при ошибке.
+# Ctrl+C, systemd stop или обрыв SSH (SIGHUP) между rsync'ами оставляли бы смешанное
+# дерево: откатываемся тем же путём, что и при ошибке.
 # shellcheck disable=SC2329 # вызывается через trap
 interrupted() {
-    trap - INT TERM
-    fail_after_change "деплой прерван (INT/TERM)"
+    trap - INT TERM HUP
+    fail_after_change "деплой прерван (INT/TERM/HUP)"
 }
-trap interrupted INT TERM
+trap interrupted INT TERM HUP
 
 rsync -a --delete \
     --exclude 'appsettings.Development.json' --exclude 'bot/' --exclude 'mcp/' \
@@ -266,9 +277,13 @@ fi
 
 # Метка начала выката: смоук смотрит журнал бота только с этого момента.
 # Иначе ошибки, случившиеся до деплоя (например, сразу после перезагрузки),
-# валят смоук, и deploy откатывает уже успешный выкат.
+# валят смоук, и deploy откатывает уже успешный выкат. Метка ставится до рестарта,
+# чтобы в окно попали сбои старта нового бота; штатные строки остановки старого PID
+# смоук отбрасывает сам (см. BOT_IGNORE_RE в smoke.sh).
 SMOKE_SINCE=$(date +%s)
 sudo -n kouki-admin restart-kouki || fail_after_change "restart-kouki завершился с ошибкой"
+# kouki-bot входит в PartOf=kouki.service, поэтому бот уже перезапущен; явный вызов —
+# страховка на случай, если PartOf из юнита уберут.
 sudo -n kouki-admin restart-bot || fail_after_change "restart-bot завершился с ошибкой"
 
 # Ждём подъёма: 401 — тоже признак живого сервера (эндпоинт требует токен).

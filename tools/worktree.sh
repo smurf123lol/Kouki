@@ -100,7 +100,7 @@ lower() {
 validate_name() {
     local label="$1" value="$2"
     if ! [[ "$value" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
-        usage_error "$label: допустимы латиница, цифры, '.', '_' и '-', без ведущего '-': '$value'"
+        usage_error "$label: допустимы латиница, цифры, '.', '_' и '-'; имя не должно начинаться с '-', '.' или '_': '$value'"
     fi
 }
 
@@ -217,7 +217,9 @@ cmd_remove() {
 
     local name_lower path repo repo_path
     name_lower="$(lower "$NAME")"
-    path="$WT_ROOT/$(lower "$NAME")"
+    # new заменяет `_` на `-`; merge/remove обязаны искать так же, иначе дерево,
+    # имя которого восстановили из слага, «не находится».
+    path="$WT_ROOT/${name_lower//_/-}"
     require_existing_worktree "$path"
 
     if ! repo="$(find_repo_for_name "$name_lower")"; then
@@ -262,7 +264,9 @@ cmd_merge() {
 
     local name_lower path repo repo_path
     name_lower="$(lower "$NAME")"
-    path="$WT_ROOT/$(lower "$NAME")"
+    # new заменяет `_` на `-`; merge/remove обязаны искать так же, иначе дерево,
+    # имя которого восстановили из слага, «не находится».
+    path="$WT_ROOT/${name_lower//_/-}"
     require_existing_worktree "$path"
 
     if ! repo="$(find_repo_for_name "$name_lower")"; then

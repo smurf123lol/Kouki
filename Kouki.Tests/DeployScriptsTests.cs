@@ -200,7 +200,8 @@ public sealed class DeployScriptsTests
             """);
         WriteStub(stubDir, "journalctl", """
             #!/usr/bin/env bash
-            echo ""
+            # Живой журнал не пуст: смоук считает пустой журнал вырожденной проверкой.
+            echo "Бот запущен."
             exit 0
             """);
         WriteStub(stubDir, "mountpoint", """

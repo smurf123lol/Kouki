@@ -132,6 +132,22 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Окно подмены: между переносом старого артефакта в .prev и mv staging в OUTPUT
+# Ctrl+C оставил бы OUTPUT отсутствующим. Возвращаем .prev на место.
+PREV_OUTPUT=""
+# shellcheck disable=SC2329 # вызывается через trap
+interrupted() {
+    trap - INT TERM
+    if [ -n "$PREV_OUTPUT" ] && [ ! -e "$OUTPUT_NORMALIZED" ] && [ -e "$PREV_OUTPUT" ]; then
+        mv "$PREV_OUTPUT" "$OUTPUT_NORMALIZED" || true
+        echo "Публикация прервана: прежний артефакт возвращён в $OUTPUT_NORMALIZED" >&2
+    else
+        echo "Публикация прервана: артефакт не подменён (сборка во временном каталоге)" >&2
+    fi
+    exit 1
+}
+trap interrupted INT TERM
+
 echo "Публикация $RUNTIME (sherpa=$SPEECH, self-contained=$SELF_CONTAINED) -> $OUTPUT_NORMALIZED"
 if [ "$SELF_CONTAINED" = false ]; then
     echo "ВНИМАНИЕ: framework-dependent артефакт; прод собран self-contained, deploy-code.sh его отклонит" >&2

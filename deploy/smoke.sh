@@ -25,9 +25,19 @@ SPEECH_TIMEOUT="${KOUKI_SMOKE_SPEECH_TIMEOUT:-30}"
 BOT_WINDOW='за 2 часа'
 BOT_JOURNAL_ARGS=(--since '-2 hours')
 if [ -n "${KOUKI_SMOKE_SINCE:-}" ]; then
+    case "$KOUKI_SMOKE_SINCE" in
+        *[!0-9]*)
+            echo "KOUKI_SMOKE_SINCE должен быть epoch-секундами, а не '$KOUKI_SMOKE_SINCE'" >&2
+            exit 2
+            ;;
+    esac
     BOT_JOURNAL_ARGS=(--since "@$KOUKI_SMOKE_SINCE")
     BOT_WINDOW='с начала деплоя'
 fi
+# Штатные строки бота при рестарте и сетевых блипах: старый PID пишет
+# `getUpdates: обрыв связи (TaskCanceledException)` на SIGTERM, а Telegram может
+# ответить `HttpRequestException` в любую секунду. Это не провал деплоя.
+BOT_IGNORE_RE='getUpdates: (обрыв связи|сеть недоступна) \((TaskCanceled|HttpRequest)Exception\)'
 QUIET=0
 JSON=0
 WITH_WRITES=0
@@ -300,11 +310,21 @@ fi
 if [ -n "${KOUKI_SKIP_BOT:-}" ]; then
     say "Бот: пропущен (KOUKI_SKIP_BOT)"
 elif journal="$(journalctl -u kouki-bot "${BOT_JOURNAL_ARGS[@]}" --no-pager 2>&1)"; then
-    errors="$(printf '%s' "$journal" | grep -cE 'FAIL|Ошибка|Exception' || true)"
-    if [ "${errors:-0}" -eq 0 ]; then
-        ok "бот без ошибок $BOT_WINDOW"
+    if [ -z "$journal" ]; then
+        # Пустой журнал — не «без ошибок»: юнит пишет от другого пользователя или
+        # сел в другой journald, и проверка вырождена.
+        bad "бот" "журнал пуст $BOT_WINDOW — ошибки искать негде (бот пишет от другого uid?)"
     else
-        bad "бот" "ошибок в журнале $BOT_WINDOW: $errors"
+        errors="$(
+            printf '%s\n' "$journal" |
+                grep -vE "$BOT_IGNORE_RE" |
+                grep -cE 'FAIL|Ошибка|Exception' || true
+        )"
+        if [ "${errors:-0}" -eq 0 ]; then
+            ok "бот без ошибок $BOT_WINDOW"
+        else
+            bad "бот" "ошибок в журнале $BOT_WINDOW: $errors"
+        fi
     fi
 else
     bad "бот" "журнал не прочитан (нет прав на journalctl или юнита нет)"

@@ -46,6 +46,9 @@ public sealed class DeployToolingAssetsTests
         // публикация идёт во временный каталог, подмена — только после проверки.
         Assert.Contains("mktemp -d", script, StringComparison.Ordinal);
         Assert.Contains("trap cleanup EXIT", script, StringComparison.Ordinal);
+        // Прерывание в окне подмены не должно оставлять OUTPUT отсутствующим.
+        Assert.Contains("trap interrupted INT TERM", script, StringComparison.Ordinal);
+        Assert.Contains("mv \"$PREV_OUTPUT\" \"$OUTPUT_NORMALIZED\"", script, StringComparison.Ordinal);
         Assert.Contains("$OUTPUT_NORMALIZED.prev", script, StringComparison.Ordinal);
         Assert.DoesNotContain("rm -rf \"$OUTPUT\"", script, StringComparison.Ordinal);
         Assert.Contains("--allow-any-output", script, StringComparison.Ordinal);
@@ -68,8 +71,12 @@ public sealed class DeployToolingAssetsTests
     {
         var script = Script("tools", "worktree.sh");
 
-        // new создаёт имя в нижнем регистре, значит merge/remove обязаны искать так же.
-        Assert.Equal(2, script.Split(new[] { "path=\"$WT_ROOT/$(lower \"$NAME\")\"" }, StringSplitOptions.None).Length - 1);
+        // new создаёт имя в нижнем регистре и меняет `_` на `-`, значит merge/remove
+        // обязаны искать по тому же правилу, иначе дерево «не находится».
+        Assert.Equal(
+            2,
+            script.Split(new[] { "path=\"$WT_ROOT/${name_lower//_/-}\"" }, StringSplitOptions.None).Length - 1);
+        Assert.Contains("name=\"${name//_/-}\"", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -145,7 +152,9 @@ public sealed class DeployToolingAssetsTests
         var script = DeployCode();
 
         Assert.Contains("KOUKI_TOKEN=\"$TOKEN\" KOUKI_SMOKE_SINCE=\"$SMOKE_SINCE\" bash", script, StringComparison.Ordinal);
-        Assert.DoesNotContain("smoke.sh\" --token", script, StringComparison.Ordinal);
+        // Токен не должен попадать в argv ни одного дочернего процесса: ни в смоук,
+        // ни в kouki-admin. Проверяем не конкретную строку, а отсутствие флага.
+        Assert.DoesNotContain("--token", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -293,7 +302,10 @@ public sealed class DeployToolingAssetsTests
             Assert.Equal(0, RunBash("-c", $"chmod +x '{rsyncPath}'").Rc);
 
             string sudoPath = Path.Combine(stub, "sudo");
-            File.WriteAllText(sudoPath, "#!/usr/bin/env bash\nexit 1\n", new UTF8Encoding(false));
+            File.WriteAllText(
+                sudoPath,
+                "#!/usr/bin/env bash\ncase \"$*\" in\n  *restart*) exit 1 ;;\nesac\nexit 0\n",
+                new UTF8Encoding(false));
             Assert.Equal(0, RunBash("-c", $"chmod +x '{sudoPath}'").Rc);
 
             var env = new Dictionary<string, string>
@@ -529,12 +541,16 @@ public sealed class DeployToolingAssetsTests
         string root = Directory.CreateTempSubdirectory("kouki-smoke-since-").FullName;
         string stub = Path.Combine(root, "stub");
         string argsFile = Path.Combine(root, "journal-args.txt");
+        string journalFile = Path.Combine(root, "journal.txt");
         try
         {
             Directory.CreateDirectory(stub);
-            WriteStub(stub, "journalctl", "#!/usr/bin/env bash\nprintf '%s\\n' \"$*\" >> \"$ARGS_FILE\"\nprintf 'Exception\\n'\nexit 0\n");
-            WriteStub(stub, "systemctl", "#!/usr/bin/env bash\nprintf 'active\\n'\nexit 0\n");
-            WriteStub(stub, "curl", "#!/usr/bin/env bash\nprintf '200'\nexit 0\n");
+            WriteStub(stub, "journalctl", "#!/usr/bin/env bash\nprintf '%s\\n' \"$*\" >> \"$ARGS_FILE\"\ncat \"$JOURNAL_FILE\" 2>/dev/null\nexit 0\n");
+            WriteStub(stub, "systemctl", "#!/usr/bin/env bash\ncase \"$*\" in\n  *is-enabled*) printf 'enabled\\n' ;;\n  *) printf 'active\\n' ;;\nesac\nexit 0\n");
+            WriteStub(stub, "curl", "#!/usr/bin/env bash\nexit 0\n");
+            Directory.CreateDirectory(Path.Combine(root, "share"));
+            // Штатная строка рестарта бота: старый PID пишет её на SIGTERM.
+            File.WriteAllText(journalFile, "getUpdates: обрыв связи (TaskCanceledException), повтор 1/3\n");
 
             var env = new Dictionary<string, string>
             {
@@ -543,22 +559,176 @@ public sealed class DeployToolingAssetsTests
                 ["KOUKI_SMOKE_SINCE"] = "1700000000",
                 ["KOUKI_SMOKE_SHARE"] = Path.Combine(root, "share"),
                 ["ARGS_FILE"] = argsFile,
+                ["JOURNAL_FILE"] = journalFile,
             };
 
-            var withSince = RunBashWithEnv(TestPaths.Path("deploy", "smoke.sh"), env, "--quiet");
-            // Общий код смоука здесь не важен: остальные проверки на подставных командах
-            // проходят или падают, проверяется аргумент журнала.
+            var withSince = RunBashWithEnv(TestPaths.Path("deploy", "smoke.sh"), env);
             string first = File.ReadAllText(argsFile);
             Assert.Contains("--since @1700000000", first, StringComparison.Ordinal);
             Assert.DoesNotContain("-2 hours", first, StringComparison.Ordinal);
+            // Штатный ретрай бота — не провал деплоя.
+            Assert.Contains("бот без ошибок с начала деплоя", withSince.Output, StringComparison.Ordinal);
+
+            File.WriteAllText(journalFile,
+                "getUpdates: обрыв связи (TaskCanceledException), повтор 1/3\n" +
+                "Ошибка синхронизации задач\n");
+            var real = RunBashWithEnv(TestPaths.Path("deploy", "smoke.sh"), env);
+            Assert.Contains("ошибок в журнале с начала деплоя: 1", real.Output, StringComparison.Ordinal);
+
+            // Пустой журнал — не «без ошибок»: проверка ничего не увидела.
+            File.WriteAllText(journalFile, string.Empty);
+            var empty = RunBashWithEnv(TestPaths.Path("deploy", "smoke.sh"), env);
+            Assert.Contains("журнал пуст с начала деплоя", empty.Output, StringComparison.Ordinal);
 
             File.Delete(argsFile);
             var without = new Dictionary<string, string>(env);
             without.Remove("KOUKI_SMOKE_SINCE");
-            RunBashWithEnv(TestPaths.Path("deploy", "smoke.sh"), without, "--quiet");
+            RunBashWithEnv(TestPaths.Path("deploy", "smoke.sh"), without);
             Assert.Contains("--since -2 hours", File.ReadAllText(argsFile), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
 
-            Assert.True(withSince.Rc is 0 or 1, $"rc={withSince.Rc}");
+    [Fact]
+    public void Smoke_rejects_a_non_numeric_smoke_window()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        var env = new Dictionary<string, string> { ["KOUKI_SMOKE_SINCE"] = "abracadabra" };
+        var result = RunBashWithEnv(TestPaths.Path("deploy", "smoke.sh"), env, "--quiet");
+
+        Assert.Equal(2, result.Rc);
+        Assert.Contains("KOUKI_SMOKE_SINCE должен быть epoch-секундами", result.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Deploy_updates_all_targets_and_keeps_mcp_out_of_the_app_directory()
+    {
+        // M1 раунда 6: статическая проверка исключений проходила, даже если убрать
+        // --exclude из настоящего rsync. Здесь rsync настоящий.
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        string root = Directory.CreateTempSubdirectory("kouki-happy-").FullName;
+        string artifact = Path.Combine(root, "artifact");
+        string app = Path.Combine(root, "app");
+        string mcp = Path.Combine(root, "mcp");
+        string stub = Path.Combine(root, "stub");
+        try
+        {
+            CreateDeployShape(artifact, app, mcp, stub);
+            // Артефакт содержит подкаталог mcp/ (как настоящий publish); он не должен
+            // оказаться внутри /opt/kouki/app.
+            File.WriteAllText(Path.Combine(artifact, "mcp", "marker"), "x");
+
+            var env = new Dictionary<string, string>
+            {
+                ["PATH"] = stub + ":" + (Environment.GetEnvironmentVariable("PATH") ?? "/usr/bin:/bin"),
+            };
+            var result = RunBashWithEnv(
+                TestPaths.Path("deploy", "deploy-code.sh"), env,
+                "--from", artifact, "--app-dir", app, "--mcp-dir", mcp, "--no-restart");
+
+            Assert.True(result.Rc == 0, $"rc={result.Rc} err={result.Error}");
+            Assert.Equal("NEW-API-CONTENT", File.ReadAllText(Path.Combine(app, "Kagedama.api.dll")));
+            Assert.Equal("NEW-BOT-CONTENT", File.ReadAllText(Path.Combine(app, "bot", "Kouki.Kagedama.Bot.dll")));
+            Assert.Equal("NEW-MCP-CONTENT", File.ReadAllText(Path.Combine(mcp, "Kagedama.mcp.dll")));
+            Assert.False(Directory.Exists(Path.Combine(app, "mcp")), "mcp/ попал в API-каталог");
+            Assert.Equal("OLD-API", File.ReadAllText(Path.Combine(app + ".prev", "Kagedama.api.dll")));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Deploy_rolls_back_when_interrupted_mid_rsync()
+    {
+        // M2 раунда 6: trap INT/TERM не исполнялся ни одним тестом.
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        string root = Directory.CreateTempSubdirectory("kouki-int-").FullName;
+        string artifact = Path.Combine(root, "artifact");
+        string app = Path.Combine(root, "app");
+        string mcp = Path.Combine(root, "mcp");
+        string stub = Path.Combine(root, "stub");
+        try
+        {
+            CreateDeployShape(artifact, app, mcp, stub);
+
+            // Подставной rsync посылает SIGINT родителю во время раскладки API:
+            // trap должен откатить уже скопированные файлы.
+            string rsyncPath = Path.Combine(stub, "rsync");
+            File.WriteAllText(
+                rsyncPath,
+                "#!/usr/bin/env bash\ncase \"$*\" in\n  *--dry-run*) exec /usr/bin/rsync \"$@\" ;;\n  *artifact*app*) kill -INT \"$PPID\" 2>/dev/null; sleep 0.2; exit 0 ;;\nesac\nexec /usr/bin/rsync \"$@\"\n",
+                new UTF8Encoding(false));
+            Assert.Equal(0, RunBash("-c", $"chmod +x '{rsyncPath}'").Rc);
+
+            var env = new Dictionary<string, string>
+            {
+                ["PATH"] = stub + ":" + (Environment.GetEnvironmentVariable("PATH") ?? "/usr/bin:/bin"),
+            };
+            var result = RunBashWithEnv(
+                TestPaths.Path("deploy", "deploy-code.sh"), env,
+                "--from", artifact, "--app-dir", app, "--mcp-dir", mcp);
+
+            Assert.Equal(1, result.Rc);
+            Assert.Contains("деплой прерван (INT/TERM/HUP)", result.Error, StringComparison.Ordinal);
+            Assert.Contains("прод возвращён к предыдущему артефакту", result.Error, StringComparison.Ordinal);
+            Assert.Equal("OLD-API", File.ReadAllText(Path.Combine(app, "Kagedama.api.dll")));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Deploy_refuses_to_start_without_kouki_admin_sudo()
+    {
+        // Minor раунда 6: без sudoers скрипт копировал 300+ МБ и падал на рестарте.
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        string root = Directory.CreateTempSubdirectory("kouki-sudo-").FullName;
+        string artifact = Path.Combine(root, "artifact");
+        string app = Path.Combine(root, "app");
+        string mcp = Path.Combine(root, "mcp");
+        string stub = Path.Combine(root, "stub");
+        try
+        {
+            CreateDeployShape(artifact, app, mcp, stub);
+            string sudoPath = Path.Combine(stub, "sudo");
+            File.WriteAllText(sudoPath, "#!/usr/bin/env bash\nexit 1\n", new UTF8Encoding(false));
+            Assert.Equal(0, RunBash("-c", $"chmod +x '{sudoPath}'").Rc);
+
+            var env = new Dictionary<string, string>
+            {
+                ["PATH"] = stub + ":" + (Environment.GetEnvironmentVariable("PATH") ?? "/usr/bin:/bin"),
+            };
+            var result = RunBashWithEnv(
+                TestPaths.Path("deploy", "deploy-code.sh"), env,
+                "--from", artifact, "--app-dir", app, "--mcp-dir", mcp);
+
+            Assert.Equal(1, result.Rc);
+            Assert.Contains("нет sudo -n kouki-admin status", result.Error, StringComparison.Ordinal);
+            Assert.False(Directory.Exists(app + ".prev"), "проверка sudo должна идти до копии");
+            Assert.Equal("OLD-API", File.ReadAllText(Path.Combine(app, "Kagedama.api.dll")));
         }
         finally
         {
@@ -576,6 +746,8 @@ public sealed class DeployToolingAssetsTests
         Assert.Contains("KOUKI_SMOKE_SINCE=\"$SMOKE_SINCE\"", deploy, StringComparison.Ordinal);
         Assert.Contains("KOUKI_SMOKE_SINCE", smoke, StringComparison.Ordinal);
         Assert.Contains("BOT_JOURNAL_ARGS=(--since \"@$KOUKI_SMOKE_SINCE\")", smoke, StringComparison.Ordinal);
+        Assert.Contains("BOT_IGNORE_RE=", smoke, StringComparison.Ordinal);
+        Assert.Contains("trap interrupted INT TERM HUP", deploy, StringComparison.Ordinal);
     }
 
     private static void WriteStub(string dir, string name, string body)
@@ -600,9 +772,9 @@ public sealed class DeployToolingAssetsTests
         File.WriteAllText(Path.Combine(artifact, "Kagedama.api.dll"), "NEW-API-CONTENT");
         File.WriteAllText(Path.Combine(artifact, "appsettings.json"), "{}");
         File.WriteAllText(Path.Combine(artifact, "wwwroot", "app.js"), "x");
-        File.WriteAllText(Path.Combine(artifact, "bot", "Kouki.Kagedama.Bot.dll"), "NEW-BOT");
+        File.WriteAllText(Path.Combine(artifact, "bot", "Kouki.Kagedama.Bot.dll"), "NEW-BOT-CONTENT");
         File.WriteAllText(Path.Combine(artifact, "bot", "appsettings.json"), "{}");
-        File.WriteAllText(Path.Combine(artifact, "mcp", "Kagedama.mcp.dll"), "NEW-MCP");
+        File.WriteAllText(Path.Combine(artifact, "mcp", "Kagedama.mcp.dll"), "NEW-MCP-CONTENT");
         File.WriteAllText(Path.Combine(artifact, "mcp", "appsettings.json"), "{}");
         File.WriteAllText(Path.Combine(artifact, "libcoreclr.so"), "x");
         File.WriteAllText(Path.Combine(artifact, "libsherpa-onnx-c-api.so"), "x");
