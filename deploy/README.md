@@ -24,13 +24,15 @@ deploy/
 - `curl`, `rsync` и `sqlite3` — без `rsync`/`sqlite3` установщик **не включит**
   бэкап и завершится с кодом 1 (снимки делаются `sqlite3 .backup` + `rsync`);
 - артефакт публикации: на Windows `Kouki\tools\publish-linux.ps1`, на Linux
-  `dotnet publish Kagedama.api/Kagedama.api.csproj -c Release -r linux-x64 --self-contained false -p:KoukiEnableSherpa=true -o publish/linux-x64`.
+  `tools/publish-linux.sh` (он собирает API, `bot/` и `mcp/` и проверяет нативные `.so`).
 
-Публикация по умолчанию — framework-dependent: сам .NET на сервере ставится
-отдельно, зато артефакт 33 МБ. Ключ `-SelfContained` (или
-`--self-contained true`) кладёт рантайм внутрь: 330 МБ, но серверу не нужен
-`dotnet` в системе и нет зависимости от наличия пакета под конкретный
-дистрибутив.
+На Linux-сервере скрипт по умолчанию собирает **self-contained**: в проде на
+Ubuntu 26.04 пакета `aspnetcore-runtime-10.0` может не быть, поэтому рантайм
+лежит рядом с приложением (330 МБ). `tools/publish-linux.sh --framework-dependent`
+делает артефакт на 33 МБ — тогда `dotnet` ставится в систему отдельно, но
+`deploy/deploy-code.sh` такой артефакт поверх self-contained прода отклонит
+(форма деплоя должна совпадать). На Windows у `publish-linux.ps1` то же
+переключение — ключ `-SelfContained`.
 
 ## Установка
 
@@ -62,7 +64,8 @@ curl -H "Authorization: Bearer $(sudo grep '^Kouki__Token=' /etc/kouki/kouki.env
 
 | Путь | Что |
 | --- | --- |
-| `/opt/kouki/app` | артефакт публикации (перезаписывается при обновлении; каталоги `bot/` и `mcp/` не трогаются — они публикуются отдельно) |
+| `/opt/kouki/app` | артефакт публикации API (перезаписывается при обновлении; каталог `bot/` не трогается — обновляется отдельным rsync) |
+| `/opt/kouki/mcp` | MCP-сервер (`Kagedama.mcp`), отдельный каталог: `install.sh` его не копирует |
 | `/etc/kouki/kouki.env` | конфигурация, права `640 root:kouki` |
 | `/var/lib/kouki/db/kouki.sqlite` | база (WAL рядом) |
 | `/var/lib/kouki/audio` | записи, старше `AudioRetentionDays` удаляются |
@@ -164,16 +167,18 @@ GitHub.
 
 `Kagedama.mcp` — не служба, а stdio-процесс: его запускает клиент (плагин
 `dsh-kouki` в DeepSeek Harness, `claude mcp add`, любой MCP-клиент). В артефакте
-он лежит в подкаталоге `mcp/`, и на сервере ему нужен только доступ к базе:
+он лежит в подкаталоге `mcp/`, а на сервере ставится **отдельным каталогом**
+`/opt/kouki/mcp` (не внутрь `/opt/kouki/app`: там живёт только бот). Ему нужен
+только доступ к базе:
 
 ```bash
-dotnet /opt/kouki/app/mcp/Kagedama.mcp.dll --database=/var/lib/kouki/db/kouki.sqlite
+dotnet /opt/kouki/mcp/Kagedama.mcp.dll --database=/var/lib/kouki/db/kouki.sqlite
 ```
 
 Удобнее — через окружение, чтобы плагин не знал пути:
 
 ```bash
-Kouki__DatabasePath=/var/lib/kouki/db/kouki.sqlite dotnet /opt/kouki/app/mcp/Kagedama.mcp.dll
+Kouki__DatabasePath=/var/lib/kouki/db/kouki.sqlite dotnet /opt/kouki/mcp/Kagedama.mcp.dll
 ```
 
 База общая с сервером (WAL разрешает писать обоим), но `busy_timeout` у MCP —
@@ -399,18 +404,37 @@ ss -ltnp | grep 5300                   # слушает ли порт
   лежит `CHANGE_ME`.
 ### Обновление сервера без потери бота
 
-Порядок, который не оставляет бота лежать:
+Обычный способ на сервере — `deploy/deploy-code.sh` (не требует root): сначала
+`--dry-run`, потом без флага. Скрипт проверяет маркеры каталогов, форму деплоя
+(self-contained и нативки sherpa) и вложенность путей, делает копию `<каталог>.prev`,
+раскладывает артефакт, перезапускает сервисы и откатывается сам, если сервер не
+поднялся или смоук провалился.
+
+Ручной путь, который не оставляет бота лежать (если скрипта нет под рукой).
+Выполняйте от пользователя-владельца `/opt/kouki` (обычно `kouki`), а не от root:
+иначе файлы в `/opt/kouki/app` станут root-owned и следующий `deploy-code.sh`
+не сможет писать:
 
 ```sh
+# первый раз: каталога MCP ещё нет (install.sh его не создаёт)
+sudo install -d -o kouki -g kouki /opt/kouki/mcp
+
 sudo systemctl stop kouki          # PartOf погасит и kouki-bot
-sudo rsync -a --delete --exclude 'bot/' --exclude 'mcp/' <артефакт>/ /opt/kouki/app/
-sudo chown -R kouki:kouki /opt/kouki/app
+rsync -a --delete --exclude 'bot/' --exclude 'mcp/' --exclude 'appsettings.Development.json' \
+      <артефакт>/ /opt/kouki/app/
+rsync -a --delete <артефакт>/bot/ /opt/kouki/app/bot/
+rsync -a --delete <артефакт>/mcp/ /opt/kouki/mcp/
 sudo systemctl start kouki
 sudo systemctl start kouki-bot     # PartOf не поднимает бота обратно
 ```
 
-`--exclude 'bot/' --exclude 'mcp/'` обязательны: внутри `/opt/kouki/app` живут
-каталоги других сервисов, и `--delete` без исключений удалял бота (systemd падал
-на `Changing to the requested working directory failed`, бот молча не отвечал).
-`deploy/install.sh` делает это сам: он кладёт артефакт с исключениями и
-перезапускает бота после сервера.
+Все три `--exclude` — те же, что в `deploy-code.sh`. `bot/`: внутри `/opt/kouki/app` живёт каталог бота,
+и `--delete` без исключения удалял его (systemd падал на
+`Changing to the requested working directory failed`, бот молча не отвечал).
+`mcp/`: артефакт содержит подкаталог `mcp/`, но MCP-сервер лежит отдельно, в
+`/opt/kouki/mcp`, и обновляется своим rsync — без исключения копия `mcp/`
+оседает внутри `/opt/kouki/app` (потом `deploy-code.sh` исключает её из
+`--delete`, и дубль остаётся навсегда). `appsettings.Development.json`: dev-конфиг
+в прод не кладём. `install.sh` MCP не копирует и каталог `/opt/kouki/mcp` не создаёт,
+поэтому первый раз его создают руками (см. `install -d` выше), и `deploy-code.sh`
+без существующего каталога откажется работать (проверка `MCP_DIR`).

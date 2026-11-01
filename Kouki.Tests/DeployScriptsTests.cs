@@ -200,7 +200,8 @@ public sealed class DeployScriptsTests
             """);
         WriteStub(stubDir, "journalctl", """
             #!/usr/bin/env bash
-            echo ""
+            # Живой журнал не пуст: смоук считает пустой журнал вырожденной проверкой.
+            echo "Бот запущен."
             exit 0
             """);
         WriteStub(stubDir, "mountpoint", """
@@ -236,6 +237,16 @@ public sealed class DeployScriptsTests
             UseShellExecute = false,
             WorkingDirectory = workDir,
         };
+
+        // Унаследованные KOUKI_* (например, KOUKI_SMOKE_SINCE из оболочки разработчика)
+        // не должны влиять на тесты: smoke.sh проверяет их до разбора аргументов.
+        foreach (string key in start.Environment.Keys.ToList())
+        {
+            if (key.StartsWith("KOUKI_", StringComparison.Ordinal))
+            {
+                start.Environment.Remove(key);
+            }
+        }
 
         start.Environment["STUB_DIR_WIN"] = stubDir;
         start.Environment["HOME"] = workDir.Replace('\\', '/');

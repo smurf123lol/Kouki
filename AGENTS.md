@@ -255,13 +255,28 @@ dotnet build   Kouki.slnx --no-restore -m:1 -nodeReuse:false     # 0 ошибо�
 .\tools\worktree.ps1 merge -Name kouki-t50-backup-timer
 ```
 
+На сервере (Linux) то же самое, но своим скриптом — `pwsh` там нет:
+
+```bash
+tools/worktree.sh new --repo Kouki --task T50 --slug backup-timer
+tools/worktree.sh list
+tools/worktree.sh merge --name kouki-t50-backup-timer
+cd ../_scratch/wt/kouki-t50-backup-timer && dotnet test Kouki.Tests/Kouki.Tests.csproj
+```
+
+`worktree.sh merge` вливает в `master` основного дерева и не пушит. Грязное дерево задачи
+или основное дерево — отказ с кодом 1 **до** merge; при конфликте код 1 и ссылка `master`
+не двигается, но основное дерево остаётся в состоянии `MERGE_HEAD` — разрешать вручную
+или откатывать через `git merge --abort`.
+
 Правила:
 
 - в дереве живёт **одна** задача; две задачи — два дерева;
 - ветка называется `task/<id>-<slug>`; в `master` попадает только через merge,
   после зелёных тестов;
 - `master` не трогаем из дерева: сначала merge в основное дерево, тесты там, потом пуш;
-- дерево удаляется после merge (`worktree.ps1 remove`), временные файлы — только
+- дерево удаляется после merge (`worktree.ps1 remove` на Windows, `worktree.sh remove`
+  на Linux; без `--force` скрипт отказывает на грязном дереве), временные файлы — только
   в `_scratch\wt\...`;
 - если задачи касаются одних и тех же файлов — они не параллельные, а
   последовательные: конфликт в merge дороже выигранного времени.
@@ -284,9 +299,21 @@ dotnet build   Kouki.slnx --no-restore -m:1 -nodeReuse:false     # 0 ошибо�
 - **Заметки** живут в `/srv/kouki-workspace/notes-updated` (и копия в
   `/srv/files/_kouki/notes-updated`). Двойного редактирования не держим: правит тот,
   кто делает задачу, второй читает.
-- **Тесты на Linux идут через `dotnet test`** (на 01.11.2026 — 333 теста, `[Theory]`
+- **Тесты на Linux идут через `dotnet test`** (на 01.11.2026 — 402 теста, `[Theory]`
   исполняются). Свой раннер `tools\test.ps1` нужен только на Windows, где `dotnet test`
   не может запуститься из-за песочницы.
+- **Публикация и код-деплой на сервере — своими скриптами** (PowerShell там нет):
+  `tools/publish-linux.sh` собирает API, бота и MCP в `publish/linux-x64`, а
+  `deploy/deploy-code.sh` раскладывает артефакт в `/opt/kouki/{app,app/bot,mcp}` и
+  перезапускает сервисы через `kouki-admin`. Сначала `--dry-run`: он печатает число
+  удаляемых файлов в API-каталоге (удаления в `bot/` и `mcp/` видны в itemize) и
+  отказывается работать, если не совпали маркеры каталогов (`Kagedama.api.dll`,
+  `Kagedama.mcp.dll`), форма деплоя (self-contained, нативки sherpa) или вложенность путей.
+  Перед заменой файлов скрипт делает копию в `<каталог>.prev` и возвращается на неё, если
+  сервис не поднялся или смоук провалился; форма деплоя должна совпадать с продом — в проде
+  self-contained (пакета `aspnetcore-runtime` для Ubuntu 26.04 может не быть), и
+  `publish-linux.sh` по умолчанию собирает именно так (framework-dependent — только явным
+  `--framework-dependent`).
 - **Отчёт по задаче содержит доказательства:** команда и её вывод/цифра, а не «работает».
   Формат: задача → тесты (сколько прошло) → живая проверка (что именно нажали/позвали) →
   документы (какие разделы заметок обновились) → открытый вопрос, если есть.
