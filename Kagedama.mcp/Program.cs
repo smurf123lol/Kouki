@@ -66,6 +66,14 @@ services.AddLogging(logging =>
 Kouki.Kotae.KotaeOptions answererOptions = new();
 configuration.GetSection($"{section}:Answerer").Bind(answererOptions);
 
+// Режим тегов на источник: та же секция Kouki, что и у API (Kouki__TagModeBySource__station=keep).
+// Неизвестное значение проверяет AddKoukiCore — хост не поднимется с опечаткой.
+string tagMode = configuration[$"{section}:TagMode"] is { Length: > 0 } configuredMode
+    ? configuredMode
+    : TagModes.Extract;
+var tagModeBySource = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+configuration.GetSection($"{section}:TagModeBySource").Bind(tagModeBySource);
+
 // Хранилище, команды и контекст собираются общим слоем: MCP и API в одном процессе
 // работают одинаково, различается только транспорт и источник.
 services.AddKoukiCore(new KoukiHostSettings
@@ -79,6 +87,8 @@ services.AddKoukiCore(new KoukiHostSettings
         typeof(Kouki.Ubusuna.Commands.PingHandler).Assembly,
         typeof(Kouki.Kagedama.Commands.ListTasksHandler).Assembly,
     ],
+    TagMode = tagMode,
+    TagModeBySource = tagModeBySource,
 });
 
 services.AddUbusuna();

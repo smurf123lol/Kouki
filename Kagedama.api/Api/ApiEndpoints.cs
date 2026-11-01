@@ -111,25 +111,46 @@ public static class ApiEndpoints
         IOptions<KoukiServerOptions> options,
         CancellationToken cancellationToken)
     {
-        // Правила границы («источник по умолчанию», закрытый список интентов, лимит длины)
-        // живут в одном месте — IntakeRequestPolicy, а не в эндпоинте и не в MCP по копии.
+        // Правила границы («источник по умолчанию», закрытый список интентов, лимит длины,
+        // теги) живут в одном месте — IntakeRequestPolicy, а не в эндпоинте и не в MCP по копии.
+        // Источник разрешаем заранее: от него зависит режим тегов (extract/keep).
+        if (!IntakeRequestPolicy.TryResolveSource(
+                request?.Source,
+                intake.DefaultSource,
+                out string source,
+                out IntakeRejection? sourceRejection))
+        {
+            return Results.BadRequest(new { code = sourceRejection!.Code, error = sourceRejection.Message });
+        }
+
         if (!IntakeRequestPolicy.TryPrepare(
                 request?.Text,
-                request?.Source,
+                source,
                 request?.Intent,
                 intake.DefaultSource,
                 options.Value.MaxTextLength,
                 out IntakeSpec? spec,
-                out IntakeRejection? rejection))
+                out IntakeRejection? rejection,
+                intake.ResolveTagMode(source)))
         {
             return Results.BadRequest(new { code = rejection!.Code, error = rejection.Message });
         }
 
-        IntakeResult result = await intake.IntakeAsync(
-            spec!.Text,
-            spec.Source,
-            cancellationToken,
-            intentHint: spec.IntentHint);
+        IntakeResult result;
+        try
+        {
+            result = await intake.IntakeAsync(
+                spec!.Text,
+                spec.Source,
+                cancellationToken,
+                intentHint: spec.IntentHint,
+                tags: spec.Tags);
+        }
+        catch (IntakeRejectionException ex)
+        {
+            // Защита приёма для прямых вызовов: фраза из одних тегов — отказ клиента, не 500.
+            return Results.BadRequest(new { code = ex.Code, error = ex.Message });
+        }
 
         return Results.Ok(ToResponse(result, intake.ConfidenceThreshold));
     }
@@ -183,12 +204,21 @@ public static class ApiEndpoints
             return Results.BadRequest(new { code = intentRejection!.Code, error = intentRejection.Message });
         }
 
-        VoiceIntakeResult result = await voice.AcceptAsync(
-            bytes,
-            source,
-            new AudioFormat(audio.SampleRate, audio.Channels, AudioEncoding.Wav),
-            cancellationToken,
-            intentHint);
+        VoiceIntakeResult result;
+        try
+        {
+            result = await voice.AcceptAsync(
+                bytes,
+                source,
+                new AudioFormat(audio.SampleRate, audio.Channels, AudioEncoding.Wav),
+                cancellationToken,
+                intentHint);
+        }
+        catch (IntakeRejectionException ex)
+        {
+            // Распознанное — это только теги: приём отказал по правилам, а не сломался.
+            return Results.BadRequest(new { code = ex.Code, error = ex.Message });
+        }
 
         if (result.Intake is null)
         {
@@ -400,6 +430,7 @@ public static class ApiEndpoints
     private static async Task<IResult> listTasksHandler(
         string? status,
         int? limit,
+        string? tag,
         MuguraRouter router,
         CancellationToken cancellationToken)
     {
@@ -408,12 +439,25 @@ public static class ApiEndpoints
             return Results.BadRequest(new { error = $"Неизвестный статус '{status}'." });
         }
 
+        // Тег фильтрует задачи: «#» и скобки снимает нормализация, но пустой тег — ошибка клиента.
+        // Параметр отсутствует (null) — фильтра нет; параметр есть и пуст после нормализации — 400:
+        // «?tag=» значит «отфильтруй по пустому тегу», а не «покажи всё» (E4).
+        string? tagFilter = null;
+        if (tag is not null)
+        {
+            tagFilter = TagParser.Normalize(tag);
+            if (tagFilter.Length == 0)
+            {
+                return Results.BadRequest(new { error = ListTasksHandler.EmptyTagError });
+            }
+        }
+
         int take = Math.Clamp(limit ?? 50, 1, 500);
 
         // Чтение идёт через команду, как и запись: одно поведение для api, mcp и бота.
         JsonNode? result = await router.RouteAsync(
             "list_tasks",
-            new JsonObject { ["status"] = status, ["limit"] = take },
+            new JsonObject { ["status"] = status, ["limit"] = take, ["tag"] = tagFilter },
             context: null,
             cancellationToken).ConfigureAwait(false);
 

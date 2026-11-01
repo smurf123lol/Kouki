@@ -29,8 +29,11 @@ public sealed class LlmIntentOptions
     /// <summary>Сколько ждать ответа модели.</summary>
     public int TimeoutSeconds { get; set; } = 20;
 
-    /// <summary>Предел ответа: нам нужен короткий JSON, а не рассуждение.</summary>
-    public int MaxOutputTokens { get; set; } = 32;
+    /// <summary>
+    /// Предел ответа: нам нужен короткий JSON, а не рассуждение. 128 — с запасом
+    /// под массив тегов: на 32 токенах модель обрывалась на тегах и JSON становился битым.
+    /// </summary>
+    public int MaxOutputTokens { get; set; } = 128;
 
     /// <summary>Интенты, которые модель имеет право вернуть.</summary>
     public string[] Intents { get; set; } = LlmIntentClassifier.DefaultIntents;

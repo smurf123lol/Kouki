@@ -80,4 +80,9 @@ public sealed class DashboardAssetsTests
         Assert.DoesNotContain("list.innerHTML = tasks.map", app, StringComparison.Ordinal);
         Assert.DoesNotContain("body.innerHTML = actions.map", app, StringComparison.Ordinal);
     }
+
+    // Чипы тегов в карточке и фильтр по клику проверяются поведенчески:
+    // Kouki.Tests/DashboardBehaviorTests.cs исполняет app.js в node с поддельным DOM.
+    // Грепать подстроки здесь бессмысленно — удаление ${tagChips(task.tags)} из шаблона
+    // оставляет все подстроки на месте, а чипы с экрана пропадают.
 }

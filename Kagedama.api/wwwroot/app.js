@@ -21,6 +21,7 @@ const state = {
     token: localStorage.getItem('kouki.token') || '',
     tab: 'tasks',
     status: '',
+    tag: '',
     taskId: null,
     detailId: null,
     detailSig: null,
@@ -157,17 +158,23 @@ function applyList(container, items, keyOf, signatureOf, render, emptyHtml) {
 /* ---------- задачи ---------- */
 
 async function loadTasks() {
-    const query = state.status ? '?status=' + encodeURIComponent(state.status) : '';
-    const tasks = await api('/api/tasks' + query + (query ? '&' : '?') + 'limit=200');
+    const params = new URLSearchParams();
+    if (state.status) params.set('status', state.status);
+    if (state.tag) params.set('tag', state.tag);
+    params.set('limit', '200');
+
+    const tasks = await api('/api/tasks?' + params.toString());
     const list = $('task-list');
-    $('tasks-meta').textContent = tasks.length ? `${tasks.length} записей` : '';
+    const parts = [tasks.length ? `${tasks.length} записей` : ''];
+    if (state.tag) parts.push('тег #' + state.tag);
+    $('tasks-meta').textContent = parts.filter(Boolean).join(' · ');
     setCount('count-tasks', tasks.length);
 
     applyList(
         list,
         tasks,
         (task) => task.id,
-        (task) => [task.status, task.priority, task.title, task.source, task.updatedAt || task.createdAt].join('|'),
+        (task) => [task.status, task.priority, task.title, task.source, (task.tags || []).join(','), task.updatedAt || task.createdAt].join('|'),
         (task) => `
         <div class="card" data-task="${esc(task.id)}">
             <span class="status status-${esc(task.status)}">${esc(STATUS_RU[task.status] || task.status)}</span>
@@ -176,9 +183,18 @@ async function loadTasks() {
                 <div class="card-sub">${esc(task.source)} · ${esc(formatTime(task.createdAt))}${
                     task.meta && task.meta.intent ? ' · ' + esc(task.meta.intent) : ''
                 }</div>
+                ${tagChips(task.tags)}
             </div>
         </div>`,
         '<div class="empty">Пока пусто. Добавьте задачу через «Приём» или из Telegram.</div>');
+}
+
+// Тег — метка, а не текст: чип кликабелен и ставит фильтр по тегу (повторный клик снимает).
+function tagChips(tags) {
+    if (!Array.isArray(tags) || !tags.length) return '';
+    return '<div class="card-tags">' + tags
+        .map((tag) => `<button type="button" class="tag" data-tag="${esc(tag)}">#${esc(tag)}</button>`)
+        .join('') + '</div>';
 }
 
 /* ---------- разбор ---------- */
@@ -311,6 +327,7 @@ async function openTask(id, options = {}) {
             <dt>создана</dt><dd>${esc(formatTime(task.createdAt))}</dd>
             <dt>изменена</dt><dd>${esc(formatTime(task.updatedAt))}</dd>
             <dt>фраза</dt><dd>«${esc(task.rawText)}»</dd>
+            <dt>теги</dt><dd>${tagChips(task.tags) || '<span class="muted">—</span>'}</dd>
         </dl>
         <div>
             <div class="section-title">Действия</div>
@@ -509,6 +526,16 @@ async function ping() {
 /* ---------- события ---------- */
 
 document.addEventListener('click', async (event) => {
+    // Чип тега живёт внутри карточки задачи: сначала он, иначе клик по тегу откроет задачу.
+    const tagChip = event.target.closest('[data-tag]');
+    if (tagChip) {
+        event.preventDefault();
+        event.stopPropagation();
+        state.tag = state.tag === tagChip.dataset.tag ? '' : tagChip.dataset.tag;
+        await loadTasks();
+        return;
+    }
+
     const target = event.target.closest('[data-task]');
     if (target) {
         event.preventDefault();

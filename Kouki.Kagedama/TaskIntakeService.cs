@@ -16,7 +16,17 @@ namespace Kouki.Kagedama;
 /// <param name="AutoExecuted">Была ли команда исполнена сразу.</param>
 /// <param name="Outcome">Итог обработки фразы: см. <see cref="ActionOutcomes"/>.</param>
 /// <param name="ActionId">Запись журнала действий, по которой можно разобрать, что произошло.</param>
-public sealed record IntakeResult(TaskRecord? Task, IntentRoute Route, bool AutoExecuted, string Outcome, Guid? ActionId = null);
+public sealed record IntakeResult(TaskRecord? Task, IntentRoute Route, bool AutoExecuted, string Outcome, Guid? ActionId = null)
+{
+    /// <summary>
+    /// Теги, которые действительно записаны задаче (и из фразы, и от модели).
+    /// </summary>
+    /// <remarks>
+    /// Хосту они нужны сразу в ответе: иначе после приёма пришлось бы отдельно спрашивать
+    /// задачу, чтобы показать человеку, чем она помечена.
+    /// </remarks>
+    public IReadOnlyList<string> Tags { get; init; } = Array.Empty<string>();
+}
 
 /// <summary>
 /// Точка входа для фраз с телефона, станции, дашборда и агента:
@@ -81,17 +91,72 @@ public sealed class TaskIntakeService
     }
 
     /// <summary>
-    /// Прикрепляет теги, вырезанные из фразы. Без хранилища тегов (юнит-тесты, чужие хосты)
+    /// Прикрепляет теги задаче. Без хранилища тегов (юнит-тесты, чужие хосты)
     /// вызов ничего не делает: теги — необязательная часть приёма.
     /// </summary>
-    private async Task AttachTagsAsync(Guid taskId, IReadOnlyList<string> tags, CancellationToken cancellationToken)
+    /// <param name="taskId">Задача.</param>
+    /// <param name="tags">Теги в канонической форме.</param>
+    /// <param name="source">Источник тега: <see cref="TagSources.Text"/> или <see cref="TagSources.Model"/>.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    private async Task AttachTagsAsync(
+        Guid taskId,
+        IReadOnlyList<string> tags,
+        string source,
+        CancellationToken cancellationToken)
     {
         if (_tags is null || tags.Count == 0)
         {
             return;
         }
 
-        await _tags.AddAsync(taskId, tags, TagSources.Text, cancellationToken).ConfigureAwait(false);
+        await _tags.AddAsync(taskId, tags, source, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Приводит теги модели к канонической форме и общим лимитам.
+    /// </summary>
+    /// <remarks>
+    /// Модель — источник предложений, а не истины: она может вернуть «#Работа», повторы
+    /// и больше <see cref="TagParser.MaxTags"/> записей. Решение, что писать, принимает приём,
+    /// а не промпт: классификатор живёт в Kouki.Yasabi и не знает ни про TagParser, ни про лимиты.
+    /// </remarks>
+    /// <param name="tags">Теги из вердикта модели.</param>
+    /// <param name="textTags">Теги, уже вырезанные из фразы.</param>
+    /// <returns>Теги для записи со source=<see cref="TagSources.Model"/>, без повторов с текстовыми.</returns>
+    internal static IReadOnlyList<string> NormalizeModelTags(
+        IReadOnlyList<string>? tags,
+        IReadOnlyList<string> textTags)
+    {
+        if (tags is null || tags.Count == 0)
+        {
+            return Array.Empty<string>();
+        }
+
+        int room = TagParser.MaxTags - textTags.Count;
+        if (room <= 0)
+        {
+            return Array.Empty<string>();
+        }
+
+        List<string> modelTags = new();
+        foreach (string raw in tags)
+        {
+            string tag = TagParser.Normalize(raw);
+            if (tag.Length == 0
+                || textTags.Contains(tag, StringComparer.OrdinalIgnoreCase)
+                || modelTags.Contains(tag, StringComparer.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            modelTags.Add(tag);
+            if (modelTags.Count == room)
+            {
+                break;
+            }
+        }
+
+        return modelTags;
     }
 
     /// <summary>
@@ -108,13 +173,20 @@ public sealed class TaskIntakeService
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <param name="asrConfidence">Уверенность распознавания речи, если ввод был голосовым.</param>
     /// <param name="audioPath">Путь к записи, если её сохранили.</param>
+    /// <param name="intentHint">Интент сессии, если хост его знает.</param>
+    /// <param name="tags">
+    /// Теги, уже вырезанные границей приёма (<see cref="IntakeRequestPolicy"/>) по режиму источника;
+    /// <c>null</c> — прямой вызов без границы, тогда режим и теги считаются здесь.
+    /// </param>
+    /// <exception cref="IntakeRejectionException">Фраза состояла только из тегов.</exception>
     public async Task<IntakeResult> IntakeAsync(
         string text,
         string source,
         CancellationToken cancellationToken = default,
         double? asrConfidence = null,
         string? audioPath = null,
-        string? intentHint = null)
+        string? intentHint = null,
+        IReadOnlyList<string>? tags = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
         ArgumentException.ThrowIfNullOrWhiteSpace(source);
@@ -123,10 +195,28 @@ public sealed class TaskIntakeService
 
         // Теги в фразе (`#работа`, `[срочно]`) — часть метки, а не формулировки: в режиме
         // extract они вырезаются из текста и уходят в task_tags отдельными строками.
-        (trimmed, IReadOnlyList<string> tags) = TagParser.Split(trimmed, _options.TagMode);
+        // Режим — на источник: станция диктует метку голосом, API присылает тег решёткой.
+        string tagMode = _options.ResolveTagMode(source);
+        IReadOnlyList<string> textTags;
+        if (tags is null)
+        {
+            (trimmed, textTags) = TagParser.Split(trimmed, tagMode);
+        }
+        else
+        {
+            textTags = tags;
+
+            // Граница уже вырезала теги и проверила фразу — второй раз режем только текст.
+            if (!string.Equals(tagMode, TagModes.Keep, StringComparison.OrdinalIgnoreCase))
+            {
+                trimmed = TagParser.Clean(trimmed);
+            }
+        }
+
         if (trimmed.Length == 0)
         {
-            throw new ArgumentException("После вырезания тегов в фразе ничего не осталось.", nameof(text));
+            // Защита для прямых вызовов без границы: отдаём тот же код, что и HTTP/MCP.
+            throw new IntakeRejectionException(IntakeRequestPolicy.TagsOnlyText, IntakeRequestPolicy.TagsOnlyMessage);
         }
 
         long started = Stopwatch.GetTimestamp();
@@ -165,6 +255,11 @@ public sealed class TaskIntakeService
             await AnnotateJournalAsync(journalId, asrConfidence, audioPath, source, cancellationToken).ConfigureAwait(false);
         }
 
+        // Теги модели — предложения: нормализуем, убираем повторы и соблюдаем общий лимит.
+        // Текстовые теги идут первыми: их человек поставил сам, и при совпадении остаётся source=text.
+        IReadOnlyList<string> modelTags = NormalizeModelTags(intent.Tags, textTags);
+        IReadOnlyList<string> persistedTags = textTags.Concat(modelTags).ToArray();
+
         // Отдельного порога для распознавания речи нет: sherpa-onnx не отдаёт вероятность,
         // а смысл фразы оценивает классификатор интента — он и решает, отправлять ли на разбор.
         if (!intent.IsConfident(_options.ConfidenceThreshold))
@@ -182,6 +277,9 @@ public sealed class TaskIntakeService
 
                 await LinkJournalAsync(classificationId, created.Id, cancellationToken).ConfigureAwait(false);
 
+                await AttachTagsAsync(created.Id, textTags, TagSources.Text, cancellationToken).ConfigureAwait(false);
+                await AttachTagsAsync(created.Id, modelTags, TagSources.Model, cancellationToken).ConfigureAwait(false);
+
                 Guid actionId = await RecordActionAsync(
                     created.Id, classificationId, source, intent.Intent, null, ActionOutcomes.NeedsReview,
                     null, null, null, started, cancellationToken).ConfigureAwait(false);
@@ -189,8 +287,10 @@ public sealed class TaskIntakeService
                 return (created, actionId);
             }, cancellationToken).ConfigureAwait(false);
 
-            await AttachTagsAsync(task.Id, tags, cancellationToken).ConfigureAwait(false);
-            return new IntakeResult(task, review, false, ActionOutcomes.NeedsReview, reviewAction);
+            return new IntakeResult(task, review, false, ActionOutcomes.NeedsReview, reviewAction)
+            {
+                Tags = persistedTags,
+            };
         }
 
         // Вопрос — не задача, но и не мусор: ему нужна запись, чтобы ответ было где искать.
@@ -205,10 +305,11 @@ public sealed class TaskIntakeService
                     ActionOutcomes.Executed, asrConfidence, audioPath, cancellationToken, classifierVerdict).ConfigureAwait(false);
 
                 await LinkJournalAsync(classificationId, question.Id, cancellationToken).ConfigureAwait(false);
+
+                await AttachTagsAsync(question.Id, textTags, TagSources.Text, cancellationToken).ConfigureAwait(false);
+                await AttachTagsAsync(question.Id, modelTags, TagSources.Model, cancellationToken).ConfigureAwait(false);
                 return question;
             }, cancellationToken).ConfigureAwait(false);
-
-            await AttachTagsAsync(recorded.Id, tags, cancellationToken).ConfigureAwait(false);
         }
 
         // Уверенная фраза: всё уходит в роутер, он найдёт команду и вызовет диспатчер.
@@ -241,7 +342,12 @@ public sealed class TaskIntakeService
             {
                 string metaJson = BuildMeta(route, route.Executed, outcome, asrConfidence, audioPath, text: text, classifierVerdict: classifierVerdict);
                 await _store.UpdateAsync(created.Id, null, null, null, metaJson, cancellationToken).ConfigureAwait(false);
-                await AttachTagsAsync(created.Id, tags, cancellationToken).ConfigureAwait(false);
+
+                // Команда создала задачу — но не знает про журнал распознавания: ссылка
+                // «эта фраза стала этой задачей» нужна датасету, как и у задач на разборе.
+                await LinkJournalAsync(classificationId, created.Id, cancellationToken).ConfigureAwait(false);
+                await AttachTagsAsync(created.Id, textTags, TagSources.Text, cancellationToken).ConfigureAwait(false);
+                await AttachTagsAsync(created.Id, modelTags, TagSources.Model, cancellationToken).ConfigureAwait(false);
                 created.MetaJson = metaJson;
             }
 
@@ -259,13 +365,25 @@ public sealed class TaskIntakeService
                 started, cancellationToken).ConfigureAwait(false);
         }, cancellationToken).ConfigureAwait(false);
 
-        return new IntakeResult(recorded ?? created, route, route.Executed && !failed, outcome, action);
+        TaskRecord? result = recorded ?? created;
+        return new IntakeResult(result, route, route.Executed && !failed, outcome, action)
+        {
+            Tags = result is null ? Array.Empty<string>() : persistedTags,
+        };
     }
 
     /// <summary>
     /// Источник по умолчанию для запросов, где он не указан (у каждого хоста свой).
     /// </summary>
     public string DefaultSource => _options.DefaultSource;
+
+    /// <summary>
+    /// Режим тегов для источника: хосту он нужен до <see cref="IntakeRequestPolicy.TryPrepare"/>,
+    /// чтобы граница знала, вырезать ли решётки из фразы.
+    /// </summary>
+    /// <param name="source">Источник фразы, см. <see cref="Contracts.TaskSources"/>.</param>
+    /// <returns>Режим из <see cref="TagModes"/>.</returns>
+    public string ResolveTagMode(string? source) => _options.ResolveTagMode(source);
 
     /// <summary>
     /// Порог уверенности, по которому приём решает «понятно / в разбор».

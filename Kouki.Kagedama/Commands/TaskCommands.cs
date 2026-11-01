@@ -69,7 +69,8 @@ public sealed class AddTaskHandler : ICommandHandler<AddTaskCommand>
 /// </summary>
 /// <param name="Status">Фильтр по статусу или null.</param>
 /// <param name="Limit">Сколько показать; по умолчанию десять.</param>
-public sealed record ListTasksCommand(string? Status = null, int? Limit = null) : ICommand;
+/// <param name="Tag">Фильтр по тегу: показывать только задачи с этой меткой.</param>
+public sealed record ListTasksCommand(string? Status = null, int? Limit = null, string? Tag = null) : ICommand;
 
 /// <summary>
 /// Показывает последние задачи, ничего не меняя.
@@ -82,14 +83,27 @@ public sealed record ListTasksCommand(string? Status = null, int? Limit = null) 
     Example = "покажи мои задачи")]
 public sealed class ListTasksHandler : ICommandHandler<ListTasksCommand>
 {
+    /// <summary>
+    /// Текст отказа, когда после нормализации тег пуст: «#» — не тег.
+    /// </summary>
+    public const string EmptyTagError = "Тег не может быть пустым.";
+
+    private static readonly IReadOnlyDictionary<Guid, IReadOnlyList<string>> NoTags =
+        new Dictionary<Guid, IReadOnlyList<string>>();
+
     private readonly ITaskStore _store;
+    private readonly ITagStore? _tags;
 
     /// <summary>
     /// Создаёт обработчик списка задач.
     /// </summary>
     /// <param name="store">Хранилище задач.</param>
-    public ListTasksHandler(ITaskStore store)
-        => _store = store ?? throw new ArgumentNullException(nameof(store));
+    /// <param name="tags">Хранилище тегов: без него задачи отдаются с пустым <c>tags</c>.</param>
+    public ListTasksHandler(ITaskStore store, ITagStore? tags = null)
+    {
+        _store = store ?? throw new ArgumentNullException(nameof(store));
+        _tags = tags;
+    }
 
     /// <inheritdoc />
     public async Task<JsonNode> HandleAsync(
@@ -101,24 +115,115 @@ public sealed class ListTasksHandler : ICommandHandler<ListTasksCommand>
 
         int limit = Math.Clamp(command.Limit ?? 10, 1, 500);
         string? status = TaskStatuses.IsKnown(command.Status) ? command.Status : null;
-        IReadOnlyList<TaskRecord> tasks = await _store.ListAsync(status, limit, cancellationToken).ConfigureAwait(false);
+
+        IReadOnlyList<TaskRecord> tasks;
+        string? tag = null;
+
+        if (!string.IsNullOrWhiteSpace(command.Tag))
+        {
+            // Тег приходит как его написал человек («#Работа»), в базе он канонический.
+            tag = TagParser.Normalize(command.Tag);
+            if (tag.Length == 0)
+            {
+                return new JsonObject
+                {
+                    ["count"] = 0,
+                    ["status"] = status,
+                    ["tasks"] = new JsonArray(),
+                    ["error"] = EmptyTagError,
+                };
+            }
+
+            tasks = _tags is null
+                ? Array.Empty<TaskRecord>()
+                : await FindByTagAsync(tag, status, limit, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            tasks = await _store.ListAsync(status, limit, cancellationToken).ConfigureAwait(false);
+        }
+
+        IReadOnlyDictionary<Guid, IReadOnlyList<string>> tags = await LoadTagsAsync(tasks, cancellationToken).ConfigureAwait(false);
 
         var array = new JsonArray();
         foreach (TaskRecord task in tasks)
         {
-            array.Add(ToJson(task));
+            array.Add(ToJson(task, tags.TryGetValue(task.Id, out IReadOnlyList<string>? taskTags) ? taskTags : null));
         }
 
         return new JsonObject
         {
             ["count"] = array.Count,
             ["status"] = status,
+            ["tag"] = tag,
             ["tasks"] = array,
         };
     }
 
-    internal static JsonObject ToJson(TaskRecord task)
-        => new()
+    /// <summary>
+    /// Задачи с тегом: идентификаторы даёт <see cref="ITagStore.FindTasksAsync"/>,
+    /// который фильтрует тег и статус одним запросом — предел считается уже по ним.
+    /// </summary>
+    private async Task<IReadOnlyList<TaskRecord>> FindByTagAsync(
+        string tag,
+        string? status,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        IReadOnlyList<Guid> ids = await _tags!
+            .FindTasksAsync(tag, status, limit, cancellationToken)
+            .ConfigureAwait(false);
+
+        List<TaskRecord> found = new(ids.Count);
+        foreach (Guid id in ids)
+        {
+            TaskRecord? task = await _store.GetAsync(id, cancellationToken).ConfigureAwait(false);
+            if (task is null)
+            {
+                continue;
+            }
+
+            found.Add(task);
+        }
+
+        return found;
+    }
+
+    /// <summary>
+    /// Теги всех задач списка одним запросом: список обновляется дашбордом каждые пять секунд.
+    /// </summary>
+    private async Task<IReadOnlyDictionary<Guid, IReadOnlyList<string>>> LoadTagsAsync(
+        IReadOnlyList<TaskRecord> tasks,
+        CancellationToken cancellationToken)
+    {
+        if (_tags is null || tasks.Count == 0)
+        {
+            return NoTags;
+        }
+
+        return await _tags
+            .ListForTasksAsync(tasks.Select(task => task.Id).ToArray(), cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Представление задачи для хостов. <c>tags</c> есть всегда — пустой массив, а не <c>null</c>.
+    /// </summary>
+    /// <param name="task">Задача.</param>
+    /// <param name="tags">Теги задачи; <c>null</c> — пусто.</param>
+    internal static JsonObject ToJson(TaskRecord task, IReadOnlyList<string>? tags = null)
+    {
+        // Теги читаются из базы как есть: битые и пустые строки не должны попадать в JSON.
+        var array = new JsonArray();
+        foreach (string tag in tags ?? Array.Empty<string>())
+        {
+            if (!string.IsNullOrWhiteSpace(tag))
+            {
+                array.Add(tag);
+            }
+        }
+
+        return new JsonObject
         {
             ["id"] = task.Id.ToString(),
             ["title"] = task.Title,
@@ -129,8 +234,10 @@ public sealed class ListTasksHandler : ICommandHandler<ListTasksCommand>
             ["rawText"] = task.RawText,
             ["source"] = task.Source,
             ["workspace"] = task.Workspace,
+            ["tags"] = array,
             ["meta"] = ParseMeta(task.MetaJson),
         };
+    }
 
     private static JsonNode? ParseMeta(string? metaJson)
     {
@@ -212,20 +319,12 @@ public sealed class GetTaskHandler : ICommandHandler<GetTaskCommand>
             };
         }
 
-        JsonObject payload = ListTasksHandler.ToJson(task);
+        IReadOnlyList<string> taskTags = _tags is null
+            ? Array.Empty<string>()
+            : await _tags.ListAsync(id, cancellationToken).ConfigureAwait(false);
+
+        JsonObject payload = ListTasksHandler.ToJson(task, taskTags);
         payload["found"] = true;
-        if (_tags is not null)
-        {
-            IReadOnlyList<string> taskTags = await _tags.ListAsync(id, cancellationToken).ConfigureAwait(false);
-            JsonArray tagsArray = new();
-            foreach (string tag in taskTags)
-            {
-                tagsArray.Add(tag);
-            }
-
-            payload["tags"] = tagsArray;
-        }
-
         return payload;
     }
 }

@@ -1,0 +1,299 @@
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text.Json.Nodes;
+
+using Kouki.Kagedama;
+using TaskFactory = Kouki.Kagedama.TaskFactory;
+using Kouki.Kagedama.Api;
+using Kouki.Kagedama.Api.Api;
+using Kouki.Kagedama.Api.Auth;
+using Kouki.Kagedama.Commands;
+using Kouki.Kagedama.Contracts;
+using Kouki.Kagedama.Hosting;
+using Kouki.Shimi.ServiceAbstractions;
+using Kouki.Un;
+using Kouki.Ubusuna.DependencyInjection;
+
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
+namespace Kouki.Tests;
+
+/// <summary>
+/// Граница HTTP целиком: настоящий Kestrel-хост на временной базе и запросы по сети.
+/// </summary>
+/// <remarks>
+/// Почему не <c>WebApplicationFactory</c>/<c>TestServer</c>: пакета <c>Microsoft.AspNetCore.Mvc.Testing</c>
+/// нет в офлайн-кэше NuGet (кэш read-only), а версии пакетов централизованы в
+/// <c>Directory.Packages.props</c> — добавить его в тестовый проект нельзя. Поэтому хост
+/// собирается теми же точками композиции, что боевой <c>Program.cs</c>:
+/// <c>AddKoukiCore</c> → <c>InitializeKouki</c> → <see cref="TokenAuthMiddleware"/> →
+/// <see cref="ApiEndpoints.MapKoukiApi"/>. Порядок тот же, поэтому проверяются именно
+/// эндпоинты и команда под ними, а не только сервисы.
+/// Порт 0 — свободный порт от ОС, чтобы параллельные тесты не мешали друг другу.
+/// </remarks>
+public sealed class ApiHostFixture : IAsyncLifetime
+{
+    /// <summary>Токен тестового хоста: без него API закрыт (fail-closed).</summary>
+    public const string Token = "host-boundary-token";
+
+    private WebApplication? _app;
+    private string _directory = string.Empty;
+
+    /// <summary>HTTP-клиент с bearer-токеном.</summary>
+    public HttpClient Client { get; private set; } = null!;
+
+    /// <summary>Адрес запущенного хоста — для клиентов без токена.</summary>
+    public Uri BaseAddress { get; private set; } = null!;
+
+    /// <summary>Путь к временной базе теста.</summary>
+    public string DatabasePath { get; private set; } = string.Empty;
+
+    /// <summary>Контейнер хоста: тесты кладут задачи прямо в хранилище.</summary>
+    public IServiceProvider Services => _app!.Services;
+
+    /// <inheritdoc />
+    public async Task InitializeAsync()
+    {
+        _directory = Path.Combine(Path.GetTempPath(), "kouki-api-host-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(_directory);
+        DatabasePath = Path.Combine(_directory, "kouki.sqlite");
+
+        var serverOptions = new KoukiServerOptions
+        {
+            DatabasePath = DatabasePath,
+            Token = Token,
+            MaxTextLength = 2000,
+            TagMode = TagModes.Extract,
+        };
+
+        WebApplicationBuilder builder = WebApplication.CreateBuilder(new WebApplicationOptions
+        {
+            EnvironmentName = "Test",
+        });
+
+        builder.Logging.ClearProviders();
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
+        builder.Services.AddSingleton(serverOptions);
+        builder.Services.AddSingleton<IOptions<KoukiServerOptions>>(Options.Create(serverOptions));
+        builder.Services.AddKoukiCore(new KoukiHostSettings
+        {
+            DatabasePath = DatabasePath,
+            ConfidenceThreshold = 0.75,
+            DefaultSource = TaskSources.Api,
+            TagMode = TagModes.Extract,
+        });
+
+        // Консольные адаптеры нужны InitializeKouki: контекст по умолчанию берёт из них
+        // IFileSystem и ITerminal — без регистрации контекст не собрать.
+        builder.Services.AddUbusuna();
+
+        // Метаданные маршрутов резолвятся целиком при первом запросе, поэтому все типы
+        // параметров эндпоинтов обязаны быть в контейнере — даже те, чьи маршруты тест
+        // не зовёт. Речь здесь заглушки из Kouki.Un: /api/speech и /api/voice не вызываются.
+        builder.Services.AddUn();
+        builder.Services.AddSingleton<VoiceIntakeService>(sp => new VoiceIntakeService(
+            sp.GetRequiredService<ISpeechTranscriber>(),
+            sp.GetRequiredService<TaskIntakeService>(),
+            sp.GetRequiredService<ILogger<VoiceIntakeService>>()));
+
+        _app = builder.Build();
+        KoukiHosting.InitializeKouki(_app.Services, "test");
+        _app.UseMiddleware<TokenAuthMiddleware>();
+        _app.MapKoukiApi();
+
+        await _app.StartAsync();
+
+        IServer server = _app.Services.GetRequiredService<IServer>();
+        IServerAddressesFeature addresses = server.Features.Get<IServerAddressesFeature>()
+            ?? throw new InvalidOperationException("Kestrel не сообщил адрес запуска.");
+        string address = addresses.Addresses.First();
+
+        BaseAddress = new Uri(address);
+        Client = new HttpClient { BaseAddress = BaseAddress };
+        Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Token);
+    }
+
+    /// <inheritdoc />
+    public async Task DisposeAsync()
+    {
+        Client?.Dispose();
+
+        if (_app is not null)
+        {
+            await _app.StopAsync();
+            await _app.DisposeAsync();
+        }
+
+        try
+        {
+            if (Directory.Exists(_directory))
+            {
+                Directory.Delete(_directory, recursive: true);
+            }
+        }
+        catch (IOException)
+        {
+            // Временный каталог за собой уберёт система: тест уже не от этого зависит.
+        }
+    }
+
+    /// <summary>Кладёт задачу с тегом прямо в хранилище — без HTTP, чтобы тест про фильтр
+    /// не зависел от приёма фразы.</summary>
+    /// <param name="title">Текст задачи.</param>
+    /// <param name="tag">Тег в канонической форме.</param>
+    /// <param name="status">Статус задачи.</param>
+    /// <returns>Созданная запись.</returns>
+    public async Task<TaskRecord> SeedTaskAsync(
+        string title,
+        string tag,
+        string status = TaskStatuses.New)
+    {
+        ITaskStore store = Services.GetRequiredService<ITaskStore>();
+        ITagStore tags = Services.GetRequiredService<ITagStore>();
+
+        TaskRecord record = TaskFactory.Create(title, TaskSources.Api, status);
+        await store.AddAsync(record);
+        await tags.AddAsync(record.Id, new[] { tag }, TagSources.Text);
+        return record;
+    }
+
+    /// <summary>Читает JSON-массив задач из ответа <c>GET /api/tasks</c>.</summary>
+    /// <param name="response">Ответ хоста.</param>
+    /// <returns>Массив задач.</returns>
+    public static async Task<JsonArray> ReadTasksAsync(HttpResponseMessage response)
+    {
+        JsonNode? node = JsonNode.Parse(await response.Content.ReadAsStringAsync());
+        JsonArray tasks = Assert.IsType<JsonArray>(node);
+        return tasks;
+    }
+}
+
+/// <summary>
+/// Проверки границы "HTTP → команда → SQLite" на реальном хосте: теги в приёме и фильтре.
+/// </summary>
+public sealed class ApiHostTests : IClassFixture<ApiHostFixture>
+{
+    private readonly ApiHostFixture _host;
+
+    /// <summary>Принимает общий хост класса: база одна на все тесты, теги у тестов разные.</summary>
+    /// <param name="host">Хост с временной базой.</param>
+    public ApiHostTests(ApiHostFixture host)
+    {
+        _host = host;
+    }
+
+    [Fact]
+    public async Task Intake_of_tags_only_phrase_is_400_with_code()
+    {
+        using var response = await _host.Client.PostAsync(
+            "/api/intake",
+            JsonContent.Create(new { text = "#толькотег", source = TaskSources.Api }));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        JsonObject body = Assert.IsType<JsonObject>(
+            JsonNode.Parse(await response.Content.ReadAsStringAsync()));
+        Assert.Equal(IntakeRequestPolicy.TagsOnlyText, body["code"]!.GetValue<string>());
+        Assert.Equal(IntakeRequestPolicy.TagsOnlyMessage, body["error"]!.GetValue<string>());
+
+        // После отказа задачи не появилось: отбраковка идёт до приёма.
+        using var filtered = await _host.Client.GetAsync("/api/tasks?tag=" + Uri.EscapeDataString("толькотег"));
+        Assert.Equal(HttpStatusCode.OK, filtered.StatusCode);
+        Assert.Empty(await ApiHostFixture.ReadTasksAsync(filtered));
+    }
+
+    [Fact]
+    public async Task Tasks_are_filtered_by_tag_and_empty_tag_is_400()
+    {
+        TaskRecord wanted = await _host.SeedTaskAsync("ответить на письмо", "фильтр");
+
+        // «#» и регистр снимает нормализация: «ФИЛЬТР» находит канонический «фильтр».
+        using var filtered = await _host.Client.GetAsync("/api/tasks?tag=" + Uri.EscapeDataString("ФИЛЬТР"));
+        Assert.Equal(HttpStatusCode.OK, filtered.StatusCode);
+
+        JsonArray tasks = await ApiHostFixture.ReadTasksAsync(filtered);
+        JsonObject only = Assert.IsType<JsonObject>(Assert.Single(tasks));
+        Assert.Equal(wanted.Id.ToString(), only["id"]!.GetValue<string>());
+        Assert.Equal(
+            new[] { "фильтр" },
+            only["tags"]!.AsArray().Select(node => node!.GetValue<string>()));
+
+        // Пустое значение параметра — ошибка клиента, а не «без фильтра».
+        using var empty = await _host.Client.GetAsync("/api/tasks?tag=");
+        Assert.Equal(HttpStatusCode.BadRequest, empty.StatusCode);
+        JsonObject emptyBody = Assert.IsType<JsonObject>(
+            JsonNode.Parse(await empty.Content.ReadAsStringAsync()));
+        Assert.Equal(ListTasksHandler.EmptyTagError, emptyBody["error"]!.GetValue<string>());
+
+        // После нормализации пусто: решётка без слова — тот же 400.
+        using var hashOnly = await _host.Client.GetAsync("/api/tasks?tag=%23");
+        Assert.Equal(HttpStatusCode.BadRequest, hashOnly.StatusCode);
+
+        // Неизвестный тег — штатный пустой список, не ошибка.
+        using var unknown = await _host.Client.GetAsync("/api/tasks?tag=" + Uri.EscapeDataString("нет-такого"));
+        Assert.Equal(HttpStatusCode.OK, unknown.StatusCode);
+        Assert.Empty(await ApiHostFixture.ReadTasksAsync(unknown));
+    }
+
+    [Fact]
+    public async Task Tag_status_and_limit_are_applied_together_over_http()
+    {
+        TaskRecord wanted = await _host.SeedTaskAsync("ответить на письмо", "лимит", TaskStatuses.New);
+        await _host.SeedTaskAsync("старая задача раз", "лимит", TaskStatuses.Done);
+        await _host.SeedTaskAsync("старая задача два", "лимит", TaskStatuses.Done);
+
+        // Регрессия: LIMIT в SQL считался до фильтра статуса, и новые задачи вытеснялись
+        // выполненными — при limit=2 ответ был пустым.
+        using var byStatus = await _host.Client.GetAsync("/api/tasks?tag=лимит&status=new&limit=2");
+        Assert.Equal(HttpStatusCode.OK, byStatus.StatusCode);
+
+        JsonArray newTasks = await ApiHostFixture.ReadTasksAsync(byStatus);
+        JsonObject only = Assert.IsType<JsonObject>(Assert.Single(newTasks));
+        Assert.Equal(wanted.Id.ToString(), only["id"]!.GetValue<string>());
+        Assert.Equal(TaskStatuses.New, only["status"]!.GetValue<string>());
+
+        // Лимит по-прежнему режет список: без статуса — ровно две задачи.
+        using var limited = await _host.Client.GetAsync("/api/tasks?tag=лимит&limit=2");
+        Assert.Equal(2, (await ApiHostFixture.ReadTasksAsync(limited)).Count);
+    }
+
+    [Fact]
+    public async Task Intake_stores_text_tag_and_it_is_visible_through_filter()
+    {
+        using var response = await _host.Client.PostAsync(
+            "/api/intake",
+            JsonContent.Create(new { text = "запиши задачу купить хлеб #магазин", source = TaskSources.Api }));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        JsonObject body = Assert.IsType<JsonObject>(
+            JsonNode.Parse(await response.Content.ReadAsStringAsync()));
+        JsonObject task = Assert.IsType<JsonObject>(body["task"]);
+        string id = task["id"]!.GetValue<string>();
+        Assert.Equal(
+            new[] { "магазин" },
+            task["tags"]!.AsArray().Select(node => node!.GetValue<string>()));
+
+        using var filtered = await _host.Client.GetAsync("/api/tasks?tag=" + Uri.EscapeDataString("магазин"));
+        JsonArray tasks = await ApiHostFixture.ReadTasksAsync(filtered);
+        JsonObject only = Assert.IsType<JsonObject>(Assert.Single(tasks));
+        Assert.Equal(id, only["id"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task Api_requires_bearer_token()
+    {
+        using var anonymous = new HttpClient { BaseAddress = _host.BaseAddress };
+        using var response = await anonymous.GetAsync("/api/tasks");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+}

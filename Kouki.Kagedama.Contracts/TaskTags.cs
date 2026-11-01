@@ -36,8 +36,31 @@ public interface ITagStore
     /// <summary>
     /// Задачи с указанным тегом, новые сверху.
     /// </summary>
+    /// <remarks>
+    /// Статус фильтруется тем же запросом, что и тег: если сперва отсечь <paramref name="limit"/>,
+    /// а потом отбросить чужие статусы, выборка «тег + статус + предел» потеряет подходящие задачи.
+    /// </remarks>
     /// <param name="tag">Тег в канонической форме.</param>
+    /// <param name="status">Статус задачи; <c>null</c> — любой статус.</param>
     /// <param name="limit">Сколько вернуть.</param>
     /// <param name="cancellationToken">Токен отмены.</param>
-    Task<IReadOnlyList<Guid>> FindTasksAsync(string tag, int limit, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Guid>> FindTasksAsync(
+        string tag,
+        string? status,
+        int limit,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Теги сразу для многих задач — одним запросом.
+    /// </summary>
+    /// <remarks>
+    /// Список задач показывает до 200 строк и обновляется дашбордом каждые пять секунд:
+    /// чтение тегов по одной задаче дало бы N+1 запрос на каждую перерисовку.
+    /// </remarks>
+    /// <param name="ids">Идентификаторы задач.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <returns>Теги по задаче; задач без тегов в словаре нет.</returns>
+    Task<IReadOnlyDictionary<Guid, IReadOnlyList<string>>> ListForTasksAsync(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken = default);
 }

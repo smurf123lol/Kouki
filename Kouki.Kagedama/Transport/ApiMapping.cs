@@ -85,7 +85,9 @@ public static class ApiMapping
     }
 
     /// <summary>Задача → DTO.</summary>
-    public static TaskDto ToDto(TaskRecord record)
+    /// <param name="record">Запись задачи.</param>
+    /// <param name="tags">Теги задачи, если хост их прочитал; <c>null</c> — пустой массив.</param>
+    public static TaskDto ToDto(TaskRecord record, IReadOnlyList<string>? tags = null)
     {
         ArgumentNullException.ThrowIfNull(record);
 
@@ -98,7 +100,10 @@ public static class ApiMapping
             record.Title,
             record.Status,
             record.Priority,
-            ParseMeta(record.MetaJson));
+            ParseMeta(record.MetaJson))
+        {
+            Tags = tags ?? Array.Empty<string>(),
+        };
     }
 
     /// <summary>Результат распознавания → DTO.</summary>
@@ -160,7 +165,7 @@ public static class ApiMapping
         ArgumentNullException.ThrowIfNull(result);
 
         return new IntakeResponse(
-            result.Task is null ? null : ToDto(result.Task),
+            result.Task is null ? null : ToDto(result.Task, result.Tags),
             ToDto(result.Route.Intent, confidenceThreshold),
             result.Route.CommandName,
             result.Route.Executed,

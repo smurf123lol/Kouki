@@ -55,6 +55,18 @@ public sealed record KoukiHostSettings
     /// <c>null</c> — переменная окружения <c>KOUKI_TIMEZONE</c>, а если её нет — пояс сервера.
     /// </summary>
     public string? TimeZone { get; init; }
+
+    /// <summary>
+    /// Режим тегов по умолчанию, см. <see cref="TagModes"/>. Неизвестное значение — ошибка запуска.
+    /// </summary>
+    public string TagMode { get; init; } = TagModes.Extract;
+
+    /// <summary>
+    /// Режим тегов на конкретный источник: ключ — <see cref="TaskSources"/>, значение — <see cref="TagModes"/>.
+    /// Источник без переопределения берёт <see cref="TagMode"/>.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> TagModeBySource { get; init; } =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 }
 
 /// <summary>
@@ -70,6 +82,42 @@ public static class KoukiHosting
     public static string DefaultDatabasePath()
         => Path.Combine(AppContext.BaseDirectory, "kouki.sqlite");
 
+    /// <summary>Что можно написать в настройке режима тегов.</summary>
+    private const string AllowedTagModes = "extract — вырезать теги из фразы, keep — оставить # в тексте";
+
+    /// <summary>
+    /// Проверяет режимы тегов до регистраций.
+    /// </summary>
+    /// <remarks>
+    /// Fail-closed: опечатка в <c>Kouki:TagMode</c> (например, <c>extarct</c>) или неизвестный
+    /// источник в <c>Kouki:TagModeBySource</c> — это ошибка запуска, а не «тихий keep»:
+    /// иначе сервер поднимется с настройкой, которую никто не имел в виду, и будет молча
+    /// складывать теги в текст задачи.
+    /// </remarks>
+    /// <param name="settings">Настройки хоста.</param>
+    /// <exception cref="InvalidOperationException">Режим или источник неизвестен.</exception>
+    private static void ValidateTagModes(KoukiHostSettings settings)
+    {
+        if (!TagModes.IsKnown(settings.TagMode))
+        {
+            throw new InvalidOperationException(TagModeError(null, settings.TagMode));
+        }
+
+        foreach (KeyValuePair<string, string> pair in settings.TagModeBySource)
+        {
+            if (TaskSources.IsKnown(pair.Key) && TagModes.IsKnown(pair.Value))
+            {
+                continue;
+            }
+
+            throw new InvalidOperationException(TagModeError(pair.Key, pair.Value));
+        }
+    }
+
+    private static string TagModeError(string? source, string? mode) => source is null
+        ? $"Неизвестный режим тегов '{mode}' в Kouki:TagMode[BySource]. Допустимые режимы: {AllowedTagModes}."
+        : $"Неизвестный режим тегов '{mode}' (или источник '{source}') в Kouki:TagMode[BySource]. Допустимые режимы: {AllowedTagModes}.";
+
     /// <summary>
     /// Регистрирует домен: хранилище, команды, контексты, классификатор, приём.
     /// Голос, MCP-транспорт и прочие надстройки хост добавляет сам.
@@ -81,6 +129,7 @@ public static class KoukiHosting
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentException.ThrowIfNullOrWhiteSpace(settings.DatabasePath);
+        ValidateTagModes(settings);
 
         Assembly[] assemblies = settings.CommandAssemblies.Count == 0
             ? new[] { typeof(AddTaskHandler).Assembly }
@@ -107,6 +156,8 @@ public static class KoukiHosting
         {
             ConfidenceThreshold = settings.ConfidenceThreshold,
             DefaultSource = settings.DefaultSource,
+            TagMode = settings.TagMode,
+            TagModeBySource = settings.TagModeBySource,
         });
         services.AddSingleton<TaskIntakeService>();
         services.TryAddSingleton(TimeProvider.System);

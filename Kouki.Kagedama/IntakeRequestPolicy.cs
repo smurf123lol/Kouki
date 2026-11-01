@@ -8,7 +8,13 @@ namespace Kouki.Kagedama;
 /// <param name="Text">Текст без крайних пробелов.</param>
 /// <param name="Source">Источник из <see cref="TaskSources"/>.</param>
 /// <param name="IntentHint">Интент, который сообщила сессия, или <c>null</c>.</param>
-public sealed record IntakeSpec(string Text, string Source, string? IntentHint);
+public sealed record IntakeSpec(string Text, string Source, string? IntentHint)
+{
+    /// <summary>
+    /// Теги, вырезанные из фразы в режиме <see cref="TagModes.Extract"/> (в режиме keep — пусто).
+    /// </summary>
+    public IReadOnlyList<string> Tags { get; init; } = Array.Empty<string>();
+}
 
 /// <summary>
 /// Причина отказа в приёме. <see cref="Message"/> уже годится для ответа клиенту.
@@ -42,6 +48,12 @@ public static class IntakeRequestPolicy
     /// <summary>Текст длиннее лимита.</summary>
     public const string TextTooLong = "text-too-long";
 
+    /// <summary>После вырезания тегов во фразе не осталось самой формулировки.</summary>
+    public const string TagsOnlyText = "tags-only";
+
+    /// <summary>Текст отказа для <see cref="TagsOnlyText"/>: он же у защитного исключения приёма.</summary>
+    public const string TagsOnlyMessage = "После вырезания тегов во фразе ничего не осталось. Добавьте саму формулировку задачи.";
+
     /// <summary>
     /// Проверяет запрос и собирает <see cref="IntakeSpec"/>.
     /// </summary>
@@ -52,7 +64,9 @@ public static class IntakeRequestPolicy
     /// <param name="maxTextLength">Лимит длины текста; <c>0</c> или меньше — без лимита.</param>
     /// <param name="spec">Готовый запрос, если проверка прошла.</param>
     /// <param name="rejection">Причина отказа, если проверка не прошла.</param>
+    /// <param name="tagMode">Режим тегов для источника, см. <see cref="IntakeOptions.ResolveTagMode"/>.</param>
     /// <returns><c>true</c>, если запрос можно передавать в приём.</returns>
+    /// <exception cref="ArgumentException">Режим тегов неизвестен.</exception>
     public static bool TryPrepare(
         string? text,
         string? requestedSource,
@@ -60,7 +74,8 @@ public static class IntakeRequestPolicy
         string defaultSource,
         int maxTextLength,
         out IntakeSpec? spec,
-        out IntakeRejection? rejection)
+        out IntakeRejection? rejection,
+        string tagMode = TagModes.Extract)
     {
         spec = null;
         rejection = null;
@@ -89,7 +104,56 @@ public static class IntakeRequestPolicy
             return false;
         }
 
-        spec = new IntakeSpec(trimmed, source, hint);
+        if (!TryResolveTags(trimmed, tagMode, out IReadOnlyList<string> tags, out rejection))
+        {
+            return false;
+        }
+
+        spec = new IntakeSpec(trimmed, source, hint) { Tags = tags };
+        return true;
+    }
+
+    /// <summary>
+    /// Проверяет, что во фразе остаётся формулировка, а не одни теги, и достаёт сами теги.
+    /// </summary>
+    /// <remarks>
+    /// В режиме <see cref="TagModes.Extract"/> теги вырезаются — значит, фраза «#работа #дом»
+    /// задачи не содержит, и приём должен отказать до записи, а не бросить исключение внутри.
+    /// В режиме <see cref="TagModes.Keep"/> вырезания нет: текст остаётся как есть, теги — пусто.
+    /// </remarks>
+    /// <param name="trimmed">Фраза без крайних пробелов.</param>
+    /// <param name="tagMode">Режим тегов источника.</param>
+    /// <param name="tags">Теги, вырезанные из фразы.</param>
+    /// <param name="rejection">Причина отказа, если остались одни теги.</param>
+    /// <returns><c>true</c>, если фразу можно принимать.</returns>
+    private static bool TryResolveTags(
+        string trimmed,
+        string tagMode,
+        out IReadOnlyList<string> tags,
+        out IntakeRejection? rejection)
+    {
+        rejection = null;
+        tags = Array.Empty<string>();
+
+        if (string.Equals(tagMode, TagModes.Keep, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (!string.Equals(tagMode, TagModes.Extract, StringComparison.OrdinalIgnoreCase))
+        {
+            // Тот же fail-closed, что и в TagParser.Split: опечатка в конфиге — ошибка, а не keep.
+            throw new ArgumentException($"Неизвестный режим тегов '{tagMode}'.", nameof(tagMode));
+        }
+
+        (string cleaned, IReadOnlyList<string> extracted) = TagParser.Split(trimmed, tagMode);
+        if (cleaned.Length == 0)
+        {
+            rejection = new IntakeRejection(TagsOnlyText, TagsOnlyMessage);
+            return false;
+        }
+
+        tags = extracted;
         return true;
     }
 

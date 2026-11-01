@@ -87,6 +87,8 @@ Kagedama.api / .mcp / Kouki.Kagedama.Bot — хосты
    Опасное действие помечай `RequiresConfirmation = true`; хост обязан дать `ICommandConfirmation`.
 10. **Фразу не режем.** Интент либо распознан целиком, либо фраза уходит в разбор как есть.
     Убирать «запиши задачу» из текста нельзя — это часть текста, который человек сказал.
+    Исключение — метки `#тег`/`[тег]` в режиме `extract`: тег это метка, а не часть
+    формулировки, и их вырезание разрешено (`TagParser.Split`).
 11. **Никаких магических чисел.** Порог — `IntakeOptions.ConfidenceThreshold` (дефолт 0.75),
     лимиты — из `KoukiServerOptions`/`IntakeRequestPolicy`, приоритет — `TaskPriorities.Default`.
 12. **Человеку — человеческий текст.** Внешние ошибки (Telegram, HTTP, SQL) не уходят
@@ -127,7 +129,7 @@ dotnet build   Kouki.slnx --no-restore -m:1 -nodeReuse:false     # 0 ошибо�
   `dotnet _scratch\testrun\bin\Debug\net10.0\Kouki.Tests.Runner.dll`; он исполняет только
   `[Fact]`, поэтому тесты пишем `[Fact]` с циклом внутри — так они идут и на Windows.
   На Linux/сервере — обычный `dotnet test`, `[Theory]` там исполняются
-  (на 01.11.2026: 402 на master `98b776b` / 431 в дереве T94).
+  (на 01.11.2026: 402 на master `98b776b` / 438 в дереве T94).
 - **После переноса сборок** (`AssemblyName`, новые проекты) чисти `_scratch\testrun\bin` и
   `obj`: иначе раннер падает `FileNotFoundException` на старой копии.
 - **Добавил новый файл тестов — пересобери раннер** (`dotnet build _scratch\testrun\testrun.csproj`):
@@ -304,9 +306,9 @@ cd ../_scratch/wt/kouki-t50-backup-timer && dotnet test Kouki.Tests/Kouki.Tests.
 - **Заметки** живут в `/srv/kouki-workspace/notes-updated` (и копия в
   `/srv/files/_kouki/notes-updated`). Двойного редактирования не держим: правит тот,
   кто делает задачу, второй читает.
-- **Тесты на Linux идут через `dotnet test`** (на 01.11.2026 — 402 на master `98b776b` /
-  431 в дереве T94, `[Theory]` исполняются). Свой раннер `tools\test.ps1` нужен только на
-  Windows, где `dotnet test` не может запуститься из-за песочницы.
+- **Тесты на Linux идут через `dotnet test`** (на 01.11.2026 — 438 тестов после T94 фазы 2;
+  было 402 на master `98b776b`, `[Theory]` исполняются). Свой раннер `tools\test.ps1` нужен
+  только на Windows, где `dotnet test` не может запуститься из-за песочницы.
 - **Публикация и код-деплой на сервере — своими скриптами** (PowerShell там нет):
   `tools/publish-linux.sh` собирает API, бота и MCP в `publish/linux-x64`, а
   `deploy/deploy-code.sh` раскладывает артефакт в `/opt/kouki/{app,app/bot,mcp}` и

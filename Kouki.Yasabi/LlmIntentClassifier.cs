@@ -125,7 +125,45 @@ public sealed class LlmIntentClassifier : IIntentClassifier
             return IntentResult.Unknown(ModelName);
         }
 
-        return new IntentResult(intent, Math.Clamp(confidence, 0d, 1d), null, ModelName);
+        return new IntentResult(
+            intent,
+            Math.Clamp(confidence, 0d, 1d),
+            null,
+            ModelName,
+            JournalId: null,
+            Tags: ParseTags(json["tags"]));
+    }
+
+    /// <summary>
+    /// Читает поле <c>tags</c>: только строки, пустые пропускаются.
+    /// </summary>
+    /// <remarks>
+    /// Битое поле не валит классификацию: теги — необязательное дополнение, и «модель
+    /// ответила не тем» не повод терять уже распознанный интент.
+    /// </remarks>
+    /// <param name="node">Узел поля <c>tags</c>.</param>
+    /// <returns>Теги как есть или <c>null</c>, если их нет.</returns>
+    private static IReadOnlyList<string>? ParseTags(JsonNode? node)
+    {
+        if (node is not JsonArray array)
+        {
+            return null;
+        }
+
+        List<string> tags = new();
+        foreach (JsonNode? item in array)
+        {
+            if (item is not JsonValue value
+                || !value.TryGetValue(out string? tag)
+                || string.IsNullOrWhiteSpace(tag))
+            {
+                continue;
+            }
+
+            tags.Add(tag.Trim());
+        }
+
+        return tags.Count == 0 ? null : tags;
     }
 
     /// <summary>Промпт: короткий ответ в JSON, без рассуждений.</summary>
@@ -135,7 +173,7 @@ public sealed class LlmIntentClassifier : IIntentClassifier
     {
         var list = string.Join(", ", intents);
         return $"Ты классифицируешь фразу в один интент. Ответь одним JSON-объектом без пояснений: " +
-               $"{{\"intent\": \"...\", \"confidence\": 0.0}}. Допустимые интенты: {list}, unknown. " +
+               $"{{\"intent\": \"...\", \"confidence\": 0.0, \"tags\": [\"...\"]}}. Допустимые интенты: {list}, unknown. " +
                "add_task — просьба сохранить дело или задачу («запиши задачу», «надо не забыть», «купи»); " +
                "list_tasks — показать задачи; complete_task — отметить задачу выполненной; " +
                "add_reminder — просьба напомнить, и только если во фразе есть время или срок " +
@@ -143,7 +181,10 @@ public sealed class LlmIntentClassifier : IIntentClassifier
                "list_reminders — показать напоминания; complete_reminder — закрыть напоминание; " +
                "ask — вопрос, ответ на который нужно найти; chat — разговор или благодарность без команды; " +
                "unknown — если не подходит ничего. " +
-               "confidence — уверенность от 0 до 1. Отвечай только JSON.";
+               "confidence — уверенность от 0 до 1. " +
+               "Добавь до 10 коротких тегов по смыслу фразы: массив строк без «#» и скобок, нижним регистром; " +
+               "не выдумывай сущности, которых нет в тексте; нет тегов — пустой массив. " +
+               "Отвечай только JSON.";
     }
 
     /// <summary>Тело запроса к модели.</summary>

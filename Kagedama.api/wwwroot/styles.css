@@ -284,6 +284,21 @@ textarea { resize: vertical; width: 100%; line-height: 1.5; }
 .chip:hover { color: var(--sand); }
 .chip.is-active { color: var(--vermilion); border-bottom-color: var(--vermilion); }
 
+/* теги: метка задачи, кликабельна — ставит фильтр по тегу */
+.card-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.tag {
+    font: inherit;
+    font-size: 10px;
+    letter-spacing: .04em;
+    color: var(--sand-dim);
+    background: rgba(226, 210, 178, .05);
+    border: 1px solid var(--line);
+    padding: 2px 6px;
+    cursor: pointer;
+    transition: color .15s, border-color .15s;
+}
+.tag:hover { color: var(--vermilion); border-color: var(--vermilion); }
+
 /* ---------- список задач ---------- */
 
 .list { display: flex; flex-direction: column; }
