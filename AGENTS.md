@@ -255,6 +255,18 @@ dotnet build   Kouki.slnx --no-restore -m:1 -nodeReuse:false     # 0 ошибо�
 .\tools\worktree.ps1 merge -Name kouki-t50-backup-timer
 ```
 
+На сервере (Linux) то же самое, но своим скриптом — `pwsh` там нет:
+
+```bash
+tools/worktree.sh new --repo Kouki --task T50 --slug backup-timer
+tools/worktree.sh list
+tools/worktree.sh merge --name kouki-t50-backup-timer
+cd ../_scratch/wt/kouki-t50-backup-timer && dotnet test Kouki.Tests/Kouki.Tests.csproj
+```
+
+`worktree.sh merge` вливает в `master` основного дерева и не пушит; при грязном дереве
+или конфликте он выходит с кодом 1 и не трогает `master`.
+
 Правила:
 
 - в дереве живёт **одна** задача; две задачи — два дерева;
@@ -284,9 +296,16 @@ dotnet build   Kouki.slnx --no-restore -m:1 -nodeReuse:false     # 0 ошибо�
 - **Заметки** живут в `/srv/kouki-workspace/notes-updated` (и копия в
   `/srv/files/_kouki/notes-updated`). Двойного редактирования не держим: правит тот,
   кто делает задачу, второй читает.
-- **Тесты на Linux идут через `dotnet test`** (на 01.11.2026 — 333 теста, `[Theory]`
+- **Тесты на Linux идут через `dotnet test`** (на 01.11.2026 — 364 теста, `[Theory]`
   исполняются). Свой раннер `tools\test.ps1` нужен только на Windows, где `dotnet test`
   не может запуститься из-за песочницы.
+- **Публикация и код-деплой на сервере — своими скриптами** (PowerShell там нет):
+  `tools/publish-linux.sh` собирает API, бота и MCP в `publish/linux-x64`, а
+  `deploy/deploy-code.sh` раскладывает артефакт в `/opt/kouki/{app,app/bot,mcp}` и
+  перезапускает сервисы через `kouki-admin`. Сначала `--dry-run`: он показывает, сколько
+  файлов `rsync --delete` удалит. Форма деплоя должна совпадать с продом: в проде
+  self-contained (пакета `aspnetcore-runtime` для Ubuntu 26.04 может не быть), поэтому
+  публиковать надо с `--self-contained` — framework-dependent артефакт снёс бы рантайм.
 - **Отчёт по задаче содержит доказательства:** команда и её вывод/цифра, а не «работает».
   Формат: задача → тесты (сколько прошло) → живая проверка (что именно нажали/позвали) →
   документы (какие разделы заметок обновились) → открытый вопрос, если есть.
