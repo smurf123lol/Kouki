@@ -97,7 +97,8 @@ FROM_REAL=$(cd "$FROM" && pwd -P)
 APP_DIR_REAL=$(cd "$APP_DIR" 2>/dev/null && pwd -P || true)
 [ -n "$APP_DIR_REAL" ] || die "нет каталога приложения: $APP_DIR"
 MCP_DIR_REAL=$(cd "$MCP_DIR" 2>/dev/null && pwd -P || true)
-[ -n "$MCP_DIR_REAL" ] || die "нет каталога MCP: $MCP_DIR"
+[ -n "$MCP_DIR_REAL" ] ||
+    die "нет каталога MCP: $MCP_DIR (первый раз создайте: sudo install -d -o kouki -g kouki $MCP_DIR)"
 
 for name in Kagedama.api.dll appsettings.json wwwroot/app.js \
             bot/Kouki.Kagedama.Bot.dll bot/appsettings.json \

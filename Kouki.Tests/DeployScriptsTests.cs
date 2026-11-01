@@ -238,6 +238,16 @@ public sealed class DeployScriptsTests
             WorkingDirectory = workDir,
         };
 
+        // Унаследованные KOUKI_* (например, KOUKI_SMOKE_SINCE из оболочки разработчика)
+        // не должны влиять на тесты: smoke.sh проверяет их до разбора аргументов.
+        foreach (string key in start.Environment.Keys.ToList())
+        {
+            if (key.StartsWith("KOUKI_", StringComparison.Ordinal))
+            {
+                start.Environment.Remove(key);
+            }
+        }
+
         start.Environment["STUB_DIR_WIN"] = stubDir;
         start.Environment["HOME"] = workDir.Replace('\\', '/');
         start.Environment["TMPDIR"] = tmpDir.Replace('\\', '/');

@@ -950,11 +950,13 @@ public sealed class DeployToolingAssetsTests
             var empty = RunBashWithEnv(TestPaths.Path("deploy", "smoke.sh"), env);
             Assert.Contains("журнал пуст с начала деплоя", empty.Output, StringComparison.Ordinal);
 
+            // В ручном прогоне (окно 2 часа) пустой журнал — норма: бот молчит.
             File.Delete(argsFile);
             var without = new Dictionary<string, string>(env);
             without.Remove("KOUKI_SMOKE_SINCE");
-            RunBashWithEnv(TestPaths.Path("deploy", "smoke.sh"), without);
+            var manual = RunBashWithEnv(TestPaths.Path("deploy", "smoke.sh"), without);
             Assert.Contains("--since -2 hours", File.ReadAllText(argsFile), StringComparison.Ordinal);
+            Assert.Contains("бот: журнал пуст за 2 часа — ошибок нет", manual.Output, StringComparison.Ordinal);
         }
         finally
         {
@@ -1108,6 +1110,16 @@ public sealed class DeployToolingAssetsTests
         {
             Directory.Delete(root, recursive: true);
         }
+    }
+
+    [Fact]
+    public void Deploy_health_url_is_overridable_and_defaults_to_the_local_server()
+    {
+        var script = DeployCode();
+
+        Assert.Contains("HEALTH_URL=\"${KOUKI_HEALTH_URL:-http://127.0.0.1:5300/api/health}\"", script, StringComparison.Ordinal);
+        Assert.Contains("curl -s -o /dev/null -m 3 -w '%{http_code}' \"$HEALTH_URL\"", script, StringComparison.Ordinal);
+        Assert.Contains("нет каталога MCP: $MCP_DIR (первый раз создайте: sudo install -d", script, StringComparison.Ordinal);
     }
 
     [Fact]
