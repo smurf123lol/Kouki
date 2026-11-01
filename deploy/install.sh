@@ -10,6 +10,8 @@
 #   6. ставит и включает ежедневный бэкап — только если есть sqlite3 и rsync;
 #      --no-backup выключает таймер, а провал пробного прогона тоже его гасит
 #      и завершает установку с кодом 1;
+#   6a. ставит сторож живости: таймер раз в 5 минут, алерты в Telegram, если
+#      задан /etc/kouki/monitor.env; --no-monitor его не ставит;
 #   7. настраивает git для пользователя kouki и, если дан --git-token/-file/-stdin,
 #      кладёт PAT для push;
 #   8. по флагам: --smb-user/--smb-password заводят SMB-пользователя, --bot-proxy даёт боту прокси.
@@ -26,7 +28,7 @@
 #   sudo ./deploy/install.sh /path/to/publish --with-caddy --https-mode internal --site kouki.local
 #   sudo ./deploy/install.sh /path/to/publish --with-caddy --https-mode acme \
 #        --domain kouki.example.org --acme-email admin@example.org
-#   sudo ./deploy/install.sh /path/to/publish --no-backup
+#   sudo ./deploy/install.sh /path/to/publish --no-backup --no-monitor
 #   sudo ./deploy/install.sh /path/to/publish --git-token-file /root/pat   # или --git-token-stdin
 #   sudo ./deploy/install.sh /path/to/publish --smb-user smurf123lol --smb-password 'пароль'
 #   sudo bash -c './deploy/install.sh /path/to/publish --smb-user smurf123lol --smb-password-stdin < /root/smb.pass'
@@ -69,6 +71,7 @@ KOUKI_SITE="kouki.local"
 
 # Переездные регрессии (T87): то, что после переустановки молча осталось выключенным.
 WITH_BACKUP=1
+WITH_MONITOR=1
 GIT_TOKEN=""
 GIT_TOKEN_GIVEN=0
 GIT_TOKEN_FILE=""
@@ -94,6 +97,7 @@ while [ $# -gt 0 ]; do
         --acme-email) ACME_EMAIL="$2"; shift 2 ;;
         --site) KOUKI_SITE="$2"; shift 2 ;;
         --no-backup) WITH_BACKUP=0; shift ;;
+        --no-monitor) WITH_MONITOR=0; shift ;;
         --git-token) GIT_TOKEN="$2"; GIT_TOKEN_GIVEN=1; shift 2 ;;
         --git-token-file) GIT_TOKEN_FILE="$2"; shift 2 ;;
         --git-token-stdin) GIT_TOKEN_STDIN=1; shift ;;
@@ -491,6 +495,54 @@ else
     fi
 fi
 
+if [ "$WITH_MONITOR" -eq 1 ]; then
+    echo "== сторож живости (T53)"
+    MONITOR_READY=1
+    for asset in kouki-monitor.sh kouki-monitor.service kouki-monitor.timer; do
+        if [ ! -f "$ASSET_DIR/$asset" ]; then
+            echo "ВНИМАНИЕ: в deploy/ нет $asset — сторож не настроен" >&2
+            MONITOR_READY=0
+            break
+        fi
+    done
+
+    if [ "$MONITOR_READY" -eq 1 ]; then
+        # Состояние (ok/fail) сторож пишет сам; каталог общий с администратором.
+        install -d -o root -g "$USER_NAME" -m 2775 /var/lib/kouki/monitor
+        # Пример алертов: без значений сторож пишет только в журнал.
+        if [ -f "$ASSET_DIR/monitor.env.example" ] && [ ! -f "$CONF_DIR/monitor.env" ]; then
+            install -o root -g "$USER_NAME" -m 640 "$ASSET_DIR/monitor.env.example" "$CONF_DIR/monitor.env"
+            echo "   создан $CONF_DIR/monitor.env (алерты выключены, пока пусто)"
+        fi
+        install -o root -g root -m 755 "$ASSET_DIR/kouki-monitor.sh" /usr/local/bin/kouki-monitor.sh
+        install -o root -g root -m 644 "$ASSET_DIR/kouki-monitor.service" \
+            /etc/systemd/system/kouki-monitor.service
+        install -o root -g root -m 644 "$ASSET_DIR/kouki-monitor.timer" \
+            /etc/systemd/system/kouki-monitor.timer
+        systemctl daemon-reload
+        if systemctl enable --now kouki-monitor.timer; then
+            echo "   таймер включён: проверка раз в 5 минут"
+        else
+            echo "ВНИМАНИЕ: таймер сторожа не включился" >&2
+            PROBLEMS=1
+        fi
+        # Пробный прогон: сервис oneshot, поэтому ждём завершения start.
+        # Код 1 (health не отвечает) — законный результат проверки, not fatal.
+        if systemctl start kouki-monitor.service; then
+            echo "   пробная проверка выполнена"
+        else
+            echo "ВНИМАНИЕ: пробная проверка сторожа упала — journalctl -u kouki-monitor" >&2
+            PROBLEMS=1
+        fi
+    else
+        # Ассетов нет — старый таймер от прошлой установки надо погасить.
+        systemctl disable --now kouki-monitor.timer 2>/dev/null || true
+        PROBLEMS=1
+    fi
+else
+    echo "== сторож живости: не ставлю (--no-monitor)"
+    systemctl disable --now kouki-monitor.timer 2>/dev/null || true
+fi
 if command -v git >/dev/null 2>&1 && id -u "$USER_NAME" >/dev/null 2>&1; then
     echo "== git для агента ($USER_NAME)"
     sudo -u "$USER_NAME" git config --global user.name "Kouki Agent" 2>/dev/null || true

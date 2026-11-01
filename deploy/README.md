@@ -292,6 +292,48 @@ curl -fsS http://127.0.0.1:5300/api/health
 Проверять восстановление стоит раз в квартал — на копии рядом, чтобы не трогать
 живую базу: бэкап, который ни разу не разворачивали, — это не бэкап, а надежда.
 
+## Смоук после установки
+
+`deploy/smoke.sh` проверяет то, что ломалось при переезде: сервисы, `/api/health`,
+классификаторы с токеном, очередь напоминаний, ответчик (`/api/intake` с
+`intent=ask`), синтез (`/api/speech`), шару `/srv/files`, страницу токена DSH,
+включённый таймер бэкапа и отсутствие ошибок у бота за два часа.
+
+```bash
+sudo ./deploy/smoke.sh                 # человеческий вывод, код 1 при провалах
+sudo ./deploy/smoke.sh --quiet         # только провалы — удобно в cron
+sudo ./deploy/smoke.sh --json          # машинный отчёт
+KOUKI_TOKEN=... ./deploy/smoke.sh      # токен не из /etc/kouki/kouki.env
+```
+
+Смоук ничего не меняет: только GET-запросы, `systemctl is-active` и чтение
+журнала. Запускать после `install.sh` и каждого деплоя — так «поставил» и
+«работает» не расходятся.
+
+## Сторож живости
+
+`kouki-monitor.timer` раз в пять минут запускает `kouki-monitor.sh`: проверяет
+`/api/health` и `/api/classifiers` с токеном. Состояние (`ok`/`fail`) хранится в
+`/var/lib/kouki/monitor/state` — алерт уходит **только на смене состояния**, а
+пока проблема не ушла, напоминание не чаще раза в час
+(`KOUKI_MONITOR_REMIND_SECONDS`, по умолчанию 3600).
+
+Установщик ставит сторожа сам (`--no-monitor` отключает) вместе с пробным
+прогоном. Алерты — по желанию:
+
+```bash
+sudo install -o root -g kouki -m 640 deploy/monitor.env.example /etc/kouki/monitor.env
+sudo editor /etc/kouki/monitor.env      # KOUKI_ALERT_TOKEN, KOUKI_ALERT_CHAT
+sudo systemctl restart kouki-monitor.timer
+sudo systemctl start kouki-monitor.service && journalctl -u kouki-monitor -n 20
+```
+
+Без `monitor.env` сторож пишет только в журнал — это нормальный режим для
+машины, которая и так под присмотром. Почему таймер, а не `OnFailure` у юнита:
+сервис бывает `active`, но отвечает 500 или таймаутом (например, умерла
+локальная модель), а бывает и наоборот — процесс жив, а база недоступна.
+Сторож проверяет то, чем пользуется человек.
+
 ## Обновление
 
 ```bash

@@ -1,0 +1,13 @@
+[Unit]
+Description=Kouki health check (T53)
+Documentation=file:/opt/kouki/app/README.md
+After=network.target kouki.service
+
+[Service]
+Type=oneshot
+User=kouki
+Group=kouki
+EnvironmentFile=-/etc/kouki/monitor.env
+ExecStart=/usr/local/bin/kouki-monitor.sh
+# Сторож не должен валить таймер: провал — это алерт, а не «юнит упал».
+SuccessExitStatus=0 1

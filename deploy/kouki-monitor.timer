@@ -1,0 +1,11 @@
+[Unit]
+Description=Периодическая проверка живости Kouki (T53)
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=5min
+AccuracySec=30s
+Unit=kouki-monitor.service
+
+[Install]
+WantedBy=timers.target
