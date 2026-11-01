@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Сторож сервера Kouki (T53): проверяет API, выключает/поляризует алерты.
+# Сторож сервера Kouki (T53): проверяет API и шлёт алерт, когда что-то не так.
 #
 # Зачем отдельный таймер, а не OnFailure у юнита: сервис может быть «active»,
 # но отвечать 500 или таймаутом (например, умерла локальная модель), а бывает и
@@ -8,6 +8,9 @@
 #
 # Алерт в Telegram — если заданы KOUKI_ALERT_TOKEN и KOUKI_ALERT_CHAT
 # (файл /etc/kouki/monitor.env). Без них пишет только в journal.
+#
+# Секреты не попадают в argv: и URL с токеном бота, и заголовок с токеном API
+# уходят в curl через временный конфиг с правами 600.
 set -euo pipefail
 
 BASE_URL="${KOUKI_MONITOR_URL:-http://127.0.0.1:5300}"
@@ -25,14 +28,24 @@ usage() {
   --help       эта справка
 
 Алерты: /etc/kouki/monitor.env с KOUKI_ALERT_TOKEN и KOUKI_ALERT_CHAT.
-Проверки: /api/health (200), /api/classifiers с токеном сервера (200).
+Проверки: /api/health (200) и /api/classifiers с токеном сервера (200).
+Код возврата: 0 — всё в порядке, 1 — проблема (и алерт, если настроен),
+2 — неверные аргументы.
 EOF
+}
+
+need_value() {
+    if [ $# -lt 2 ]; then
+        echo "Параметр $1 требует значения" >&2
+        usage >&2
+        exit 2
+    fi
 }
 
 while [ $# -gt 0 ]; do
     case "$1" in
-        --url) BASE_URL="$2"; shift 2 ;;
-        --state) STATE_DIR="$2"; shift 2 ;;
+        --url) need_value "$1" "${2:-}"; BASE_URL="$2"; shift 2 ;;
+        --state) need_value "$1" "${2:-}"; STATE_DIR="$2"; shift 2 ;;
         --help|-h) usage; exit 0 ;;
         *) echo "Неизвестный аргумент: $1" >&2; usage >&2; exit 2 ;;
     esac
@@ -41,6 +54,17 @@ done
 mkdir -p "$STATE_DIR"
 STATE_FILE="$STATE_DIR/state"
 STAMP_FILE="$STATE_DIR/last-alert"
+TMP_FILES=()
+
+# trap не должен менять код возврата: последняя проверка в цикле может быть ложной.
+cleanup() {
+    for f in ${TMP_FILES[@]+"${TMP_FILES[@]}"}; do
+        [ -n "$f" ] || continue
+        rm -f "$f" || true
+    done
+    return 0
+}
+trap cleanup EXIT
 
 # Переменные алертов — из файла, если он есть.
 if [ -r "$ENV_FILE" ]; then
@@ -52,7 +76,7 @@ log() {
     printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*"
 }
 
-token() {
+api_token() {
     if [ -n "${KOUKI_TOKEN:-}" ]; then
         printf '%s' "$KOUKI_TOKEN"
     elif [ -r /etc/kouki/kouki.env ]; then
@@ -60,42 +84,68 @@ token() {
     fi
 }
 
+# Конфиг для curl: секрет внутри файла 600, а не в аргументах.
+secret_config() {
+    local content="$1"
+    local file
+    file="$(mktemp "${TMPDIR:-/tmp}/kouki-monitor.XXXXXX")"
+    chmod 600 "$file"
+    printf '%s\n' "$content" >"$file"
+    TMP_FILES+=("$file")
+    printf '%s' "$file"
+}
+
+# Возвращает 0, если алерт доставлен (или алерты не настроены),
+# 1 — если Telegram не принял сообщение.
 notify() {
     local text="$1"
     log "ALERT $text"
     if [ -z "${KOUKI_ALERT_TOKEN:-}" ] || [ -z "${KOUKI_ALERT_CHAT:-}" ]; then
         return 0
     fi
-    curl -s --max-time "$TIMEOUT" -o /dev/null \
-        -X POST "https://api.telegram.org/bot${KOUKI_ALERT_TOKEN}/sendMessage" \
-        -d "chat_id=${KOUKI_ALERT_CHAT}" \
-        --data-urlencode "text=${text}" || true
+    local conf
+    conf="$(secret_config "url = \"https://api.telegram.org/bot${KOUKI_ALERT_TOKEN}/sendMessage\"")"
+    if curl -s -K "$conf" -o /dev/null --max-time "$TIMEOUT" -X POST \
+        -d "chat_id=${KOUKI_ALERT_CHAT}" --data-urlencode "text=${text}"; then
+        return 0
+    fi
+    log "WARN алерт не доставлен (Telegram недоступен) — повторю при следующей проверке"
+    return 1
 }
 
 check_health() {
     local code
     code="$(curl -s -o /dev/null -w '%{http_code}' --max-time "$TIMEOUT" "$BASE_URL/api/health" 2>/dev/null || true)"
-    [ -n "$code" ] || code=000
-    [ "$code" = "200" ]
+    [ "${code:-000}" = "200" ]
 }
 
+# Пустой вывод — «не проверено», и это проблема: зелёный статус без проверки
+# классификаторов врёт так же, как красный без причины.
 check_api() {
-    local code tok
-    tok="$(token)"
+    local tok code conf
+    tok="$(api_token)"
     if [ -z "$tok" ]; then
-        # Без токена проверяем только то, что открыто; считается «не проверено».
+        printf 'нет токена API для /api/classifiers (KOUKI_TOKEN или /etc/kouki/kouki.env)'
+        return 1
+    fi
+    conf="$(secret_config "header = \"Authorization: Bearer ${tok}\"")"
+    code="$(curl -s -K "$conf" -o /dev/null -w '%{http_code}' --max-time "$TIMEOUT" \
+        "$BASE_URL/api/classifiers" 2>/dev/null || true)"
+    if [ "${code:-000}" = "200" ]; then
         return 0
     fi
-    code="$(curl -s -o /dev/null -w '%{http_code}' --max-time "$TIMEOUT" \
-        -H "Authorization: Bearer $tok" "$BASE_URL/api/classifiers" 2>/dev/null || true)"
-    [ -n "$code" ] || code=000
-    [ "$code" = "200" ]
+    printf '/api/classifiers вернул %s' "${code:-000}"
+    return 1
 }
 
 problem=""
-check_health || problem="не отвечает /api/health"
-if [ -z "$problem" ]; then
-    check_api || problem="не отвечает /api/classifiers (200 с токеном)"
+if ! check_health; then
+    problem="не отвечает /api/health"
+else
+    api_problem="$(check_api || true)"
+    if [ -n "$api_problem" ]; then
+        problem="$api_problem"
+    fi
 fi
 
 previous="$(cat "$STATE_FILE" 2>/dev/null || echo unknown)"
@@ -104,8 +154,10 @@ if [ -z "$problem" ]; then
     printf 'ok\n' >"$STATE_FILE"
     rm -f "$STAMP_FILE"
     if [ "$previous" != "ok" ] && [ "$previous" != "unknown" ]; then
-        notify "Kouki снова в порядке: $BASE_URL"
-    else
+        notify "Kouki снова в порядке: $BASE_URL" || true
+    fi
+    # Журнал — только на смену состояния: иначе каждые 5 минут «ok».
+    if [ "$previous" != "ok" ]; then
         log "ok: $BASE_URL"
     fi
     exit 0
@@ -116,8 +168,9 @@ printf 'fail:%s\n' "$problem" >"$STATE_FILE"
 now="$(date +%s)"
 last="$(cat "$STAMP_FILE" 2>/dev/null || echo 0)"
 if [ "$previous" = "ok" ] || [ "$previous" = "unknown" ] || [ $((now - last)) -ge "$REMIND_AFTER" ]; then
-    notify "Kouki: $problem (URL $BASE_URL). Проверьте: systemctl status kouki, journalctl -u kouki -n 50"
-    printf '%s\n' "$now" >"$STAMP_FILE"
+    if notify "Kouki: $problem (URL $BASE_URL). Проверьте: systemctl status kouki, journalctl -u kouki -n 50"; then
+        printf '%s\n' "$now" >"$STAMP_FILE"
+    fi
 fi
 
 exit 1

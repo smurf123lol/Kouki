@@ -36,11 +36,29 @@ public sealed class DeploySmokeAssetsTests
     }
 
     [Fact]
+    public void Scripts_do_not_put_secrets_into_the_command_line()
+    {
+        var smoke = DeployFile("smoke.sh");
+        var monitor = DeployFile("kouki-monitor.sh");
+
+        // Токен уходит в файл конфига 600 и передаётся через curl -K: иначе он
+        // виден любому локальному пользователю в ps и /proc/<pid>/cmdline.
+        Assert.Contains("-K \"$AUTH_CONFIG\"", smoke, StringComparison.Ordinal);
+        Assert.Contains("-K \"$conf\"", monitor, StringComparison.Ordinal);
+        Assert.Contains("chmod 600", smoke, StringComparison.Ordinal);
+        Assert.Contains("chmod 600", monitor, StringComparison.Ordinal);
+
+        Assert.DoesNotContain("-H \"Authorization: Bearer", smoke, StringComparison.Ordinal);
+        Assert.DoesNotContain("-H \"Authorization: Bearer", monitor, StringComparison.Ordinal);
+        // Токен бота не должен собираться в URL прямо в аргументах curl.
+        Assert.DoesNotContain("curl -s -X POST \"https://api.telegram.org", monitor, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Smoke_script_checks_the_things_that_broke_after_the_move()
     {
         var script = DeployFile("smoke.sh");
 
-        // Переезд ломал: сервисы, ответчик, синтез, шару, страницу токена, бэкап.
         Assert.Contains("/api/health", script, StringComparison.Ordinal);
         Assert.Contains("/api/classifiers", script, StringComparison.Ordinal);
         Assert.Contains("/api/speech", script, StringComparison.Ordinal);
@@ -51,7 +69,32 @@ public sealed class DeploySmokeAssetsTests
     }
 
     [Fact]
-    public void Smoke_script_reports_failures_with_nonzero_exit()
+    public void Smoke_is_read_only_by_default_and_writes_only_with_the_flag()
+    {
+        var script = DeployFile("smoke.sh");
+
+        Assert.Contains("WITH_WRITES=0", script, StringComparison.Ordinal);
+        Assert.Contains("--with-writes", script, StringComparison.Ordinal);
+
+        // Проверки с записью в базу стоят внутри ветки --with-writes.
+        var writes = script.IndexOf("if [ \"$WITH_WRITES\" -eq 1 ]", StringComparison.Ordinal);
+        var intake = script.IndexOf("\"$BASE_URL/api/intake\"", StringComparison.Ordinal);
+        Assert.True(writes > 0 && intake > writes, "POST /api/intake должен быть под --with-writes");
+    }
+
+    [Fact]
+    public void Smoke_gives_the_answerer_and_speech_their_own_timeouts()
+    {
+        var script = DeployFile("smoke.sh");
+
+        Assert.Contains("INTAKE_TIMEOUT=", script, StringComparison.Ordinal);
+        Assert.Contains("SPEECH_TIMEOUT=", script, StringComparison.Ordinal);
+        Assert.Contains("\"$INTAKE_TIMEOUT\"", script, StringComparison.Ordinal);
+        Assert.Contains("\"$SPEECH_TIMEOUT\"", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Smoke_reports_failures_with_nonzero_exit()
     {
         var script = DeployFile("smoke.sh");
 
@@ -69,6 +112,9 @@ public sealed class DeploySmokeAssetsTests
         Assert.Contains("--help", script, StringComparison.Ordinal);
         Assert.Contains("Неизвестный аргумент", script, StringComparison.Ordinal);
         Assert.Contains("exit 2", script, StringComparison.Ordinal);
+        // Аргумент без значения — понятная ошибка, а не «unbound variable».
+        Assert.Contains("need_value", script, StringComparison.Ordinal);
+        Assert.Contains("требует значения", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -84,11 +130,38 @@ public sealed class DeploySmokeAssetsTests
     }
 
     [Fact]
+    public void Monitor_treats_a_missing_api_token_as_a_problem()
+    {
+        var script = DeployFile("kouki-monitor.sh");
+
+        Assert.Contains("нет токена API", script, StringComparison.Ordinal);
+        Assert.Contains("/api/classifiers", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Monitor_writes_the_alert_stamp_only_after_delivery()
+    {
+        var script = DeployFile("kouki-monitor.sh");
+
+        // notify возвращает статус, а отметка времени пишется внутри проверки.
+        Assert.Contains("if notify ", script, StringComparison.Ordinal);
+        Assert.Contains("STAMP_FILE", script, StringComparison.Ordinal);
+        Assert.Contains("return 1", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Monitor_does_not_print_ok_every_five_minutes()
+    {
+        var script = DeployFile("kouki-monitor.sh");
+
+        Assert.Contains("if [ \"$previous\" != \"ok\" ]", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Monitor_does_not_echo_secrets_to_the_journal()
     {
         var script = DeployFile("kouki-monitor.sh");
 
-        // Токен уходит только в URL запроса; в журнал попадает текст проблемы.
         Assert.DoesNotContain("log \"$KOUKI_ALERT_TOKEN\"", script, StringComparison.Ordinal);
         Assert.DoesNotContain("log \"$TOKEN\"", script, StringComparison.Ordinal);
     }
@@ -114,6 +187,15 @@ public sealed class DeploySmokeAssetsTests
         Assert.Contains("--no-monitor", installer, StringComparison.Ordinal);
         Assert.Contains("/usr/local/bin/kouki-monitor.sh",
             DeployFile("kouki-monitor.service"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Installer_judges_the_monitor_probe_by_state_not_by_exit_code()
+    {
+        var installer = DeployFile("install.sh");
+
+        Assert.Contains("/var/lib/kouki/monitor/state", installer, StringComparison.Ordinal);
+        Assert.Contains("case \"$MONITOR_STATE\"", installer, StringComparison.Ordinal);
     }
 
     [Fact]

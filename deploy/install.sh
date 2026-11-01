@@ -526,10 +526,21 @@ if [ "$WITH_MONITOR" -eq 1 ]; then
             echo "ВНИМАНИЕ: таймер сторожа не включился" >&2
             PROBLEMS=1
         fi
-        # Пробный прогон: сервис oneshot, поэтому ждём завершения start.
-        # Код 1 (health не отвечает) — законный результат проверки, not fatal.
+        # Пробный прогон: юнит oneshot, а SuccessExitStatus=0 1 делает start
+        # успешным и при провале health — поэтому смотрим не код systemctl,
+        # а состояние, которое сторож записал: «ok» или «fail:…».
         if systemctl start kouki-monitor.service; then
-            echo "   пробная проверка выполнена"
+            MONITOR_STATE="$(cat /var/lib/kouki/monitor/state 2>/dev/null || echo unknown)"
+            case "$MONITOR_STATE" in
+                ok)
+                    echo "   пробная проверка: сервер отвечает"
+                    ;;
+                *)
+                    echo "ВНИМАНИЕ: сторож не видит сервер ($MONITOR_STATE) —" \
+                         "проверьте /api/health вручную и journalctl -u kouki-monitor" >&2
+                    PROBLEMS=1
+                    ;;
+            esac
         else
             echo "ВНИМАНИЕ: пробная проверка сторожа упала — journalctl -u kouki-monitor" >&2
             PROBLEMS=1
@@ -541,7 +552,13 @@ if [ "$WITH_MONITOR" -eq 1 ]; then
     fi
 else
     echo "== сторож живости: не ставлю (--no-monitor)"
-    systemctl disable --now kouki-monitor.timer 2>/dev/null || true
+    if ! systemctl disable --now kouki-monitor.timer 2>/dev/null; then
+        # Таймер мог быть не включён вовсе — это не ошибка; проверяем результат.
+        if systemctl is-enabled kouki-monitor.timer >/dev/null 2>&1; then
+            echo "ВНИМАНИЕ: не удалось выключить kouki-monitor.timer" >&2
+            PROBLEMS=1
+        fi
+    fi
 fi
 if command -v git >/dev/null 2>&1 && id -u "$USER_NAME" >/dev/null 2>&1; then
     echo "== git для агента ($USER_NAME)"
