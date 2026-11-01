@@ -135,10 +135,15 @@ trap cleanup EXIT
 # Окно подмены: между переносом старого артефакта в .prev и mv staging в OUTPUT
 # Ctrl+C оставил бы OUTPUT отсутствующим. Возвращаем .prev на место.
 PREV_OUTPUT=""
+SWAPPED=0
 # shellcheck disable=SC2329 # вызывается через trap
 interrupted() {
-    trap - INT TERM
-    if [ -n "$PREV_OUTPUT" ] && [ ! -e "$OUTPUT_NORMALIZED" ] && [ -e "$PREV_OUTPUT" ]; then
+    trap - INT TERM HUP
+    if [ "$SWAPPED" -eq 1 ]; then
+        # Подмена уже состоялась: каталог вывода новый и целый, возвращать .prev
+        # нельзя — иначе сообщение «не подменён» было бы ложью.
+        echo "Публикация прервана после подмены: в $OUTPUT_NORMALIZED новый артефакт (копия прежнего — $PREV_OUTPUT)" >&2
+    elif [ -n "$PREV_OUTPUT" ] && [ ! -e "$OUTPUT_NORMALIZED" ] && [ -e "$PREV_OUTPUT" ]; then
         mv "$PREV_OUTPUT" "$OUTPUT_NORMALIZED" || true
         echo "Публикация прервана: прежний артефакт возвращён в $OUTPUT_NORMALIZED" >&2
     else
@@ -146,7 +151,7 @@ interrupted() {
     fi
     exit 1
 }
-trap interrupted INT TERM
+trap interrupted INT TERM HUP
 
 echo "Публикация $RUNTIME (sherpa=$SPEECH, self-contained=$SELF_CONTAINED) -> $OUTPUT_NORMALIZED"
 if [ "$SELF_CONTAINED" = false ]; then
@@ -213,6 +218,7 @@ if [ -e "$OUTPUT_NORMALIZED" ]; then
     echo "Предыдущий артефакт сохранён: $PREV_OUTPUT"
 fi
 mv "$STAGE" "$OUTPUT_NORMALIZED"
+SWAPPED=1
 
 files=$(find "$OUTPUT_NORMALIZED" -type f 2>/dev/null | wc -l | tr -d ' ' || true)
 size_mb=$(du -sm "$OUTPUT_NORMALIZED" 2>/dev/null | awk '{print $1}' || true)

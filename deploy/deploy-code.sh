@@ -38,6 +38,8 @@ usage() {
   --help               эта справка
 
 Требования: rsync, curl, `sudo -n kouki-admin` (restart-kouki, restart-bot, api-token).
+Переменные окружения: KOUKI_HEALTH_URL (по умолчанию http://127.0.0.1:5300/api/health)
+и KOUKI_SMOKE_* (см. deploy/smoke.sh).
 Перед деплоем артефакт собирается: tools/publish-linux.sh.
 EOF
 }
@@ -142,6 +144,16 @@ if [ "$target_self_contained" -ne "$artifact_self_contained" ]; then
     die "в $APP_DIR_REAL framework-dependent сборка, а в артефакте — self-contained: пересоберите tools/publish-linux.sh --framework-dependent"
 fi
 
+# MCP тоже раскладывается с --delete, поэтому форма проверяется и для него:
+# framework-dependent артефакт поверх self-contained /opt/kouki/mcp снёс бы рантайм.
+mcp_target_self_contained=0
+[ -e "$MCP_DIR_REAL/libcoreclr.so" ] && mcp_target_self_contained=1
+mcp_artifact_self_contained=0
+[ -e "$FROM_REAL/mcp/libcoreclr.so" ] && mcp_artifact_self_contained=1
+if [ "$mcp_target_self_contained" -ne "$mcp_artifact_self_contained" ]; then
+    die "форма MCP не совпадает: в $MCP_DIR_REAL self-contained=$mcp_target_self_contained, а в артефакте mcp/ self-contained=$mcp_artifact_self_contained — пересоберите tools/publish-linux.sh"
+fi
+
 # Распознавание речи: без него /api/voice отвечает 503, поэтому потеря нативок sherpa
 # в проде — это ошибка, а не «уменьшили размер». Тот же флаг, что при публикации.
 has_native() {
@@ -234,8 +246,13 @@ rollback() {
     local failed=0
     rsync -a --delete "$PREV_APP"/ "$APP_DIR_REAL"/ || { echo "откат app не удался ($PREV_APP)" >&2; failed=1; }
     rsync -a --delete "$PREV_MCP"/ "$MCP_DIR_REAL"/ || { echo "откат mcp не удался ($PREV_MCP)" >&2; failed=1; }
-    sudo -n kouki-admin restart-kouki >/dev/null 2>&1 || { echo "restart-kouki после отката не удался" >&2; failed=1; }
-    sudo -n kouki-admin restart-bot >/dev/null 2>&1 || { echo "restart-bot после отката не удался" >&2; failed=1; }
+    # --no-restart обещает «файлы обновлены, сервисы не перезапускались»; откат не
+    # должен тайком перезапускать прод, иначе падение рестарта даёт ложное «откат НЕ удался»
+    # при честно восстановленных файлах.
+    if [ "$NO_RESTART" -eq 0 ]; then
+        sudo -n kouki-admin restart-kouki >/dev/null 2>&1 || { echo "restart-kouki после отката не удался" >&2; failed=1; }
+        sudo -n kouki-admin restart-bot >/dev/null 2>&1 || { echo "restart-bot после отката не удался" >&2; failed=1; }
+    fi
     return "$failed"
 }
 
@@ -287,9 +304,10 @@ sudo -n kouki-admin restart-kouki || fail_after_change "restart-kouki завер
 sudo -n kouki-admin restart-bot || fail_after_change "restart-bot завершился с ошибкой"
 
 # Ждём подъёма: 401 — тоже признак живого сервера (эндпоинт требует токен).
+HEALTH_URL="${KOUKI_HEALTH_URL:-http://127.0.0.1:5300/api/health}"
 code=""
 for _ in $(seq 1 30); do
-    code=$(curl -s -o /dev/null -m 3 -w '%{http_code}' http://127.0.0.1:5300/api/health || true)
+    code=$(curl -s -o /dev/null -m 3 -w '%{http_code}' "$HEALTH_URL" || true)
     case "$code" in 200|401) break ;; esac
     sleep 2
 done

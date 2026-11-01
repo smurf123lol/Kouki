@@ -416,6 +416,9 @@ ss -ltnp | grep 5300                   # слушает ли порт
 не сможет писать:
 
 ```sh
+# первый раз: каталога MCP ещё нет (install.sh его не создаёт)
+sudo install -d -o kouki -g kouki /opt/kouki/mcp
+
 sudo systemctl stop kouki          # PartOf погасит и kouki-bot
 rsync -a --delete --exclude 'bot/' --exclude 'mcp/' --exclude 'appsettings.Development.json' \
       <артефакт>/ /opt/kouki/app/
@@ -432,4 +435,6 @@ sudo systemctl start kouki-bot     # PartOf не поднимает бота о�
 `/opt/kouki/mcp`, и обновляется своим rsync — без исключения копия `mcp/`
 оседает внутри `/opt/kouki/app` (потом `deploy-code.sh` исключает её из
 `--delete`, и дубль остаётся навсегда). `appsettings.Development.json`: dev-конфиг
-в прод не кладём. `install.sh` MCP не копирует, поэтому первый раз его ставят руками.
+в прод не кладём. `install.sh` MCP не копирует и каталог `/opt/kouki/mcp` не создаёт,
+поэтому первый раз его создают руками (см. `install -d` выше), и `deploy-code.sh`
+без существующего каталога откажется работать (проверка `MCP_DIR`).

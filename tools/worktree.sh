@@ -216,10 +216,12 @@ cmd_remove() {
     validate_name "name" "$NAME"
 
     local name_lower path repo repo_path
+    # new заменяет `_` на `-`; merge/remove обязаны нормализовать имя до поиска
+    # репозитория, иначе find_repo_for_name получает сырое `kouki_t2_demo`
+    # и не находит дерево `kouki-t2-demo`.
     name_lower="$(lower "$NAME")"
-    # new заменяет `_` на `-`; merge/remove обязаны искать так же, иначе дерево,
-    # имя которого восстановили из слага, «не находится».
-    path="$WT_ROOT/${name_lower//_/-}"
+    name_lower="${name_lower//_/-}"
+    path="$WT_ROOT/$name_lower"
     require_existing_worktree "$path"
 
     if ! repo="$(find_repo_for_name "$name_lower")"; then
@@ -263,10 +265,12 @@ cmd_merge() {
     validate_name "name" "$NAME"
 
     local name_lower path repo repo_path
+    # new заменяет `_` на `-`; merge/remove обязаны нормализовать имя до поиска
+    # репозитория, иначе find_repo_for_name получает сырое `kouki_t2_demo`
+    # и не находит дерево `kouki-t2-demo`.
     name_lower="$(lower "$NAME")"
-    # new заменяет `_` на `-`; merge/remove обязаны искать так же, иначе дерево,
-    # имя которого восстановили из слага, «не находится».
-    path="$WT_ROOT/${name_lower//_/-}"
+    name_lower="${name_lower//_/-}"
+    path="$WT_ROOT/$name_lower"
     require_existing_worktree "$path"
 
     if ! repo="$(find_repo_for_name "$name_lower")"; then
