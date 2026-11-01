@@ -6,9 +6,18 @@
 #   2. раскладывает артефакт публикации в /opt/kouki/app;
 #   3. создаёт /var/lib/kouki/{db,audio,models} и /etc/kouki;
 #   4. ставит юнит systemd и (если файла ещё нет) env-файл со случайным токеном;
-#   5. запускает сервер и проверяет /api/health.
+#   5. запускает сервер и проверяет /api/health;
+#   6. ставит и включает ежедневный бэкап — только если есть sqlite3 и rsync;
+#      --no-backup выключает таймер, а провал пробного прогона тоже его гасит
+#      и завершает установку с кодом 1;
+#   7. настраивает git для пользователя kouki и, если дан --git-token/-file/-stdin,
+#      кладёт PAT для push;
+#   8. по флагам: --smb-user/--smb-password заводят SMB-пользователя, --bot-proxy даёт боту прокси.
 #
-# Повторный запуск безопасен: артефакт обновляется, env-файл не перезаписывается.
+# Повторный запуск безопасен: артефакт обновляется, env-файлы не перезаписываются.
+# Пункты 6–8 добавлены после переезда на NVMe (T87): тогда бэкап после установки
+# остался выключенным, SMB-пользователь пропал вместе с passdb.tdb, а бот без
+# NO_PROXY ходил к серверу через прокси и получал 503.
 #
 # Использование:
 #   sudo ./deploy/install.sh /path/to/publish
@@ -17,9 +26,29 @@
 #   sudo ./deploy/install.sh /path/to/publish --with-caddy --https-mode internal --site kouki.local
 #   sudo ./deploy/install.sh /path/to/publish --with-caddy --https-mode acme \
 #        --domain kouki.example.org --acme-email admin@example.org
+#   sudo ./deploy/install.sh /path/to/publish --no-backup
+#   sudo ./deploy/install.sh /path/to/publish --git-token-file /root/pat   # или --git-token-stdin
+#   sudo ./deploy/install.sh /path/to/publish --smb-user smurf123lol --smb-password 'пароль'
+#   sudo bash -c './deploy/install.sh /path/to/publish --smb-user smurf123lol --smb-password-stdin < /root/smb.pass'
+#   sudo ./deploy/install.sh /path/to/publish --smb-user smurf123lol --smb-password-file /root/smb.pass
+#   sudo ./deploy/install.sh /path/to/publish --with-bot --bot-token 123:ABC \
+#        --bot-proxy http://127.0.0.1:1080
+#
+# --smb-user — существующая учётка владельца шары (не придумывайте новую:
+# доступ к /srv/files выдан именно ей в smb.conf).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+# Проверки с побочными эффектами (таймер бэкапа, uid/gid шары) живут отдельно:
+# их же вызывают тесты с подменёнными systemctl/getent.
+GUARDS="$SCRIPT_DIR/lib/install-guards.sh"
+if [ ! -f "$GUARDS" ]; then
+    echo "Не найден $GUARDS — установщик неполный (deploy/lib рядом с deploy/install.sh)" >&2
+    exit 2
+fi
+# shellcheck source=deploy/lib/install-guards.sh
+. "$GUARDS"
 
 APP_DIR=/opt/kouki/app
 DATA_DIR=/var/lib/kouki
@@ -38,6 +67,18 @@ KOUKI_DOMAIN=""
 ACME_EMAIL=""
 KOUKI_SITE="kouki.local"
 
+# Переездные регрессии (T87): то, что после переустановки молча осталось выключенным.
+WITH_BACKUP=1
+GIT_TOKEN=""
+GIT_TOKEN_GIVEN=0
+GIT_TOKEN_FILE=""
+GIT_TOKEN_STDIN=0
+SMB_USER=""
+SMB_PASSWORD=""
+SMB_PASSWORD_FILE=""
+SMB_PASSWORD_STDIN=0
+BOT_PROXY=""
+
 SOURCE="${1:-}"
 [ $# -gt 0 ] && shift || true
 while [ $# -gt 0 ]; do
@@ -52,9 +93,117 @@ while [ $# -gt 0 ]; do
         --domain) KOUKI_DOMAIN="$2"; shift 2 ;;
         --acme-email) ACME_EMAIL="$2"; shift 2 ;;
         --site) KOUKI_SITE="$2"; shift 2 ;;
+        --no-backup) WITH_BACKUP=0; shift ;;
+        --git-token) GIT_TOKEN="$2"; GIT_TOKEN_GIVEN=1; shift 2 ;;
+        --git-token-file) GIT_TOKEN_FILE="$2"; shift 2 ;;
+        --git-token-stdin) GIT_TOKEN_STDIN=1; shift ;;
+        --smb-user) SMB_USER="$2"; shift 2 ;;
+        --smb-password) SMB_PASSWORD="$2"; shift 2 ;;
+        --smb-password-file) SMB_PASSWORD_FILE="$2"; shift 2 ;;
+        --smb-password-stdin) SMB_PASSWORD_STDIN=1; shift ;;
+        --bot-proxy) BOT_PROXY="$2"; shift 2 ;;
         *) echo "Неизвестный аргумент: $1" >&2; exit 2 ;;
     esac
 done
+
+# Проблемы, из-за которых установка «успешна» лишь на бумаге: нехватка
+# инструментов для бэкапа, нерабочий пробный прогон, недоступная шара.
+# В конце скрипт выходит с кодом 1, чтобы CI и человек это заметили.
+PROBLEMS=0
+
+# Пароль SMB: аргументом он виден в ps и оседает в истории, поэтому кроме него
+# есть файл и stdin. Источников должно быть ровно один: иначе непонятно, какой
+# пароль применился.
+if [ -z "$SMB_USER" ] && { [ -n "$SMB_PASSWORD" ] || [ -n "$SMB_PASSWORD_FILE" ] || [ "$SMB_PASSWORD_STDIN" -eq 1 ]; }; then
+    echo "Пароль SMB передан без --smb-user: непонятно, какой учётке его ставить" >&2
+    exit 2
+fi
+
+if [ -n "$SMB_USER" ]; then
+    SMB_SOURCES=0
+    [ -n "$SMB_PASSWORD" ] && SMB_SOURCES=$((SMB_SOURCES + 1))
+    [ -n "$SMB_PASSWORD_FILE" ] && SMB_SOURCES=$((SMB_SOURCES + 1))
+    [ "$SMB_PASSWORD_STDIN" -eq 1 ] && SMB_SOURCES=$((SMB_SOURCES + 1))
+
+    if [ "$SMB_SOURCES" -eq 0 ]; then
+        echo "Для --smb-user нужен пароль: --smb-password-stdin (рекомендуется)," >&2
+        echo "  --smb-password-file /path/file (600) или --smb-password 'пароль'" >&2
+        exit 2
+    fi
+    if [ "$SMB_SOURCES" -gt 1 ]; then
+        echo "Пароль SMB передан дважды: выберите что-то одно из --smb-password," >&2
+        echo "  --smb-password-file, --smb-password-stdin" >&2
+        exit 2
+    fi
+
+    if [ -n "$SMB_PASSWORD_FILE" ]; then
+        if [ ! -r "$SMB_PASSWORD_FILE" ]; then
+            echo "Не читается файл пароля: $SMB_PASSWORD_FILE" >&2
+            exit 2
+        fi
+        # Первая строка файла; CR (файл с Windows) и BOM (блокнот) срезаем.
+        IFS= read -r SMB_PASSWORD < "$SMB_PASSWORD_FILE" || true
+        SMB_PASSWORD="${SMB_PASSWORD#$'\xef\xbb\xbf'}"
+        SMB_PASSWORD="${SMB_PASSWORD%$'\r'}"
+    elif [ "$SMB_PASSWORD_STDIN" -eq 1 ]; then
+        # Читаем со stdin установщика: в ps пароля нет, в истории — тоже.
+        if ! IFS= read -r SMB_PASSWORD; then
+            echo "Не удалось прочитать пароль SMB со stdin" >&2
+            exit 2
+        fi
+        SMB_PASSWORD="${SMB_PASSWORD#$'\xef\xbb\xbf'}"
+        SMB_PASSWORD="${SMB_PASSWORD%$'\r'}"
+    fi
+
+    if [ -z "$SMB_PASSWORD" ]; then
+        echo "Пароль SMB пустой — samba его не примет" >&2
+        exit 2
+    fi
+fi
+
+# PAT: тот же класс секрета, что и пароль SMB, поэтому те же три источника.
+GIT_SOURCES=0
+[ -n "$GIT_TOKEN" ] && GIT_SOURCES=$((GIT_SOURCES + 1))
+[ -n "$GIT_TOKEN_FILE" ] && GIT_SOURCES=$((GIT_SOURCES + 1))
+[ "$GIT_TOKEN_STDIN" -eq 1 ] && GIT_SOURCES=$((GIT_SOURCES + 1))
+
+if [ "$GIT_SOURCES" -gt 1 ]; then
+    echo "Токен GitHub передан дважды: выберите одно из --git-token," >&2
+    echo "  --git-token-file, --git-token-stdin" >&2
+    exit 2
+fi
+
+if [ -n "$GIT_TOKEN_FILE" ]; then
+    if [ ! -r "$GIT_TOKEN_FILE" ]; then
+        echo "Не читается файл токена: $GIT_TOKEN_FILE" >&2
+        exit 2
+    fi
+    IFS= read -r GIT_TOKEN < "$GIT_TOKEN_FILE" || true
+    GIT_TOKEN="${GIT_TOKEN#$'\xef\xbb\xbf'}"
+    GIT_TOKEN="${GIT_TOKEN%$'\r'}"
+elif [ "$GIT_TOKEN_STDIN" -eq 1 ]; then
+    if ! IFS= read -r GIT_TOKEN; then
+        echo "Не удалось прочитать токен GitHub со stdin" >&2
+        exit 2
+    fi
+    GIT_TOKEN="${GIT_TOKEN#$'\xef\xbb\xbf'}"
+    GIT_TOKEN="${GIT_TOKEN%$'\r'}"
+fi
+
+# Пустой PAT — не «тихо без агента», а ошибка ввода: файл мог быть создан
+# пустым, а push молча перестал бы работать. То же и с `--git-token ''`.
+if { [ "$GIT_SOURCES" -gt 0 ] || [ "$GIT_TOKEN_GIVEN" -eq 1 ]; } && [ -z "$GIT_TOKEN" ]; then
+    echo "Токен GitHub пустой — git-креды не будут записаны" >&2
+    exit 2
+fi
+
+# --bot-proxy без --with-bot законен, если бот уже установлен: обновление
+# артефакта не должно требовать повторять --with-bot только ради прокси.
+if [ -n "$BOT_PROXY" ] && [ "$WITH_BOT" -ne 1 ] && [ ! -f "$BOT_SERVICE" ]; then
+    echo "--bot-proxy имеет смысл только вместе с --with-bot" >&2
+    echo "  (или когда бот уже установлен: $BOT_SERVICE есть)" >&2
+    exit 2
+fi
 
 if [ "$WITH_CADDY" -eq 1 ]; then
     case "$HTTPS_MODE" in
@@ -266,8 +415,350 @@ if [ "$WITH_BOT" -eq 1 ]; then
     if systemctl is-active --quiet kouki-bot.service; then
         echo "   бот запущен"
     else
-        echo "   бот не поднялся — смотрите: journalctl -u kouki-bot -n 50 --no-pager" >&2
+        echo "   ОШИБКА: бот не поднялся — journalctl -u kouki-bot -n 50 --no-pager" >&2
+        PROBLEMS=1
     fi
+fi
+
+# --- T87: то, что после переезда на NVMe осталось незакрытым ------------------
+# Каждый пункт идемпотентен: если ресурса нет, установка не падает, а говорит,
+# чего не хватает.
+
+if [ "$WITH_BACKUP" -eq 1 ]; then
+    echo "== ежедневный бэкап"
+    BACKUP_READY=1
+    for asset in kouki-backup.sh kouki-backup.service kouki-backup.timer backup.env.example; do
+        if [ ! -f "$ASSET_DIR/$asset" ]; then
+            echo "ВНИМАНИЕ: в deploy/ нет $asset — бэкап не настроен" >&2
+            BACKUP_READY=0
+            break
+        fi
+    done
+
+    if [ "$BACKUP_READY" -eq 1 ]; then
+        BACKUP_ENV="$CONF_DIR/backup.env"
+        if [ ! -f "$BACKUP_ENV" ]; then
+            install -o root -g "$USER_NAME" -m 640 "$ASSET_DIR/backup.env.example" "$BACKUP_ENV"
+            echo "   создан $BACKUP_ENV"
+        else
+            echo "   $BACKUP_ENV уже есть — не трогаю"
+        fi
+
+        # Юнит пишет снимки от kouki, но каталог общий с админом: группа kouki
+        # с setgid — так каталог остаётся доступным и человеку, и сервису.
+        install -d -o root -g "$USER_NAME" -m 2775 /var/backups/kouki
+
+        # Юнит запускает скрипт из артефакта; если публикация была без deploy/,
+        # подкладываем копию, иначе таймер упадёт «No such file».
+        install -d -o root -g root -m 755 "$APP_DIR/deploy"
+        install -o root -g root -m 755 "$ASSET_DIR/kouki-backup.sh" "$APP_DIR/deploy/kouki-backup.sh"
+
+        install -o root -g root -m 644 "$ASSET_DIR/kouki-backup.service" \
+            /etc/systemd/system/kouki-backup.service
+        install -o root -g root -m 644 "$ASSET_DIR/kouki-backup.timer" \
+            /etc/systemd/system/kouki-backup.timer
+        systemctl daemon-reload
+
+        # Без sqlite3/rsync скрипт выходит с кодом 2, и «таймер включён» было бы
+        # обещанием, которое сломается в 03:30. Решает apply_backup_timer:
+        # не хватает инструментов — таймер не включается, а уже включённый
+        # (от прошлой установки) гасится.
+        BACKUP_MISSING="$(backup_missing_tools)"
+        if [ -n "$BACKUP_MISSING" ]; then
+            echo "ВНИМАНИЕ: нет $BACKUP_MISSING — бэкап не заработает:" \
+                 "apt install $BACKUP_MISSING" >&2
+        fi
+        if ! apply_backup_timer "$BACKUP_MISSING"; then
+            PROBLEMS=1
+        fi
+    else
+        # Ассетов нет — таймер прошлой установки всё равно может быть включён
+        # и молча падать в 03:30.
+        if ! stop_backup_timer; then
+            echo "   и таймер прошлой установки выключить не удалось" >&2
+        fi
+        PROBLEMS=1
+    fi
+else
+    # --no-backup должен и выключать уже включённый таймер, иначе админ,
+    # прочитав README, оставит копии включёнными.
+    # Путь юнита не проверяем: он бывает и в /lib, и симлинком — спрашиваем systemd.
+    echo "== ежедневный бэкап: выключаю (--no-backup)"
+    if stop_backup_timer; then
+        echo "   снимки в /var/backups/kouki остались"
+    else
+        PROBLEMS=1
+    fi
+fi
+
+if command -v git >/dev/null 2>&1 && id -u "$USER_NAME" >/dev/null 2>&1; then
+    echo "== git для агента ($USER_NAME)"
+    sudo -u "$USER_NAME" git config --global user.name "Kouki Agent" 2>/dev/null || true
+    sudo -u "$USER_NAME" git config --global user.email "agent@kouki.local" 2>/dev/null || true
+
+    # Репозитории могли создать от другого владельца — git откажется с ними
+    # работать; добавляем точечно, а не «*». Повторный запуск не должен копить
+    # дубликаты: чистим и уже накопленные (иначе список растёт с каждой установкой).
+    for dir in "$APP_DIR" /srv/kouki-workspace; do
+        [ -d "$dir" ] || continue
+        for path in "$dir" "$dir"/*/.git "$dir"/.git; do
+            case "$path" in
+                */.git) path="${path%/.git}" ;;
+            esac
+            [ -d "$path" ] || continue
+            sudo -u "$USER_NAME" git config --global --unset-all safe.directory "$path" 2>/dev/null || true
+            sudo -u "$USER_NAME" git config --global --add safe.directory "$path" 2>/dev/null || true
+        done
+    done
+
+    if [ -n "$GIT_TOKEN" ]; then
+        # PAT даёт агенту право пушить; файл читает только kouki.
+        creds_home="$(getent passwd "$USER_NAME" | cut -d: -f6)"
+        if [ -n "$creds_home" ]; then
+            # Права уже существующего домашнего каталога не переписываем: админ
+            # мог настроить их сам (0750, ACL и т.п.).
+            if [ ! -d "$creds_home" ]; then
+                install -d -o "$USER_NAME" -g "$USER_NAME" -m 700 "$creds_home"
+            fi
+            creds="$creds_home/.git-credentials"
+            # Креды других хостов не теряем: заменяем только строку github.com.
+            saved_umask="$(umask)"
+            umask 077
+            tmp="$creds.tmp"
+            if [ -f "$creds" ]; then
+                grep -v 'github\.com' "$creds" > "$tmp" 2>/dev/null || : > "$tmp"
+            else
+                : > "$tmp"
+            fi
+            printf 'https://x-access-token:%s@github.com\n' "$GIT_TOKEN" >> "$tmp"
+            mv "$tmp" "$creds"
+            chown "$USER_NAME:$USER_NAME" "$creds"
+            chmod 600 "$creds"
+            umask "$saved_umask"
+            # Помощник только для github.com: иначе git отдаёт этот же файл
+            # любому хосту, к которому обратится агент.
+            sudo -u "$USER_NAME" git config --global credential.https://github.com.helper store \
+                2>/dev/null || true
+            echo "   PAT записан в $creds (600) — агент сможет пушить"
+        fi
+    fi
+elif ! command -v git >/dev/null 2>&1; then
+    echo "== git: не установлен — настройки агента пропущены (apt install git)" >&2
+    if [ -n "$GIT_TOKEN" ]; then
+        echo "   PAT не записан: агент не сможет пушить" >&2
+        PROBLEMS=1
+    fi
+else
+    echo "== git: пользователь $USER_NAME ещё не создан — настройки агента пропущены" >&2
+    if [ -n "$GIT_TOKEN" ]; then
+        echo "   PAT не записан: агент не сможет пушить" >&2
+        PROBLEMS=1
+    fi
+fi
+
+if [ -n "$SMB_USER" ]; then
+    echo "== SMB-пользователь $SMB_USER"
+    if ! command -v smbpasswd >/dev/null 2>&1; then
+        echo "ОШИБКА: samba не установлена — SMB-пользователь не создан (apt install samba)" >&2
+        PROBLEMS=1
+    else
+        # Шара на отдельном диске переживает переустановку системы вместе с
+        # числовым владельцем. Новый useradd дал бы другой uid/gid, kouki попал
+        # бы в «правильную» по имени, но чужую по номеру группу — и запись в
+        # /srv/files осталась бы запрещённой. Разбор делает resolve_share_ids;
+        # читаем поля через read, а не eval: имя группы приходит из /etc/group
+        # (LDAP, ручная правка) и не должно исполняться как shell-код.
+        share_ids="$(resolve_share_ids /srv/files)"
+        # Разбор — в guards: `read` с IFS=: съедает ведущие разделители, поэтому
+        # пустые поля кодируются «-» и разбираются только через read_share_ids.
+        skip_smb=0
+        if ! read_share_ids "$share_ids"; then
+            echo "ОШИБКА: не удалось разобрать сведения о /srv/files — SMB не настроен" >&2
+            PROBLEMS=1
+            skip_smb=1
+        fi
+        share_uid="$SHARE_UID"
+        share_gid="$SHARE_GID"
+        share_group="$SHARE_GROUP"
+        share_create_group="${SHARE_CREATE_GROUP:-0}"
+        SMB_GROUP="$SMB_USER"
+        case "$share_create_group" in
+            2)
+                # Каталог на root-группе: добавлять kouki в root нельзя.
+                echo "ОШИБКА: /srv/files принадлежит root-группе — исправьте владельца:" \
+                     "sudo chown -R $SMB_USER:$SMB_USER /srv/files" >&2
+                PROBLEMS=1
+                skip_smb=1
+                ;;
+            3)
+                echo "ОШИБКА: /srv/files принадлежит системной группе ${share_group:-gid $share_gid} —" \
+                     "членство в ней даёт лишние права, шару надо перевесить:" \
+                     "sudo chown -R $SMB_USER:$SMB_USER /srv/files" >&2
+                PROBLEMS=1
+                skip_smb=1
+                ;;
+        esac
+
+        if [ "$skip_smb" -eq 1 ]; then
+            echo "   SMB-пользователь и пароль не настроены: сначала исправьте владельца шары" >&2
+        fi
+
+        if [ "$skip_smb" -eq 0 ] && [ -n "$share_gid" ]; then
+            if [ "$share_create_group" -eq 1 ]; then
+                # Группы с таким GID нет: создаём её с нужным номером, иначе
+                # useradd --gid 1000 упадёт «group '1000' does not exist».
+                groupadd --gid "$share_gid" "$SMB_USER" 2>/dev/null || true
+                actual_group="$(getent group "$share_gid" | cut -d: -f1 || true)"
+                if [ -n "$actual_group" ]; then
+                    SMB_GROUP="$actual_group"
+                    echo "   группа $SMB_GROUP получила gid $share_gid владельца шары"
+                else
+                    echo "ОШИБКА: не удалось создать группу с gid $share_gid" >&2
+                    PROBLEMS=1
+                    skip_smb=1
+                fi
+            else
+                SMB_GROUP="$share_group"
+            fi
+        fi
+
+        if [ "$skip_smb" -eq 0 ]; then
+            if ! id -u "$SMB_USER" >/dev/null 2>&1; then
+                eff_uid="$share_uid"
+                eff_gid="$share_gid"
+                if [ -n "$share_uid" ] && getent passwd "$share_uid" >/dev/null 2>&1; then
+                    # UID занят другим пользователем: создавать с ним нельзя,
+                    # иначе меняется владелец чужих файлов. Группу шары всё равно
+                    # передаём — иначе SMB-пользователь не запишет файлы.
+                    echo "ВНИМАНИЕ: uid $share_uid уже занят ($(getent passwd "$share_uid" | cut -d: -f1))," \
+                         "создаю $SMB_USER с другим uid — владельцем шары останется прежний" >&2
+                    eff_uid=""
+                    PROBLEMS=1
+                fi
+                # uid/gid передаются только когда известны: при пустых значениях
+                # `useradd --gid ""` падает «group '' does not exist».
+                if create_share_user "$SMB_USER" "$eff_uid" "$eff_gid"; then
+                    echo "   создан $SMB_USER (uid ${eff_uid:-авто}, gid ${eff_gid:-по умолчанию})"
+                else
+                    echo "ОШИБКА: не удалось создать $SMB_USER" >&2
+                    PROBLEMS=1
+                fi
+            fi
+            # Пользователь шары должен быть в её группе, даже если существовал
+            # раньше и его primary group другая.
+            if [ -n "$SMB_GROUP" ] && id -u "$SMB_USER" >/dev/null 2>&1; then
+                if ! id -Gn "$SMB_USER" 2>/dev/null | tr ' ' '\n' | grep -qxF "$SMB_GROUP"; then
+                    if usermod -aG "$SMB_GROUP" "$SMB_USER" 2>/dev/null; then
+                        echo "   $SMB_USER добавлен в группу шары $SMB_GROUP"
+                    else
+                        echo "ОШИБКА: не удалось добавить $SMB_USER в группу $SMB_GROUP" >&2
+                        PROBLEMS=1
+                    fi
+                fi
+            fi
+
+            if printf '%s\n%s\n' "$SMB_PASSWORD" "$SMB_PASSWORD" | smbpasswd -s -a "$SMB_USER" >/dev/null; then
+                if ! smbpasswd -e "$SMB_USER" >/dev/null 2>&1; then
+                    echo "ВНИМАНИЕ: пароль SMB задан, но учётка не включена (smbpasswd -e)" >&2
+                    PROBLEMS=1
+                fi
+                # Агенту нужна запись в шару: он kouki, владелец шары — SMB_USER
+                # (или группа, которой принадлежит каталог).
+                if usermod -aG "$SMB_GROUP" "$USER_NAME" 2>/dev/null; then
+                    echo "   пароль SMB задан, $USER_NAME добавлен в группу $SMB_GROUP"
+                else
+                    echo "ВНИМАНИЕ: пароль SMB задан, но добавить $USER_NAME в группу $SMB_GROUP не вышло" >&2
+                    PROBLEMS=1
+                fi
+                # Группа применится только в новой сессии, поэтому проверяем запись
+                # от имени агента через sg — иначе «успех» при запрете записи.
+                if [ -d /srv/files ]; then
+                    if command -v sg >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
+                        if ! sg "$SMB_GROUP" -c "sudo -u $USER_NAME test -w /srv/files" 2>/dev/null; then
+                            echo "ВНИМАНИЕ: $USER_NAME не может писать в /srv/files — проверьте владельца каталога" >&2
+                            PROBLEMS=1
+                        fi
+                    else
+                        echo "ОШИБКА: sg/sudo не найдены — запись в /srv/files не проверена" >&2
+                        PROBLEMS=1
+                    fi
+                fi
+                if systemctl restart smbd 2>/dev/null; then
+                    echo "   samba перезапущена"
+                else
+                    echo "ОШИБКА: smbd не перезапустился — systemctl status smbd" >&2
+                    PROBLEMS=1
+                fi
+            else
+                echo "ВНИМАНИЕ: не удалось задать пароль SMB для $SMB_USER" >&2
+                PROBLEMS=1
+            fi
+        fi
+    fi
+fi
+
+if [ -n "$BOT_PROXY" ]; then
+    echo "== прокси для бота: $BOT_PROXY"
+    PROXY_DIR="/etc/systemd/system/kouki-bot.service.d"
+    install -d -o root -g root -m 755 "$PROXY_DIR"
+    # В юните значение живёт в кавычках: обратный слеш и кавычку экранируем,
+    # а «%» systemd считает спецификатором и требует «%%».
+    proxy_unit="$(printf '%s' "$BOT_PROXY" | sed 's/\\/\\\\/g; s/"/\\"/g; s/%/%%/g')"
+    # NO_PROXY обязателен: без него бот гонит через прокси свои же вызовы к
+    # серверу (127.0.0.1:5300) и получает 503 «сервер недоступен».
+    no_proxy_unit="127.0.0.1,localhost,::1,.local,192.168.0.0/16,10.0.0.0/8"
+    # В прокси могут быть логин и пароль: создаём файл сразу с 600, чтобы не
+    # было окна, когда его читает любой локальный пользователь.
+    (
+        umask 077
+        {
+            echo "[Service]"
+            echo "Environment=\"HTTP_PROXY=$proxy_unit\""
+            echo "Environment=\"HTTPS_PROXY=$proxy_unit\""
+            echo "Environment=\"ALL_PROXY=$proxy_unit\""
+            echo "Environment=\"NO_PROXY=$no_proxy_unit\""
+            echo "Environment=\"no_proxy=$no_proxy_unit\""
+        } > "$PROXY_DIR/proxy.conf"
+    )
+    chmod 600 "$PROXY_DIR/proxy.conf"
+    systemctl daemon-reload
+    if systemctl is-enabled --quiet kouki-bot.service 2>/dev/null; then
+        if systemctl restart kouki-bot.service; then
+            echo "   бот перезапущен с прокси"
+        else
+            echo "ВНИМАНИЕ: бот не перезапустился — journalctl -u kouki-bot -n 30 --no-pager" >&2
+            PROBLEMS=1
+        fi
+    else
+        echo "   файл записан; бот подхватит прокси при запуске"
+    fi
+else
+    # Прокси убрали — drop-in не должен остаться от прошлой установки, иначе
+    # бот продолжит ходить через давно закрытый прокси.
+    PROXY_DIR="/etc/systemd/system/kouki-bot.service.d"
+    if [ -f "$PROXY_DIR/proxy.conf" ]; then
+        echo "== прокси для бота: убираю (--bot-proxy не задан)"
+        rm -f "$PROXY_DIR/proxy.conf"
+        rmdir "$PROXY_DIR" 2>/dev/null || true
+        systemctl daemon-reload
+        if systemctl is-enabled --quiet kouki-bot.service 2>/dev/null; then
+            if systemctl restart kouki-bot.service; then
+                echo "   бот перезапущен без прокси"
+            else
+                echo "ВНИМАНИЕ: бот не перезапустился — journalctl -u kouki-bot -n 30 --no-pager" >&2
+                PROBLEMS=1
+            fi
+        fi
+    fi
+fi
+
+# Установка, в которой что-то заведомо не работает, не должна выглядеть успешной.
+if [ "$PROBLEMS" -ne 0 ]; then
+    echo
+    echo "ВНИМАНИЕ: установка завершилась с замечаниями (см. сообщения выше)." >&2
+    echo "Сервер при этом поднят: curl -H 'Authorization: Bearer $TOKEN_HINT'" \
+         "http://127.0.0.1:$PORT/api/health" >&2
+    exit 1
 fi
 
 echo

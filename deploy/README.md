@@ -9,6 +9,8 @@
 deploy/
   README.md          # этот файл
   install.sh         # установка и обновление (идемпотентно)
+  lib/
+    install-guards.sh  # решения «включать ли бэкап», «какие uid/gid у шары»
   kouki.service      # юнит systemd
   kouki.env.example  # конфигурация: токен, пути, язык
 ```
@@ -19,7 +21,8 @@ deploy/
   `aspnetcore-runtime-10.0` для свежего релиза может ещё не быть — тогда
   публикуйте self-contained, см. ниже);
 - .NET 10 runtime (`aspnetcore-runtime-10.0`) — `dotnet --version` должен отвечать;
-- `curl`, `rsync` (желательно), `sqlite3` (для бэкапов);
+- `curl`, `rsync` и `sqlite3` — без `rsync`/`sqlite3` установщик **не включит**
+  бэкап и завершится с кодом 1 (снимки делаются `sqlite3 .backup` + `rsync`);
 - артефакт публикации: на Windows `Kouki\tools\publish-linux.ps1`, на Linux
   `dotnet publish Kagedama.api/Kagedama.api.csproj -c Release -r linux-x64 --self-contained false -p:KoukiEnableSherpa=true -o publish/linux-x64`.
 
@@ -89,6 +92,73 @@ sudo ./deploy/install.sh /tmp/kouki-publish --with-bot --bot-token 123456:ABC-DE
 Проверка: `journalctl -u kouki-bot -n 30 --no-pager` — при старте бот пишет
 `Бот Kouki запущен`; на 409 (вебхук у другого процесса) он спрашивает
 `getWebhookInfo` и выходит с кодом 2, а не крутит цикл.
+
+### Прокси для бота
+
+Если Telegram с сервера доступен только через прокси, боту его надо передать
+вместе с исключениями: без `NO_PROXY` он гонит через прокси и собственные
+запросы к `127.0.0.1:5300`, получает 503 и пишет «сервер недоступен».
+
+```bash
+sudo ./deploy/install.sh /tmp/kouki-publish --with-bot --bot-token 123:ABC \
+     --bot-proxy http://127.0.0.1:1080
+```
+
+Установщик кладёт drop-in `/etc/systemd/system/kouki-bot.service.d/proxy.conf`
+с `HTTP_PROXY`/`HTTPS_PROXY`/`ALL_PROXY` и `NO_PROXY=127.0.0.1,localhost,::1,.local,192.168.0.0/16,10.0.0.0/8`
+(файл `600`: в прокси могут быть логин и пароль).
+
+## Пользователь агента, PAT и SMB
+
+Агенту на сервере нужны git-настройки (иначе он не коммитит), иногда PAT для
+push и доступ на запись в сетевую шару. Это три флага установщика:
+
+```bash
+# git config для kouki + safe.directory на его репозитории
+sudo ./deploy/install.sh /tmp/kouki-publish
+
+# то же + PAT в /home/kouki/.git-credentials (600), чтобы агент мог пушить сам
+# (токен читается из файла; stdin — через root-shell, иначе редирект сделает
+#  непривилегированный shell и не прочитает /root/pat:
+#  sudo bash -c './deploy/install.sh … --git-token-stdin < /root/pat')
+sudo ./deploy/install.sh /tmp/kouki-publish --git-token-file /root/pat
+
+# завести SMB-пользователя (после переустановки passdb.tdb пропадает вместе с ним)
+sudo ./deploy/install.sh /tmp/kouki-publish --smb-user smurf123lol --smb-password-file /root/smb.pass
+```
+
+Пароль и токен аргументами (`--smb-password`, `--git-token`) тоже работают, но
+видны в `ps` и оседают в истории shell — поэтому в примерах выше файлы.
+
+SMB-пользователь создаётся и в системе (`useradd`), и в Samba (`smbpasswd -s -a`),
+а `kouki` добавляется в его группу — иначе агент видит шару, но не пишет в неё.
+PAT даёт агенту право пушить в репозиторий: выдавайте токен с минимальным
+набором прав (`contents: write` достаточно). Помощник хранения кредов
+настраивается только для `github.com` — иначе git отдавал бы файл любому хосту;
+креды других хостов в файле сохраняются, заменяется только строка GitHub.
+
+`--smb-user` — это **существующая** учётка владельца шары (в нашем случае
+`smurf123lol`): доступ к `/srv/files` выдан именно ей в `smb.conf`. Новое имя
+создаст пользователя с uid/gid владельца каталога (если номера ещё свободны),
+но **доступа к шаре не даст**: `valid users` в `smb.conf` по-прежнему указывает
+на прежнюю учётку — добавьте новое имя туда и перезапустите Samba. Если номер
+уже занят другим пользователем, установщик предупредит и завершится с кодом 1.
+
+Пароль и токен аргументами (`--smb-password`, `--git-token`) на время установки
+видны в `ps` и оседают в истории shell. Если это важно — берите их из файла или
+stdin:
+
+```bash
+sudo bash -c './deploy/install.sh /tmp/kouki-publish --smb-user smurf123lol --smb-password-stdin < /root/smb.pass'
+sudo ./deploy/install.sh /tmp/kouki-publish --smb-user smurf123lol --smb-password-file /root/smb.pass
+sudo ./deploy/install.sh /tmp/kouki-publish --git-token-file /root/pat
+```
+
+Редирект `<` выполняет вызывающий shell, поэтому под `sudo` его надо оборачивать
+в `bash -c` (иначе не-root не прочитает `/root/smb.pass`). Источников должно быть
+ровно один: два одновременно отвергаются, чтобы не гадать, какой применился.
+После установки удалите файл с паролем, а PAT при утечке отзовите в настройках
+GitHub.
 
 ## MCP-сервер (для агента на любой машине)
 
@@ -163,11 +233,29 @@ journalctl -u caddy -n 30 --no-pager
 
 ## Резервные копии
 
-Бэкап — отдельный юнит с таймером, ставится руками (это решение администратора,
-а не следствие установки сервера):
+Бэкап ставит сам установщик (`install.sh`): копирует `kouki-backup.sh` в артефакт,
+создаёт `/etc/kouki/backup.env` из примера (если его ещё нет) и каталог
+`/var/backups/kouki` (`2775 root:kouki`).
+
+Дальше — по обстановке: если `sqlite3` и `rsync` на месте, установщик включает
+`kouki-backup.timer` и делает один пробный прогон (сразу видно, что копия
+получается, а не «должна получиться»). Если инструментов нет или пробный прогон
+упал — таймер **не остаётся включённым** (а включённый ранее гасится), установка
+завершается с кодом 1 и подсказкой, что поставить.
+
+Выключить (в том числе уже включённый прошлой установкой таймер): `--no-backup`.
+Установщик погасит и отключит `kouki-backup.timer`, снимки в `/var/backups/kouki`
+останутся на месте.
+
+Так было не всегда: до T87 бэкап предлагалось ставить руками, и после переустановки
+сервера таймер остался `disabled` — то есть сутки данных жили без копий. Теперь
+«поставил сервер» и «бэкап идёт» — одно действие.
+
+Руками (если нужно повторить или поставить отдельно):
 
 ```bash
 sudo install -o root -g kouki -m 640 deploy/backup.env.example /etc/kouki/backup.env
+sudo install -d -o root -g kouki -m 2775 /var/backups/kouki
 sudo install -o root -g root -m 644 deploy/kouki-backup.service /etc/systemd/system/
 sudo install -o root -g root -m 644 deploy/kouki-backup.timer   /etc/systemd/system/
 sudo systemctl daemon-reload
@@ -184,7 +272,10 @@ WAL, копия живого файла получается «наполови�
 14 дней). Два запуска одновременно не идут — `flock`.
 
 Снимки лежат в `KOUKI_BACKUP_DIR` (`/var/backups/kouki`): `db/kouki-YYYY-MM-DD.sqlite`
-и `audio/`. Держите каталог **не на том же диске**, что `/var/lib/kouki`, иначе один
+и `audio/`. Каталог **зафиксирован в юните** (`ReadWritePaths=/var/backups/kouki`),
+поэтому переносить данные на другой диск нужно правкой юнита, а не только
+`backup.env`; иначе система защиты systemd сделает каталог read-only. Держите его
+**не на том же диске**, что `/var/lib/kouki`, иначе один
 сбой диска уносит и данные, и копии.
 
 ### Восстановление
@@ -232,7 +323,6 @@ ss -ltnp | grep 5300                   # слушает ли порт
 - **https/прокси.** Пока сеть локальная, станция ходит по `http` + bearer-токен.
   Когда понадобится — Caddy перед сервером и корневой сертификат в прошивке
   станции (отдельная задача).
-- **Бэкапы.** `sqlite3 .backup` + rsync аудио — задача T50, скрипт появится рядом.
 - **Секреты в git.** Токен живёт только в `/etc/kouki/kouki.env`; в репозитории
   лежит `CHANGE_ME`.
 ### Обновление сервера без потери бота

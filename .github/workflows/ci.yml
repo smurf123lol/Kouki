@@ -98,6 +98,33 @@ jobs:
           --no-build --configuration Release -p:KoukiEnableSherpa=true
           --logger "console;verbosity=normal"
 
+  scripts:
+    name: Скрипты развёртывания
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Установить shellcheck
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+
+      # Скрипты запускаются от root на живом сервере: синтаксис и типовые
+      # ошибки (незакавыченная переменная, неверный тест файла) дешевле
+      # поймать здесь, чем во время переустановки.
+      - name: Синтаксис и shellcheck
+        run: |
+          set -euo pipefail
+          files="$(git ls-files 'deploy/*.sh' 'deploy/*/*.sh' 'tools/*.sh')"
+          if [ -z "$files" ]; then
+            echo "нет shell-скриптов — проверять нечего"
+            exit 0
+          fi
+          for f in $files; do
+            bash -n "$f"
+          done
+          shellcheck -S warning $files
+
   test-plugin:
     name: Тесты плагина DSH
     runs-on: ubuntu-latest
