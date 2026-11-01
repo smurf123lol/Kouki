@@ -68,8 +68,7 @@ function Get-WorkspaceRoot {
     param([string]$From)
     $dir = (Resolve-Path -LiteralPath $From).Path
     while ($dir) {
-        if ((Test-Path -LiteralPath (Join-Path $dir 'notes-updated')) -or
-            (Test-Path -LiteralPath (Join-Path $dir '_scratch'))) {
+        if (Test-Path -LiteralPath (Join-Path $dir 'notes-updated')) {
             return $dir
         }
         $parent = Split-Path -Parent $dir
@@ -81,19 +80,37 @@ function Get-WorkspaceRoot {
 
 function Invoke-Git {
     param([string[]]$Arguments)
-    # Вывод git декодируется кодировкой консоли (PowerShell 5.1). На cp866 русские пути
-    # искажаются и в пакете, и в отпечатке, а отпечаток обязан совпадать на Windows и Linux:
-    # поэтому на время вызова — UTF-8, с восстановлением прежней кодировки; stderr не мешаем с diff.
-    $previous = [Console]::OutputEncoding
+    # Вывод git декодируется кодировкой консоли (PowerShell 5.1): на cp866 русские пути
+    # искажаются и в пакете, и в отпечатке, а отпечаток обязан совпадать на Windows и Linux.
+    # Предупреждения git идут в stderr — при $ErrorActionPreference=Stop они превращаются в
+    # исключение и валят сборку пакета, поэтому внутри функции EAP ослаблен, а код возврата
+    # проверяется явно; текст stderr сохраняется для сообщения об ошибке и не попадает в диф.
+    $previousEncoding = [Console]::OutputEncoding
+    $previousEap = $ErrorActionPreference
     try {
         [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false
-        $output = & git -C $Repo @Arguments 2>$null
-        if ($LASTEXITCODE -ne 0) { throw "git $($Arguments -join ' ') — код $LASTEXITCODE" }
-        return ($output | Out-String).TrimEnd()
+        $ErrorActionPreference = 'Continue'
+        $raw = & git -C $Repo @Arguments 2>&1
+        $code = $LASTEXITCODE
     }
     finally {
-        [Console]::OutputEncoding = $previous
+        $ErrorActionPreference = $previousEap
+        [Console]::OutputEncoding = $previousEncoding
     }
+
+    $stdout = New-Object System.Collections.Generic.List[string]
+    $stderr = New-Object System.Collections.Generic.List[string]
+    foreach ($item in $raw) {
+        if ($item -is [System.Management.Automation.ErrorRecord]) { $stderr.Add($item.ToString()) }
+        else { $stdout.Add([string]$item) }
+    }
+
+    if ($code -ne 0) {
+        $detail = if ($stderr.Count -gt 0) { "`n$($stderr -join "`n")" } else { '' }
+        throw "git $($Arguments -join ' ') — код $code$detail"
+    }
+
+    return ($stdout -join "`n").TrimEnd()
 }
 
 function Get-TaskSection {
@@ -135,7 +152,9 @@ $commits = Invoke-Git @('log', '--oneline', "$Base..$Head")
 $stat = Invoke-Git @('diff', '--stat', "$Base..$Head")
 $nameStatus = Invoke-Git @('diff', '--name-status', "$Base..$Head")
 $diff = Invoke-Git @('diff', "$Base..$Head")
+# 10 символов — константа отпечатка: её изменение меняет все отпечатки (см. AGENTS.md, шаг 6).
 $raw = Invoke-Git @('-c', 'core.quotePath=false', 'diff', '--raw', '--abbrev=10', "$Base..$Head")
+
 
 # Отпечаток набора изменений: sha256 по `git diff --raw` (blob-хеши «было→стало» и пути).
 # Тот же алгоритм в tools/review.sh — отпечатки совпадают на одной и той же паре коммитов.
@@ -246,7 +265,7 @@ $diffBlock
 Проверять по порядку, нарушение — блокер.
 
 1. **Границы слоёв.** ``Contracts`` без зависимостей; ``Mugura`` без предметных типов;
-   хост не содержит бизнес-логики; новых ``ProjectReference`` в ядро нет.
+   хост не содержит бизнес-логики; новых ссылок в ядро нет.
 2. **Инварианты ``AGENTS.md`` (1–14).** Задачу создаёт только ``TaskFactory``; источник —
    ``TaskSources``; статусы — ``TaskStatuses``; вердикт классификатора не перезаписывается
    (есть ``hinted_intent``); многотабличная запись — в ``IUnitOfWork``; DI — через
@@ -256,14 +275,13 @@ $diffBlock
    в ``Directory.Packages.props`` / ``Directory.Build.props``.
 3. **Тесты.** Новое поведение покрыто; тесты падали до правки; нет отключённых проверок,
    ``Skip`` и ``catch { }`` без лога.
-4. **Ошибки и тексты.** Наружу не уходит ``ex.Message``; у отказов есть код и человеческое
+4. **Ошибки и тексты.** Наружу не уходит ``ex.Message``; у отказа есть код и человеческое
    сообщение; логи содержат контекст, но не секреты.
-5. **Доки и заметки.** Если менялись контракты — обновлены ``notes-updated`` (архитектура,
-   датафлоу) и ``Задачи Kouki.md`` со статусом.
+5. **Доки и заметки.** Менялись контракты — обновлены ``notes-updated`` (архитектура,
+   датафлоу) и ``Задачи Kouki.md``.
 6. **Секреты и мусор.** Нет токенов/паролей в диффе, нет ``bin/obj``, ``*.sqlite``,
-   ``station-audio``, ``_scratch``-файлов, нет «заодно» правок вне задачи.
-7. **Доказательства.** В отчёте по задаче есть команда + вывод/цифра на каждый пункт
-   «сделано», а не «работает».
+   ``station-audio``, временных файлов; нет «заодно» вне задачи.
+7. **Доказательства.** На каждый пункт «сделано» — команда и вывод/цифра.
 
 ## Шаблон вердикта
 
@@ -271,12 +289,12 @@ $diffBlock
 Вердикт: можно пушить | нужны правки
 
 Blockers (пушить нельзя):
-- файл:строка — что не так, почему это нарушение (инвариант/контракт), что сделать
+- файл:строка — что не так, какое нарушение, что сделать
 
 Major (можно после правки в этом PR):
 - …
 
-Minor / nit (можно отдельной задачей):
+Minor / nit (отдельной задачей):
 - …
 
 Что проверено и в порядке:

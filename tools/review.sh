@@ -86,7 +86,7 @@ git -C "$REPO" rev-parse --git-dir >/dev/null 2>&1 || {
 find_workspace() {
     local dir="$1"
     while [ "$dir" != "/" ] && [ -n "$dir" ]; do
-        if [ -d "$dir/notes-updated" ] || [ -d "$dir/_scratch" ]; then
+        if [ -d "$dir/notes-updated" ]; then
             printf '%s\n' "$dir"
             return 0
         fi
