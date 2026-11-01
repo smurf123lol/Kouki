@@ -531,9 +531,22 @@ if [ "$WITH_MONITOR" -eq 1 ]; then
         # состояние, которое сторож записал. Старый state удаляем: иначе «ok»
         # от прошлой установки выдаст себя за результат этой проверки.
         MONITOR_STATE_DIR="${KOUKI_MONITOR_STATE:-/var/lib/kouki/monitor}"
-        rm -f "$MONITOR_STATE_DIR/state"
+        # Служба читает не окружение установщика, а monitor.env: если путь
+        # состояния задан там, установщик обязан смотреть туда же.
+        if [ -r "$CONF_DIR/monitor.env" ]; then
+            MONITOR_ENV_STATE="$(sed -n 's/^KOUKI_MONITOR_STATE=//p' "$CONF_DIR/monitor.env" | tail -1)"
+            [ -n "$MONITOR_ENV_STATE" ] && MONITOR_STATE_DIR="$MONITOR_ENV_STATE"
+        fi
+        if [ -e "$MONITOR_STATE_DIR/state" ] && ! rm -f "$MONITOR_STATE_DIR/state"; then
+            echo "ВНИМАНИЕ: не удалось удалить старый $MONITOR_STATE_DIR/state —" \
+                 "проверка ниже не будет достоверной" >&2
+        fi
+        START_TS="$(date +%s)"
         if systemctl start kouki-monitor.service; then
-            if [ ! -f "$MONITOR_STATE_DIR/state" ]; then
+            if [ -f "$MONITOR_STATE_DIR/state" ] && [ "$START_TS" -ge "$(stat -c %Y "$MONITOR_STATE_DIR/state" 2>/dev/null || echo 0)" ]; then
+                echo "ВНИМАНИЕ: сторож не обновил состояние — проверка недостоверна" >&2
+                PROBLEMS=1
+            elif [ ! -f "$MONITOR_STATE_DIR/state" ]; then
                 echo "ВНИМАНИЕ: сторож не записал состояние — проверьте" \
                      "journalctl -u kouki-monitor (права на $MONITOR_STATE_DIR?)" >&2
                 PROBLEMS=1

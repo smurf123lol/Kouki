@@ -18,6 +18,7 @@ STATE_DIR="${KOUKI_MONITOR_STATE:-/var/lib/kouki/monitor}"
 TIMEOUT="${KOUKI_MONITOR_TIMEOUT:-8}"
 REMIND_AFTER="${KOUKI_MONITOR_REMIND_SECONDS:-3600}"
 ENV_FILE="${KOUKI_MONITOR_ENV:-/etc/kouki/monitor.env}"
+TOKEN_FILE="${KOUKI_TOKEN_FILE:-/etc/kouki/kouki.env}"
 
 usage() {
     cat <<'EOF'
@@ -37,7 +38,7 @@ EOF
 need_value() {
     local name="$1"
     local value="${2:-}"
-    if [ $# -lt 2 ] || [ -z "$value" ] || [ "${value#--}" != "$value" ]; then
+    if [ $# -lt 2 ] || [ -z "$value" ] || [ "${value#-}" != "$value" ]; then
         echo "Параметр $name требует значения" >&2
         usage >&2
         exit 2
@@ -82,8 +83,8 @@ log() {
 api_token() {
     if [ -n "${KOUKI_TOKEN:-}" ]; then
         printf '%s' "$KOUKI_TOKEN"
-    elif [ -r /etc/kouki/kouki.env ]; then
-        sed -n 's/^Kouki__Token=//p' /etc/kouki/kouki.env | head -1
+    elif [ -r "$TOKEN_FILE" ]; then
+        sed -n 's/^Kouki__Token=//p' "$TOKEN_FILE" | head -1
     fi
 }
 
@@ -135,7 +136,7 @@ check_api() {
     local tok code conf
     tok="$(api_token)"
     if [ -z "$tok" ]; then
-        printf 'нет токена API для /api/classifiers (KOUKI_TOKEN или /etc/kouki/kouki.env)'
+        printf 'нет токена API для /api/classifiers (KOUKI_TOKEN или %s)' "$TOKEN_FILE"
         return 1
     fi
     conf="$(secret_config "header = \"Authorization: Bearer ${tok}\"")"

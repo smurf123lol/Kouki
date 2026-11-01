@@ -12,7 +12,7 @@
 set -euo pipefail
 
 BASE_URL="${KOUKI_SMOKE_URL:-http://127.0.0.1:5300}"
-TOKEN_FILE="/etc/kouki/kouki.env"
+TOKEN_FILE="${KOUKI_TOKEN_FILE:-/etc/kouki/kouki.env}"
 DSH_PAGE="${KOUKI_SMOKE_DSH:-http://127.0.0.1:5311/}"
 SHARE_DIR="${KOUKI_SMOKE_SHARE:-/srv/files/_kouki}"
 SERVICES="${KOUKI_SMOKE_SERVICES:-kouki kouki-bot kouki-llm dsh-web dsh-token}"
@@ -44,7 +44,7 @@ EOF
 need_value() {
     local name="$1"
     local value="${2:-}"
-    if [ $# -lt 2 ] || [ -z "$value" ] || [ "${value#--}" != "$value" ]; then
+    if [ $# -lt 2 ] || [ -z "$value" ] || [ "${value#-}" != "$value" ]; then
         echo "Параметр $name требует значения" >&2
         usage >&2
         exit 2

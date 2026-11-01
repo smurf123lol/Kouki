@@ -38,6 +38,7 @@ public sealed class DeployScriptsTests
             ["--url", "http://127.0.0.1:5300"],
             new Dictionary<string, string> { ["KOUKI_TOKEN"] = "test-token" });
 
+        Assert.True(result.Rc == 0, $"rc={result.Rc} out={result.Stdout} err={result.Stderr}");
         Assert.DoesNotContain("/api/intake", result.CurlCalls, StringComparison.Ordinal);
         Assert.Contains("/api/health", result.CurlCalls, StringComparison.Ordinal);
     }
@@ -49,6 +50,8 @@ public sealed class DeployScriptsTests
         {
             ["HEALTH_CODE"] = "200",
             ["API_CODE"] = "200",
+            ["KOUKI_TOKEN"] = "",
+            ["KOUKI_TOKEN_FILE"] = "/nonexistent/kouki.env",
         });
 
         Assert.Equal(1, result.Rc);
@@ -138,6 +141,19 @@ public sealed class DeployScriptsTests
             "после доставки маркер восстановления снимается");
     }
 
+    [Fact]
+    public void Smoke_with_writes_cancels_the_task_it_created()
+    {
+        RunResult result = RunSmoke(
+            ["--url", "http://127.0.0.1:5300", "--with-writes"],
+            new Dictionary<string, string> { ["KOUKI_TOKEN"] = "test-token" });
+
+        Assert.True(result.Rc == 0, $"rc={result.Rc} out={result.Stdout} err={result.Stderr} calls={result.CurlCalls}");
+        Assert.Contains("/api/intake", result.CurlCalls, StringComparison.Ordinal);
+        Assert.Contains("/api/tasks/11111111-1111-1111-1111-111111111111",
+            result.CurlCalls, StringComparison.Ordinal);
+    }
+
     private sealed record RunResult(int Rc, string Stdout, string Stderr, string State, bool HasStamp, string CurlCalls, string StateDir);
 
     private static RunResult RunSmoke(params string[] args)
@@ -177,7 +193,8 @@ public sealed class DeployScriptsTests
         WriteStub(stubDir, "systemctl", """
             #!/usr/bin/env bash
             case "$1" in
-                is-active|is-enabled) echo "active"; exit 0 ;;
+                is-enabled) echo "enabled"; exit 0 ;;
+                is-active)  echo "active"; exit 0 ;;
                 *) exit 0 ;;
             esac
             """);
@@ -302,7 +319,22 @@ public sealed class DeployScriptsTests
                 exit 0
                 ;;
             */api/classifiers*)
-                printf '%s' "${API_CODE:-200}"
+                # Смоук сначала спрашивает код (-o /dev/null), потом тело: без
+                # этого заглушка отдавала «200» вместо JSON и тест врал.
+                if [ -n "$out" ]; then
+                    printf '%s' "${API_CODE:-200}"
+                else
+                    printf '{"classifiers":["rules"]}'
+                fi
+                exit 0
+                ;;
+            */api/intake*)
+                [ -n "$out" ] && printf '%s' "${INTAKE_BODY:-{\"intake\":{\"task\":{\"id\":\"11111111-1111-1111-1111-111111111111\"}}}}" >"$out"
+                printf '%s' "${INTAKE_CODE:-200}"
+                exit 0
+                ;;
+            */api/tasks/*)
+                printf '%s' "${PATCH_CODE:-200}"
                 exit 0
                 ;;
             *)
