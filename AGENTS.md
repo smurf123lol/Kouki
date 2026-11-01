@@ -87,6 +87,8 @@ Kagedama.api / .mcp / Kouki.Kagedama.Bot — хосты
    Опасное действие помечай `RequiresConfirmation = true`; хост обязан дать `ICommandConfirmation`.
 10. **Фразу не режем.** Интент либо распознан целиком, либо фраза уходит в разбор как есть.
     Убирать «запиши задачу» из текста нельзя — это часть текста, который человек сказал.
+    Исключение — метки `#тег`/`[тег]` в режиме `extract`: тег это метка, а не часть
+    формулировки, и их вырезание разрешено (`TagParser.Split`).
 11. **Никаких магических чисел.** Порог — `IntakeOptions.ConfidenceThreshold` (дефолт 0.75),
     лимиты — из `KoukiServerOptions`/`IntakeRequestPolicy`, приоритет — `TaskPriorities.Default`.
 12. **Человеку — человеческий текст.** Внешние ошибки (Telegram, HTTP, SQL) не уходят
@@ -299,7 +301,7 @@ cd ../_scratch/wt/kouki-t50-backup-timer && dotnet test Kouki.Tests/Kouki.Tests.
 - **Заметки** живут в `/srv/kouki-workspace/notes-updated` (и копия в
   `/srv/files/_kouki/notes-updated`). Двойного редактирования не держим: правит тот,
   кто делает задачу, второй читает.
-- **Тесты на Linux идут через `dotnet test`** (на 01.11.2026 — 402 теста, `[Theory]`
+- **Тесты на Linux идут через `dotnet test`** (на 01.11.2026 — 431 тест, `[Theory]`
   исполняются). Свой раннер `tools\test.ps1` нужен только на Windows, где `dotnet test`
   не может запуститься из-за песочницы.
 - **Публикация и код-деплой на сервере — своими скриптами** (PowerShell там нет):

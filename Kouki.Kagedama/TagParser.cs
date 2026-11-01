@@ -51,12 +51,21 @@ public static partial class TagParser
     /// <param name="text">Исходная фраза.</param>
     /// <param name="mode">Режим: <see cref="TagModes.Extract"/> вырезает теги, <see cref="TagModes.Keep"/> — нет.</param>
     /// <returns>Текст для задачи и теги без повторов (в порядке появления, не больше <see cref="MaxTags"/>).</returns>
+    /// <exception cref="ArgumentException">Режим неизвестен.</exception>
     public static (string Text, IReadOnlyList<string> Tags) Split(string? text, string? mode = TagModes.Extract)
     {
         string source = text ?? string.Empty;
-        if (!string.Equals(mode, TagModes.Extract, StringComparison.OrdinalIgnoreCase))
+
+        // Неизвестный режим — ошибка, а не «тихий keep»: иначе опечатка в конфиге
+        // (например, extarct) сохраняет решётки в тексте и никто об этом не узнаёт.
+        if (string.Equals(mode, TagModes.Keep, StringComparison.OrdinalIgnoreCase))
         {
             return (source, Array.Empty<string>());
+        }
+
+        if (!string.Equals(mode, TagModes.Extract, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException($"Неизвестный режим тегов '{mode}'.", nameof(mode));
         }
 
         List<string> tags = new();
@@ -80,10 +89,21 @@ public static partial class TagParser
             return (source, Array.Empty<string>());
         }
 
-        string cleaned = Collapse(TagPattern().Replace(source, " "));
+        string cleaned = Clean(source);
         // Только теги и остались — тогда фразы нет, пусть решает приём (пустой текст отбьётся).
         return (cleaned, tags);
     }
+
+    /// <summary>
+    /// Убирает из фразы теги и лишние пробелы, не возвращая сами теги.
+    /// </summary>
+    /// <remarks>
+    /// Нужен приёму: граница (<c>IntakeRequestPolicy</c>) уже вырезала теги, чтобы проверить
+    /// «фраза не состоит из одних тегов», и передала их сервису — второй раз резать не нужно.
+    /// </remarks>
+    /// <param name="text">Фраза с тегами.</param>
+    /// <returns>Фраза без тегов.</returns>
+    public static string Clean(string? text) => Collapse(TagPattern().Replace(text ?? string.Empty, " "));
 
     /// <summary>
     /// Приводит тег к канонической форме: без <c>#</c> и скобок, в нижнем регистре.

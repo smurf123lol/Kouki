@@ -33,6 +33,32 @@ public sealed class IntakeOptions
     public string TagMode { get; set; } = TagModes.Extract;
 
     /// <summary>
+    /// Режим тегов на каждый источник: ключ — <see cref="Kouki.Kagedama.Contracts.TaskSources"/>,
+    /// значение — <see cref="TagModes"/>. Источник без переопределения берёт <see cref="TagMode"/>.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> TagModeBySource { get; set; } =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Режим тегов для конкретного источника: переопределение, иначе общий <see cref="TagMode"/>.
+    /// </summary>
+    /// <remarks>
+    /// Режим живёт на источник, потому что «#» — часть формулировки не везде: со станции
+    /// человек диктует метку голосом, а в API решётка чаще всего именно тег.
+    /// </remarks>
+    /// <param name="source">Источник фразы.</param>
+    /// <returns>Режим тегов, см. <see cref="TagModes"/>.</returns>
+    public string ResolveTagMode(string? source)
+    {
+        if (!string.IsNullOrWhiteSpace(source) && TagModeBySource.TryGetValue(source, out string? mode))
+        {
+            return mode;
+        }
+
+        return TagMode;
+    }
+
+    /// <summary>
     /// Падать ли, если не удалось записать журнал действий.
     /// По умолчанию нет: отладочный журнал не должен ронять приём фразы.
     /// </summary>

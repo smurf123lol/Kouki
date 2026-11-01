@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Encodings.Web;
@@ -7,7 +7,12 @@ using System.Text.Json;
 namespace Kouki.Kagedama.Bot;
 
 /// <summary>Задача в ответе сервера.</summary>
-public sealed record IntakeTaskDto(Guid Id, string? Title, string? Status, string? Source, string? RawText);
+/// <param name="Tags">Теги задачи: сервер отдаёт массив всегда, пустой — если тегов нет.</param>
+public sealed record IntakeTaskDto(Guid Id, string? Title, string? Status, string? Source, string? RawText)
+{
+    /// <summary>Теги задачи в канонической форме (без <c>#</c>).</summary>
+    public IReadOnlyList<string> Tags { get; init; } = Array.Empty<string>();
+}
 
 /// <summary>Вердикт распознавания в ответе сервера.</summary>
 public sealed record IntakeIntentDto(string Intent, double Score, bool Confident, string? Model);
@@ -73,7 +78,11 @@ public sealed record IntakeAttempt(
 /// <param name="Id">Идентификатор задачи.</param>
 /// <param name="Title">Заголовок.</param>
 /// <param name="Status">Статус (<c>new</c>, <c>in_progress</c>, …).</param>
-public sealed record OpenTaskDto(Guid Id, string Title, string Status);
+public sealed record OpenTaskDto(Guid Id, string Title, string Status)
+{
+    /// <summary>Теги задачи в канонической форме (без <c>#</c>).</summary>
+    public IReadOnlyList<string> Tags { get; init; } = Array.Empty<string>();
+}
 
 /// <summary>Итог запроса списка задач.</summary>
 /// <param name="Ok">Список получен.</param>

@@ -80,4 +80,22 @@ public sealed class DashboardAssetsTests
         Assert.DoesNotContain("list.innerHTML = tasks.map", app, StringComparison.Ordinal);
         Assert.DoesNotContain("body.innerHTML = actions.map", app, StringComparison.Ordinal);
     }
+
+    // Теги видны в карточке задачи, в фильтре списка и в детали; клик по чипу ставит фильтр.
+    [Fact]
+    public void Tasks_show_tags_and_filter_by_them()
+    {
+        string app = File.ReadAllText(Path.Combine(WebRoot, "app.js"));
+        string css = File.ReadAllText(Path.Combine(WebRoot, "styles.css"));
+
+        Assert.Contains("task.tags", app, StringComparison.Ordinal);
+        Assert.Contains("data-tag", app, StringComparison.Ordinal);
+        Assert.Contains("state.tag", app, StringComparison.Ordinal);
+        Assert.Contains("params.set('tag'", app, StringComparison.Ordinal);
+
+        // Ключ перерисовки карточки учитывает теги: иначе чипы не обновятся без перезагрузки.
+        Assert.Contains("(task.tags || []).join(',')", app, StringComparison.Ordinal);
+
+        Assert.Contains(".tag", css, StringComparison.Ordinal);
+    }
 }

@@ -72,8 +72,17 @@ public static class IntakeReplyFormatter
         var lines = new List<string>
         {
             $"Задача: {response.Task!.Title}",
-            $"Статус: {StatusRu(response.Task.Status)}",
         };
+
+        // Теги — метки человека и модели: без них задача в чате выглядит как обычная строка,
+        // а именно по ним её потом ищут.
+        string tags = JoinTags(response.Task.Tags);
+        if (tags.Length > 0)
+        {
+            lines.Add($"теги: {tags}");
+        }
+
+        lines.Add($"Статус: {StatusRu(response.Task.Status)}");
 
         if (!string.IsNullOrWhiteSpace(response.Command))
         {
@@ -143,6 +152,12 @@ public static class IntakeReplyFormatter
             string title = task["title"]?.ToString() ?? "(без названия)";
             string? status = task["status"]?.ToString();
             lines.Add($"• {title} — {StatusRu(status)}");
+
+            string tags = JoinJsonTags(task["tags"]);
+            if (tags.Length > 0)
+            {
+                lines.Add($"  теги: {tags}");
+            }
         }
 
         if (tasks.Count > TaskListLimit)
@@ -151,5 +166,28 @@ public static class IntakeReplyFormatter
         }
 
         return string.Join('\n', lines);
+    }
+
+    /// <summary>
+    /// Теги в одну строку через запятую; пустой список — пустая строка (строки в ответе не будет).
+    /// </summary>
+    private static string JoinTags(IReadOnlyList<string>? tags)
+        => tags is null || tags.Count == 0
+            ? string.Empty
+            : string.Join(", ", tags.Where(tag => !string.IsNullOrWhiteSpace(tag)));
+
+    /// <summary>То же для тегов из JSON-ответа команды (<c>list_tasks</c>).</summary>
+    private static string JoinJsonTags(JsonNode? node)
+    {
+        if (node is not JsonArray array)
+        {
+            return string.Empty;
+        }
+
+        return string.Join(
+            ", ",
+            array
+                .Select(item => item?.ToString())
+                .Where(tag => !string.IsNullOrWhiteSpace(tag)));
     }
 }

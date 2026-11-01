@@ -60,11 +60,12 @@ public sealed class KoukiMcpTools
                 required: "text")),
         new McpToolDescriptor(
             "kouki_list_tasks",
-            "Показывает последние задачи Kouki.",
+            "Показывает последние задачи Kouki, при желании — только с указанным тегом.",
             Schema(
                 new[]
                 {
                     ("status", "string", "Фильтр: new, in_progress, done, cancelled, needs_review."),
+                    ("tag", "string", "Фильтр по тегу, например «работа» или «#работа»."),
                     ("limit", "integer", "Сколько задач вернуть, по умолчанию 10, максимум 100."),
                 })),
         new McpToolDescriptor(
@@ -212,8 +213,9 @@ public sealed class KoukiMcpTools
     {
         string text = RequiredString(args, "text");
 
-        // Те же правила границы, что у api: лимит длины и источник по умолчанию хоста.
-        // Хост — транспорт; если правила повторять здесь, они разойдутся.
+        // Те же правила границы, что у api: лимит длины, источник по умолчанию хоста и режим
+        // тегов для этого источника. Хост — транспорт; если правила повторять здесь, они разойдутся.
+        string tagMode = _intake.ResolveTagMode(_intake.DefaultSource);
         if (!IntakeRequestPolicy.TryPrepare(
                 text,
                 null,
@@ -221,12 +223,24 @@ public sealed class KoukiMcpTools
                 _intake.DefaultSource,
                 IntakeRequestPolicy.DefaultMaxTextLength,
                 out IntakeSpec? spec,
-                out IntakeRejection? rejection))
+                out IntakeRejection? rejection,
+                tagMode))
         {
             throw new ArgumentException(rejection!.Message, nameof(args));
         }
 
-        IntakeResult result = await _intake.IntakeAsync(spec!.Text, spec.Source, cancellationToken).ConfigureAwait(false);
+        IntakeResult result;
+        try
+        {
+            result = await _intake
+                .IntakeAsync(spec!.Text, spec.Source, cancellationToken, tags: spec.Tags)
+                .ConfigureAwait(false);
+        }
+        catch (IntakeRejectionException ex)
+        {
+            // Защита приёма: для агента это обычный отказ инструмента, а не сбой сервера.
+            throw new ArgumentException(ex.Message, nameof(args), ex);
+        }
 
         // Ответ собирает один и тот же маппинг, что и для HTTP: иначе поля снова разъедутся
         // (в прежней ручной сборке не было priority, source и meta).
@@ -246,6 +260,11 @@ public sealed class KoukiMcpTools
         if (OptionalString(args, "status") is { } status)
         {
             slots["status"] = status;
+        }
+
+        if (OptionalString(args, "tag") is { } tag)
+        {
+            slots["tag"] = tag;
         }
 
         if (OptionalInt(args, "limit") is { } limit)

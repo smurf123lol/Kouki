@@ -87,6 +87,18 @@ public sealed class KoukiServerOptions
     /// поэтому такой запрос отклоняется.
     /// </summary>
     public int MaxTextLength { get; set; } = IntakeRequestPolicy.DefaultMaxTextLength;
+
+    /// <summary>
+    /// Режим тегов по умолчанию: <c>extract</c> вырезает <c>#теги</c> из фразы, <c>keep</c> оставляет.
+    /// Неизвестное значение — ошибка запуска (см. <c>KoukiHosting.AddKoukiCore</c>).
+    /// </summary>
+    public string TagMode { get; set; } = TagModes.Extract;
+
+    /// <summary>
+    /// Режим тегов на отдельный источник: ключ — <see cref="Kouki.Kagedama.Contracts.TaskSources"/>,
+    /// значение — <see cref="TagModes"/>. Пример: <c>Kouki__TagModeBySource__station=keep</c>.
+    /// </summary>
+    public Dictionary<string, string> TagModeBySource { get; set; } = [];
     /// <summary>Максимальный размер голосовой записи, байт.</summary>
     public long MaxVoiceBytes { get; set; } = 5 * 1024 * 1024;
 

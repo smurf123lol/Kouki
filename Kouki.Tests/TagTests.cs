@@ -86,4 +86,33 @@ public sealed class TagTests : IDisposable
         Assert.Equal(new[] { "магазин", "дом" }, listed);
         Assert.Equal(task.Id, Assert.Single(found));
     }
+
+    [Fact]
+    public void Unknown_mode_is_rejected()
+    {
+        // Опечатка в конфиге не должна молча превращаться в keep: иначе теги уедут в текст задачи.
+        Assert.Throws<ArgumentException>(() => TagParser.Split("купить хлеб #магазин", "extarct"));
+    }
+
+    [Fact]
+    public async Task Tags_are_listed_for_many_tasks_at_once()
+    {
+        string path = Path.Combine(_directory, "kouki.sqlite");
+        SqliteTaskStore tasks = new(new SqliteSession(path));
+        SqliteTagStore tags = new(path);
+
+        TaskRecord first = Kouki.Kagedama.TaskFactory.Create("купить хлеб", TaskSources.Api);
+        TaskRecord second = Kouki.Kagedama.TaskFactory.Create("позвонить маме", TaskSources.Api);
+        await tasks.AddAsync(first);
+        await tasks.AddAsync(second);
+        await tags.AddAsync(first.Id, new[] { "магазин", "дом" }, TagSources.Text);
+        await tags.AddAsync(second.Id, new[] { "звонки" }, TagSources.Text);
+
+        IReadOnlyDictionary<Guid, IReadOnlyList<string>> listed =
+            await tags.ListForTasksAsync(new[] { first.Id, second.Id });
+
+        Assert.Equal(new[] { "магазин", "дом" }, listed[first.Id]);
+        Assert.Equal(new[] { "звонки" }, listed[second.Id]);
+        Assert.Empty(await tags.ListForTasksAsync(Array.Empty<Guid>()));
+    }
 }

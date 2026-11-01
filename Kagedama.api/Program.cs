@@ -120,6 +120,8 @@ builder.Services.AddKoukiCore(new KoukiHostSettings
     DefaultSource = TaskSources.Api,
     Answerer = answererOptions,
     IntentLlm = intentLlmOptions,
+    TagMode = serverOptions.TagMode,
+    TagModeBySource = new Dictionary<string, string>(serverOptions.TagModeBySource, StringComparer.OrdinalIgnoreCase),
 });
 builder.Services.AddUbusuna();
 

@@ -101,4 +101,52 @@ public sealed class SqliteTagStore : ITagStore
 
         return ids.Select(Guid.Parse).ToArray();
     }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyDictionary<Guid, IReadOnlyList<string>>> ListForTasksAsync(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+
+        if (ids.Count == 0)
+        {
+            return new Dictionary<Guid, IReadOnlyList<string>>();
+        }
+
+        await using SqliteLease lease = await _session.OpenAsync(cancellationToken).ConfigureAwait(false);
+
+        // Один запрос на весь список: дашборд обновляет его каждые пять секунд.
+        IEnumerable<TagRow> rows = await lease.Connection.QueryAsync<TagRow>(
+            new CommandDefinition(
+                "SELECT task_id AS TaskId, tag AS Tag FROM task_tags " +
+                "WHERE task_id IN @ids ORDER BY rowid",
+                new { ids = ids.Select(id => id.ToString()).ToArray() },
+                transaction: lease.Transaction,
+                cancellationToken: cancellationToken)).ConfigureAwait(false);
+
+        var result = new Dictionary<Guid, List<string>>();
+        foreach (TagRow row in rows)
+        {
+            if (!Guid.TryParse(row.TaskId, out Guid taskId) || string.IsNullOrWhiteSpace(row.Tag))
+            {
+                continue;
+            }
+
+            if (!result.TryGetValue(taskId, out List<string>? tags))
+            {
+                tags = new List<string>();
+                result[taskId] = tags;
+            }
+
+            tags.Add(row.Tag);
+        }
+
+        return result.ToDictionary(
+            pair => pair.Key,
+            pair => (IReadOnlyList<string>)pair.Value);
+    }
+
+    /// <summary>Строка чтения тегов пачкой.</summary>
+    private sealed record TagRow(string TaskId, string Tag);
 }

@@ -17,7 +17,17 @@ public sealed record TaskDto(
     string Title,
     string Status,
     int Priority,
-    JsonNode? Meta);
+    JsonNode? Meta)
+{
+    /// <summary>
+    /// Теги задачи — всегда массив, пустой вместо <c>null</c>.
+    /// </summary>
+    /// <remarks>
+    /// Свойство, а не позиционный параметр: у существующих потребителей DTO остаётся
+    /// тот же порядок полей, а <c>tags</c> появляется в JSON само.
+    /// </remarks>
+    public IReadOnlyList<string> Tags { get; init; } = Array.Empty<string>();
+}
 
 /// <summary>Результат распознавания в ответах хостов.</summary>
 public sealed record IntentDto(string Intent, double Score, string Model, bool Confident);
