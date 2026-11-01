@@ -164,16 +164,18 @@ GitHub.
 
 `Kagedama.mcp` — не служба, а stdio-процесс: его запускает клиент (плагин
 `dsh-kouki` в DeepSeek Harness, `claude mcp add`, любой MCP-клиент). В артефакте
-он лежит в подкаталоге `mcp/`, и на сервере ему нужен только доступ к базе:
+он лежит в подкаталоге `mcp/`, а на сервере ставится **отдельным каталогом**
+`/opt/kouki/mcp` (не внутрь `/opt/kouki/app`: там живёт только бот). Ему нужен
+только доступ к базе:
 
 ```bash
-dotnet /opt/kouki/app/mcp/Kagedama.mcp.dll --database=/var/lib/kouki/db/kouki.sqlite
+dotnet /opt/kouki/mcp/Kagedama.mcp.dll --database=/var/lib/kouki/db/kouki.sqlite
 ```
 
 Удобнее — через окружение, чтобы плагин не знал пути:
 
 ```bash
-Kouki__DatabasePath=/var/lib/kouki/db/kouki.sqlite dotnet /opt/kouki/app/mcp/Kagedama.mcp.dll
+Kouki__DatabasePath=/var/lib/kouki/db/kouki.sqlite dotnet /opt/kouki/mcp/Kagedama.mcp.dll
 ```
 
 База общая с сервером (WAL разрешает писать обоим), но `busy_timeout` у MCP —
@@ -399,18 +401,25 @@ ss -ltnp | grep 5300                   # слушает ли порт
   лежит `CHANGE_ME`.
 ### Обновление сервера без потери бота
 
-Порядок, который не оставляет бота лежать:
+Обычный способ на сервере — `deploy/deploy-code.sh` (не требует root): сначала
+`--dry-run`, потом без флага. Скрипт проверяет маркеры каталогов, форму деплоя
+(self-contained и нативки sherpa) и вложенность путей, делает копию `<каталог>.prev`,
+раскладывает артефакт, перезапускает сервисы и откатывается сам, если сервер не
+поднялся или смоук провалился.
+
+Ручной путь, который не оставляет бота лежать (если скрипта нет под рукой):
 
 ```sh
 sudo systemctl stop kouki          # PartOf погасит и kouki-bot
-sudo rsync -a --delete --exclude 'bot/' --exclude 'mcp/' <артефакт>/ /opt/kouki/app/
-sudo chown -R kouki:kouki /opt/kouki/app
+rsync -a --delete --exclude 'bot/' --exclude 'mcp/' <артефакт>/ /opt/kouki/app/
+rsync -a --delete <артефакт>/bot/ /opt/kouki/app/bot/
+rsync -a --delete <артефакт>/mcp/ /opt/kouki/mcp/
 sudo systemctl start kouki
 sudo systemctl start kouki-bot     # PartOf не поднимает бота обратно
 ```
 
-`--exclude 'bot/' --exclude 'mcp/'` обязательны: внутри `/opt/kouki/app` живут
-каталоги других сервисов, и `--delete` без исключений удалял бота (systemd падал
-на `Changing to the requested working directory failed`, бот молча не отвечал).
-`deploy/install.sh` делает это сам: он кладёт артефакт с исключениями и
-перезапускает бота после сервера.
+`--exclude 'bot/' --exclude 'mcp/'` обязательны: внутри `/opt/kouki/app` живёт
+каталог бота, и `--delete` без исключений удалял его (systemd падал на
+`Changing to the requested working directory failed`, бот молча не отвечал).
+MCP-сервер лежит отдельно, в `/opt/kouki/mcp`, и обновляется своим rsync —
+`install.sh` его не копирует, поэтому первый раз его ставят руками.

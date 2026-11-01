@@ -6,21 +6,33 @@
 # собирает три артефакта в подкаталоги (api, bot/, mcp/) и проверяет, что в них
 # попали нативные библиотеки — иначе `/api/voice` молча отвечает 503.
 #
+# Отличия от `.ps1`, которые важны на сервере:
+#   * self-contained по умолчанию — прод на 26.04 собран так, и deploy-code.sh
+#     отказывается класть framework-dependent артефакт поверх;
+#   * публикация идёт во временный каталог и подменяет OUTPUT только после успеха,
+#     поэтому неудачная сборка не уничтожает предыдущий артефакт (он остаётся в `.prev`);
+#   * OUTPUT вне `publish/` и вне временного каталога требует явного --allow-any-output:
+#     иначе `--output <корень репозитория>` мог бы снести репозиторий.
+#
 # Коды возврата: 0 — успех; 1 — публикация или проверка провалилась; 2 — аргументы.
 set -euo pipefail
 
 usage() {
     cat <<'EOF'
 Использование: publish-linux.sh [--runtime RID] [--output DIR] [--no-speech]
-                                [--self-contained] [--help]
+                                [--framework-dependent] [--allow-any-output] [--help]
 
-  --runtime RID       идентификатор рантайма (по умолчанию linux-x64)
-  --output DIR        каталог артефакта (по умолчанию <репозиторий>/publish/<RID>)
-  --no-speech         собрать без sherpa-onnx: /api/voice будет отвечать 503
-  --self-contained    положить рантайм .NET в артефакт (~80 МБ)
-  --help              эта справка
+  --runtime RID           идентификатор рантайма (по умолчанию linux-x64)
+  --output DIR            каталог артефакта (по умолчанию <репозиторий>/publish/<RID>)
+  --no-speech             собрать без sherpa-onnx: /api/voice будет отвечать 503
+  --framework-dependent   не класть рантайм .NET в артефакт (нужен aspnetcore-runtime-10.0
+                          на целевой машине; прод собран self-contained, поэтому deploy
+                          такой артефакт отклонит)
+  --allow-any-output      разрешить --output вне publish/ и вне временного каталога
+  --help                  эта справка
 
-Без --self-contained нужен установленный aspnetcore-runtime-10.0 на целевой машине.
+По умолчанию артефакт self-contained: в проде на Ubuntu 26.04 нет пакета
+aspnetcore-runtime-10.0, рантайм лежит рядом с приложением.
 EOF
 }
 
@@ -35,17 +47,26 @@ arg_error() {
     exit 2
 }
 
+need_value() {
+    [ -n "${1:-}" ] || arg_error "у $2 нет значения"
+    case "$1" in
+        -*) arg_error "значение $2 похоже на флаг: $1" ;;
+    esac
+}
+
 RUNTIME=linux-x64
 OUTPUT=""
 SPEECH=true
-SELF_CONTAINED=false
+SELF_CONTAINED=true
+ALLOW_ANY_OUTPUT=0
 
 while [ $# -gt 0 ]; do
     case "$1" in
-        --runtime) [ $# -ge 2 ] || arg_error "у --runtime нет значения"; RUNTIME="$2"; shift 2 ;;
-        --output) [ $# -ge 2 ] || arg_error "у --output нет значения"; OUTPUT="$2"; shift 2 ;;
+        --runtime) [ $# -ge 2 ] || arg_error "у --runtime нет значения"; need_value "$2" "--runtime"; RUNTIME="$2"; shift 2 ;;
+        --output) [ $# -ge 2 ] || arg_error "у --output нет значения"; need_value "$2" "--output"; OUTPUT="$2"; shift 2 ;;
         --no-speech) SPEECH=false; shift ;;
-        --self-contained) SELF_CONTAINED=true; shift ;;
+        --framework-dependent) SELF_CONTAINED=false; shift ;;
+        --allow-any-output) ALLOW_ANY_OUTPUT=1; shift ;;
         --help|-h) usage; exit 0 ;;
         *) arg_error "неизвестный аргумент: $1" ;;
     esac
@@ -63,11 +84,32 @@ if [ -z "$OUTPUT" ]; then
     OUTPUT="$REPO_ROOT/publish/$RUNTIME"
 fi
 
+# Куда разрешено писать. `publish/` — обычный путь; временный каталог — для проверок.
+# Всё остальное только с явным флагом: `rm -rf` по опечатке в пути стоит репозитория.
+OUTPUT_ABS="$(cd "$(dirname "$OUTPUT")" 2>/dev/null && pwd -P || echo "")"
+[ -n "$OUTPUT_ABS" ] || OUTPUT_ABS="$REPO_ROOT"
+OUTPUT_NORMALIZED="$OUTPUT_ABS/$(basename "$OUTPUT")"
+case "$OUTPUT_NORMALIZED" in
+    "$REPO_ROOT"/publish/*) ;;
+    "${TMPDIR:-/tmp}"/*) ;;
+    *)
+        [ "$ALLOW_ANY_OUTPUT" -eq 1 ] || die "output вне publish/ и вне временного каталога: $OUTPUT_NORMALIZED (осознанно — с --allow-any-output)"
+        ;;
+esac
+
 command -v dotnet >/dev/null 2>&1 || die "нет dotnet в PATH (нужен /etc/profile.d/dotnet.sh)"
 
-echo "Публикация $RUNTIME (sherpa=$SPEECH, self-contained=$SELF_CONTAINED) -> $OUTPUT"
-rm -rf "$OUTPUT"
-mkdir -p "$OUTPUT"
+mkdir -p "$(dirname "$OUTPUT_NORMALIZED")"
+STAGE="$(mktemp -d "$(dirname "$OUTPUT_NORMALIZED")/.publish.XXXXXX")" || die "не удалось создать временный каталог рядом с $OUTPUT_NORMALIZED"
+cleanup() {
+    [ -d "$STAGE" ] && rm -rf "$STAGE"
+}
+trap cleanup EXIT
+
+echo "Публикация $RUNTIME (sherpa=$SPEECH, self-contained=$SELF_CONTAINED) -> $OUTPUT_NORMALIZED"
+if [ "$SELF_CONTAINED" = false ]; then
+    echo "ВНИМАНИЕ: framework-dependent артефакт; прод собран self-contained, deploy-code.sh его отклонит" >&2
+fi
 
 # Общие флаги MSBuild: однопоточная сборка, иначе в ограниченном окружении она
 # падает молча с «Ошибок: 0» и ненулевым кодом.
@@ -77,49 +119,59 @@ dotnet publish "$API_PROJECT" \
     -r "$RUNTIME" \
     --self-contained "$SELF_CONTAINED" \
     -m:1 -nodeReuse:false \
-    -o "$OUTPUT"
+    -o "$STAGE"
 
-echo "Публикация бота -> $OUTPUT/bot"
+echo "Публикация бота -> $STAGE/bot"
 dotnet publish "$BOT_PROJECT" \
     -c Release \
     -r "$RUNTIME" \
     --self-contained "$SELF_CONTAINED" \
     -m:1 -nodeReuse:false \
-    -o "$OUTPUT/bot"
+    -o "$STAGE/bot"
 
-echo "Публикация MCP -> $OUTPUT/mcp"
+echo "Публикация MCP -> $STAGE/mcp"
 dotnet publish "$MCP_PROJECT" \
     -c Release \
     -p:KoukiEnableSherpa="$SPEECH" \
     -r "$RUNTIME" \
     --self-contained "$SELF_CONTAINED" \
     -m:1 -nodeReuse:false \
-    -o "$OUTPUT/mcp"
+    -o "$STAGE/mcp"
 
 missing=()
 for name in Kagedama.api.dll appsettings.json wwwroot/app.js \
             bot/Kouki.Kagedama.Bot.dll bot/appsettings.json \
             mcp/Kagedama.mcp.dll mcp/appsettings.json; do
-    [ -e "$OUTPUT/$name" ] || missing+=("$name")
+    [ -e "$STAGE/$name" ] || missing+=("$name")
 done
 
 if [ "$SPEECH" = true ]; then
     for name in libonnxruntime.so libsherpa-onnx-c-api.so; do
         # Нативки могут лежать в подкаталоге рантайма, поэтому ищем по всему артефакту.
-        if ! find "$OUTPUT" -type f -name "$name" -print -quit | grep -q .; then
+        if ! find "$STAGE" -type f -name "$name" -print -quit | grep -q .; then
             missing+=("$name")
         fi
     done
 fi
 
-if ! find "$OUTPUT" -type f -name 'libe_sqlite3*' -print -quit | grep -q .; then
+if ! find "$STAGE" -type f -name 'libe_sqlite3*' -print -quit | grep -q .; then
     missing+=('libe_sqlite3.so')
 fi
 
 if [ "${#missing[@]}" -gt 0 ]; then
-    die "в публикации не хватает: ${missing[*]}"
+    die "в публикации не хватает: ${missing[*]} (предыдущий артефакт не тронут: $OUTPUT_NORMALIZED)"
 fi
 
-files=$(find "$OUTPUT" -type f | wc -l | tr -d ' ')
-size_mb=$(du -sm "$OUTPUT" | awk '{print $1}')
-echo "Готово: $files файлов, ${size_mb} МБ — $OUTPUT"
+# Подмена только после успешной проверки: неудачная сборка не должна уничтожать
+# артефакт, на который можно откатиться.
+if [ -e "$OUTPUT_NORMALIZED" ]; then
+    PREV_OUTPUT="$OUTPUT_NORMALIZED.prev"
+    rm -rf "$PREV_OUTPUT"
+    mv "$OUTPUT_NORMALIZED" "$PREV_OUTPUT"
+    echo "Предыдущий артефакт сохранён: $PREV_OUTPUT"
+fi
+mv "$STAGE" "$OUTPUT_NORMALIZED"
+
+files=$(find "$OUTPUT_NORMALIZED" -type f | wc -l | tr -d ' ')
+size_mb=$(du -sm "$OUTPUT_NORMALIZED" | awk '{print $1}')
+echo "Готово: $files файлов, ${size_mb} МБ — $OUTPUT_NORMALIZED"

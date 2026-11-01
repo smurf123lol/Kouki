@@ -288,6 +288,16 @@ cmd_merge() {
         die "основное дерево грязное — сначала закоммитьте или спрячьте изменения"
     fi
 
+    # Дерево задачи тоже должно быть чистым: иначе merge вольёт ветку без
+    # незакоммиченной работы и отчитается об успехе, а правок в master не будет.
+    local task_status
+    task_status="$(git -C "$path" status --porcelain)" ||
+        die "git status завершился с ошибкой в дереве задачи $path"
+    if [ -n "$task_status" ]; then
+        printf '%s\n' "$task_status" >&2
+        die "дерево задачи грязное — сначала закоммитьте изменения в $path"
+    fi
+
     local rc=0
     git -C "$repo_path" merge --no-ff "$branch" -m "merge: $branch" || rc=$?
     if [ "$rc" -ne 0 ]; then
