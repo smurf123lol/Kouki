@@ -52,6 +52,27 @@ public sealed class DeployToolingAssetsTests
     }
 
     [Fact]
+    public void Publish_passes_distinct_output_directories_to_each_publish()
+    {
+        // DotnetStub создаёт все маркеры при любом -o, поэтому перепутанные каталоги
+        // поведенческим тестом не ловятся — их фиксирует статическая проверка.
+        var script = PublishLinux();
+
+        Assert.Contains("-o \"$STAGE\" || die \"dotnet publish API", script, StringComparison.Ordinal);
+        Assert.Contains("-o \"$STAGE/bot\" || die", script, StringComparison.Ordinal);
+        Assert.Contains("-o \"$STAGE/mcp\" || die", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Worktree_resolves_names_case_insensitively_like_new()
+    {
+        var script = Script("tools", "worktree.sh");
+
+        // new создаёт имя в нижнем регистре, значит merge/remove обязаны искать так же.
+        Assert.Equal(2, script.Split(new[] { "path=\"$WT_ROOT/$(lower \"$NAME\")\"" }, StringSplitOptions.None).Length - 1);
+    }
+
+    [Fact]
     public void Publish_defaults_to_self_contained_like_production()
     {
         var script = PublishLinux();
@@ -123,7 +144,7 @@ public sealed class DeployToolingAssetsTests
     {
         var script = DeployCode();
 
-        Assert.Contains("KOUKI_TOKEN=\"$TOKEN\" bash", script, StringComparison.Ordinal);
+        Assert.Contains("KOUKI_TOKEN=\"$TOKEN\" KOUKI_SMOKE_SINCE=\"$SMOKE_SINCE\" bash", script, StringComparison.Ordinal);
         Assert.DoesNotContain("smoke.sh\" --token", script, StringComparison.Ordinal);
     }
 
@@ -263,50 +284,24 @@ public sealed class DeployToolingAssetsTests
         string stub = Path.Combine(root, "stub");
         try
         {
-            foreach (var dir in new[]
-                     {
-                         Path.Combine(artifact, "wwwroot"), Path.Combine(artifact, "bot"),
-                         Path.Combine(artifact, "mcp"), Path.Combine(app, "bot"), mcp, stub,
-                     })
-            {
-                Directory.CreateDirectory(dir);
-            }
+            CreateDeployShape(artifact, app, mcp, stub);
 
-            File.WriteAllText(Path.Combine(artifact, "Kagedama.api.dll"), "NEW-API-CONTENT");
-            File.WriteAllText(Path.Combine(artifact, "appsettings.json"), "{}");
-            File.WriteAllText(Path.Combine(artifact, "wwwroot", "app.js"), "x");
-            File.WriteAllText(Path.Combine(artifact, "bot", "Kouki.Kagedama.Bot.dll"), "NEW-BOT");
-            File.WriteAllText(Path.Combine(artifact, "bot", "appsettings.json"), "{}");
-            File.WriteAllText(Path.Combine(artifact, "mcp", "Kagedama.mcp.dll"), "NEW-MCP");
-            File.WriteAllText(Path.Combine(artifact, "mcp", "appsettings.json"), "{}");
-            File.WriteAllText(Path.Combine(app, "Kagedama.api.dll"), "OLD-API");
-            File.WriteAllText(Path.Combine(app, "bot", "Kouki.Kagedama.Bot.dll"), "OLD-BOT");
-            File.WriteAllText(Path.Combine(mcp, "Kagedama.mcp.dll"), "OLD-MCP");
+            // rsync отката (источник — .prev) падает, restart тоже: смоук не должен
+            // обещать «прод возвращён». Не chmod 000 — под root он не сработал бы.
+            string rsyncPath = Path.Combine(stub, "rsync");
+            File.WriteAllText(rsyncPath, "#!/usr/bin/env bash\ncase \"$*\" in\n  *.prev*) exit 23 ;;\nesac\nexec /usr/bin/rsync \"$@\"\n", new UTF8Encoding(false));
+            Assert.Equal(0, RunBash("-c", $"chmod +x '{rsyncPath}'").Rc);
 
-            // Подставной sudo: валит restart и одновременно лишает копию прав,
-            // чтобы rsync отката не смог её вернуть.
             string sudoPath = Path.Combine(stub, "sudo");
-            File.WriteAllText(sudoPath, """
-                #!/usr/bin/env bash
-                case "$*" in
-                  *restart-kouki*)
-                    if [ -n "${ROLLBACK_PREV:-}" ] && [ -d "$ROLLBACK_PREV" ]; then
-                      chmod -R 000 "$ROLLBACK_PREV" 2>/dev/null || true
-                    fi
-                    exit 1 ;;
-                esac
-                exit 0
-                """, new UTF8Encoding(false));
+            File.WriteAllText(sudoPath, "#!/usr/bin/env bash\nexit 1\n", new UTF8Encoding(false));
             Assert.Equal(0, RunBash("-c", $"chmod +x '{sudoPath}'").Rc);
 
-            string deploy = TestPaths.Path("deploy", "deploy-code.sh");
             var env = new Dictionary<string, string>
             {
                 ["PATH"] = stub + ":" + (Environment.GetEnvironmentVariable("PATH") ?? "/usr/bin:/bin"),
-                ["ROLLBACK_PREV"] = Path.Combine(app + ".prev"),
             };
             var result = RunBashWithEnv(
-                deploy, env,
+                TestPaths.Path("deploy", "deploy-code.sh"), env,
                 "--from", artifact, "--app-dir", app, "--mcp-dir", mcp);
 
             Assert.Equal(1, result.Rc);
@@ -315,8 +310,6 @@ public sealed class DeployToolingAssetsTests
         }
         finally
         {
-            // Снимаем 000, иначе временный каталог не удалить.
-            RunBash("-c", $"chmod -R u+rwX '{root}' 2>/dev/null || true");
             Directory.Delete(root, recursive: true);
         }
     }
@@ -521,6 +514,75 @@ public sealed class DeployToolingAssetsTests
         {
             Directory.Delete(root, recursive: true);
         }
+    }
+
+    [Fact]
+    public void Smoke_scopes_the_bot_journal_to_the_deploy_start()
+    {
+        // Блокер раунда 5: смоук смотрел журнал бота за 2 часа и валил деплой из-за
+        // ошибок, случившихся до выката (сразу после перезагрузки).
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        string root = Directory.CreateTempSubdirectory("kouki-smoke-since-").FullName;
+        string stub = Path.Combine(root, "stub");
+        string argsFile = Path.Combine(root, "journal-args.txt");
+        try
+        {
+            Directory.CreateDirectory(stub);
+            WriteStub(stub, "journalctl", "#!/usr/bin/env bash\nprintf '%s\\n' \"$*\" >> \"$ARGS_FILE\"\nprintf 'Exception\\n'\nexit 0\n");
+            WriteStub(stub, "systemctl", "#!/usr/bin/env bash\nprintf 'active\\n'\nexit 0\n");
+            WriteStub(stub, "curl", "#!/usr/bin/env bash\nprintf '200'\nexit 0\n");
+
+            var env = new Dictionary<string, string>
+            {
+                ["PATH"] = stub + ":" + (Environment.GetEnvironmentVariable("PATH") ?? "/usr/bin:/bin"),
+                ["KOUKI_TOKEN"] = "test-token",
+                ["KOUKI_SMOKE_SINCE"] = "1700000000",
+                ["KOUKI_SMOKE_SHARE"] = Path.Combine(root, "share"),
+                ["ARGS_FILE"] = argsFile,
+            };
+
+            var withSince = RunBashWithEnv(TestPaths.Path("deploy", "smoke.sh"), env, "--quiet");
+            // Общий код смоука здесь не важен: остальные проверки на подставных командах
+            // проходят или падают, проверяется аргумент журнала.
+            string first = File.ReadAllText(argsFile);
+            Assert.Contains("--since @1700000000", first, StringComparison.Ordinal);
+            Assert.DoesNotContain("-2 hours", first, StringComparison.Ordinal);
+
+            File.Delete(argsFile);
+            var without = new Dictionary<string, string>(env);
+            without.Remove("KOUKI_SMOKE_SINCE");
+            RunBashWithEnv(TestPaths.Path("deploy", "smoke.sh"), without, "--quiet");
+            Assert.Contains("--since -2 hours", File.ReadAllText(argsFile), StringComparison.Ordinal);
+
+            Assert.True(withSince.Rc is 0 or 1, $"rc={withSince.Rc}");
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Deploy_passes_the_smoke_window_from_the_start_of_the_rollout()
+    {
+        var deploy = DeployCode();
+        var smoke = Script("deploy", "smoke.sh");
+
+        Assert.Contains("SMOKE_SINCE=$(date +%s)", deploy, StringComparison.Ordinal);
+        Assert.Contains("KOUKI_SMOKE_SINCE=\"$SMOKE_SINCE\"", deploy, StringComparison.Ordinal);
+        Assert.Contains("KOUKI_SMOKE_SINCE", smoke, StringComparison.Ordinal);
+        Assert.Contains("BOT_JOURNAL_ARGS=(--since \"@$KOUKI_SMOKE_SINCE\")", smoke, StringComparison.Ordinal);
+    }
+
+    private static void WriteStub(string dir, string name, string body)
+    {
+        string path = Path.Combine(dir, name);
+        File.WriteAllText(path, body, new UTF8Encoding(false));
+        Assert.Equal(0, RunBash("-c", $"chmod +x '{path}'").Rc);
     }
 
     /// <summary>Артефакт, цели деплоя со старыми файлами и каталог для подставных команд.</summary>

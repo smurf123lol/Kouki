@@ -191,6 +191,14 @@ fi
 
 PREV_APP="$APP_DIR_REAL.prev"
 PREV_MCP="$MCP_DIR_REAL.prev"
+# Копия не должна оказаться источником, целью или их родителем: `rm -rf` ниже
+# удалил бы живой каталог.
+for prev in "$PREV_APP" "$PREV_MCP"; do
+    if inside "$FROM_REAL" "$prev" || inside "$prev" "$FROM_REAL" ||
+       inside "$APP_DIR_REAL" "$prev" || inside "$MCP_DIR_REAL" "$prev"; then
+        die "копия для отката пересекается с $FROM_REAL или целями деплоя: $prev"
+    fi
+done
 ROLLBACK_READY=0
 
 if [ "$BACKUP" -eq 1 ]; then
@@ -231,6 +239,15 @@ fail_after_change() {
     esac
 }
 
+# Ctrl+C или systemd stop между rsync'ами оставляли бы смешанное дерево:
+# откатываемся тем же путём, что и при ошибке.
+# shellcheck disable=SC2329 # вызывается через trap
+interrupted() {
+    trap - INT TERM
+    fail_after_change "деплой прерван (INT/TERM)"
+}
+trap interrupted INT TERM
+
 rsync -a --delete \
     --exclude 'appsettings.Development.json' --exclude 'bot/' --exclude 'mcp/' \
     "$FROM_REAL"/ "$APP_DIR_REAL"/ || fail_after_change "rsync API завершился с ошибкой"
@@ -247,6 +264,10 @@ if [ "$NO_RESTART" -eq 1 ]; then
     exit 0
 fi
 
+# Метка начала выката: смоук смотрит журнал бота только с этого момента.
+# Иначе ошибки, случившиеся до деплоя (например, сразу после перезагрузки),
+# валят смоук, и deploy откатывает уже успешный выкат.
+SMOKE_SINCE=$(date +%s)
 sudo -n kouki-admin restart-kouki || fail_after_change "restart-kouki завершился с ошибкой"
 sudo -n kouki-admin restart-bot || fail_after_change "restart-bot завершился с ошибкой"
 
@@ -265,7 +286,7 @@ esac
 
 if [ "$SKIP_SMOKE" -eq 0 ]; then
     TOKEN=$(sudo -n kouki-admin api-token) || fail_after_change "не удалось получить токен API"
-    if ! KOUKI_TOKEN="$TOKEN" bash "$REPO_ROOT/deploy/smoke.sh" --quiet; then
+    if ! KOUKI_TOKEN="$TOKEN" KOUKI_SMOKE_SINCE="$SMOKE_SINCE" bash "$REPO_ROOT/deploy/smoke.sh" --quiet; then
         fail_after_change "смоук провалился, смотрите вывод выше"
     fi
     echo "Смоук пройден"

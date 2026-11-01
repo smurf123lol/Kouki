@@ -217,7 +217,7 @@ cmd_remove() {
 
     local name_lower path repo repo_path
     name_lower="$(lower "$NAME")"
-    path="$WT_ROOT/$NAME"
+    path="$WT_ROOT/$(lower "$NAME")"
     require_existing_worktree "$path"
 
     if ! repo="$(find_repo_for_name "$name_lower")"; then
@@ -262,7 +262,7 @@ cmd_merge() {
 
     local name_lower path repo repo_path
     name_lower="$(lower "$NAME")"
-    path="$WT_ROOT/$NAME"
+    path="$WT_ROOT/$(lower "$NAME")"
     require_existing_worktree "$path"
 
     if ! repo="$(find_repo_for_name "$name_lower")"; then

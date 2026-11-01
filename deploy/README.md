@@ -414,18 +414,19 @@ ss -ltnp | grep 5300                   # слушает ли порт
 
 ```sh
 sudo systemctl stop kouki          # PartOf погасит и kouki-bot
-rsync -a --delete --exclude 'bot/' --exclude 'mcp/' <артефакт>/ /opt/kouki/app/
+rsync -a --delete --exclude 'bot/' --exclude 'mcp/' --exclude 'appsettings.Development.json' \
+      <артефакт>/ /opt/kouki/app/
 rsync -a --delete <артефакт>/bot/ /opt/kouki/app/bot/
 rsync -a --delete <артефакт>/mcp/ /opt/kouki/mcp/
 sudo systemctl start kouki
 sudo systemctl start kouki-bot     # PartOf не поднимает бота обратно
 ```
 
-Оба `--exclude` обязательны. `bot/`: внутри `/opt/kouki/app` живёт каталог бота,
+Все три `--exclude` — те же, что в `deploy-code.sh`. `bot/`: внутри `/opt/kouki/app` живёт каталог бота,
 и `--delete` без исключения удалял его (systemd падал на
 `Changing to the requested working directory failed`, бот молча не отвечал).
 `mcp/`: артефакт содержит подкаталог `mcp/`, но MCP-сервер лежит отдельно, в
 `/opt/kouki/mcp`, и обновляется своим rsync — без исключения копия `mcp/`
 оседает внутри `/opt/kouki/app` (потом `deploy-code.sh` исключает её из
-`--delete`, и дубль остаётся навсегда). `install.sh` MCP не копирует, поэтому
-первый раз его ставят руками.
+`--delete`, и дубль остаётся навсегда). `appsettings.Development.json`: dev-конфиг
+в прод не кладём. `install.sh` MCP не копирует, поэтому первый раз его ставят руками.

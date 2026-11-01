@@ -19,6 +19,15 @@ SERVICES="${KOUKI_SMOKE_SERVICES:-kouki kouki-bot kouki-llm dsh-web dsh-token}"
 TIMEOUT="${KOUKI_SMOKE_TIMEOUT:-10}"
 INTAKE_TIMEOUT="${KOUKI_SMOKE_INTAKE_TIMEOUT:-60}"
 SPEECH_TIMEOUT="${KOUKI_SMOKE_SPEECH_TIMEOUT:-30}"
+# Окно журнала бота: руками — 2 часа, но деплой передаёт время начала выката,
+# иначе ошибки, случившиеся до него (например, сразу после перезагрузки),
+# валили бы смоук и откатывали успешный деплой.
+BOT_WINDOW='за 2 часа'
+BOT_JOURNAL_ARGS=(--since '-2 hours')
+if [ -n "${KOUKI_SMOKE_SINCE:-}" ]; then
+    BOT_JOURNAL_ARGS=(--since "@$KOUKI_SMOKE_SINCE")
+    BOT_WINDOW='с начала деплоя'
+fi
 QUIET=0
 JSON=0
 WITH_WRITES=0
@@ -38,6 +47,8 @@ usage() {
 (строка журнала классификаций и запись задачи) — они входят в --with-writes.
 
 Токен берётся из KOUKI_TOKEN, иначе из /etc/kouki/kouki.env (Kouki__Token).
+Переменные: KOUKI_SMOKE_SINCE (epoch начала деплоя — журнал бота с этого момента
+вместо двух часов), KOUKI_SKIP_BOT=1 (не проверять журнал бота вовсе).
 EOF
 }
 
@@ -69,6 +80,7 @@ declare -a REPORT=()
 AUTH_CONFIG=""
 TMP_FILES=()
 
+# shellcheck disable=SC2329 # вызывается через trap
 cleanup() {
     for f in ${TMP_FILES[@]+"${TMP_FILES[@]}"}; do
         [ -n "$f" ] || continue
@@ -287,12 +299,12 @@ fi
 
 if [ -n "${KOUKI_SKIP_BOT:-}" ]; then
     say "Бот: пропущен (KOUKI_SKIP_BOT)"
-elif journal="$(journalctl -u kouki-bot --since '-2 hours' --no-pager 2>&1)"; then
+elif journal="$(journalctl -u kouki-bot "${BOT_JOURNAL_ARGS[@]}" --no-pager 2>&1)"; then
     errors="$(printf '%s' "$journal" | grep -cE 'FAIL|Ошибка|Exception' || true)"
     if [ "${errors:-0}" -eq 0 ]; then
-        ok "бот без ошибок за 2 часа"
+        ok "бот без ошибок $BOT_WINDOW"
     else
-        bad "бот" "ошибок в журнале за 2 часа: $errors"
+        bad "бот" "ошибок в журнале $BOT_WINDOW: $errors"
     fi
 else
     bad "бот" "журнал не прочитан (нет прав на journalctl или юнита нет)"
