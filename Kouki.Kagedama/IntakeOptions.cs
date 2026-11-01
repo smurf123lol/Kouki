@@ -27,6 +27,12 @@ public sealed class IntakeOptions
     public string DefaultSource { get; set; } = "api";
 
     /// <summary>
+    /// Что делать с тегами во фразе: <see cref="TagModes.Extract"/> вырезает и сохраняет,
+    /// <see cref="TagModes.Keep"/> оставляет их частью формулировки.
+    /// </summary>
+    public string TagMode { get; set; } = TagModes.Extract;
+
+    /// <summary>
     /// Падать ли, если не удалось записать журнал действий.
     /// По умолчанию нет: отладочный журнал не должен ронять приём фразы.
     /// </summary>

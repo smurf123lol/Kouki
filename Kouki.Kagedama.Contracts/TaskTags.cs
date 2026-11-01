@@ -1,0 +1,43 @@
+namespace Kouki.Kagedama.Contracts;
+
+/// <summary>
+/// Источники тегов задачи.
+/// </summary>
+public static class TagSources
+{
+    /// <summary>Тег вырезан из самой фразы (<c>#работа</c>, <c>[срочно]</c>).</summary>
+    public const string Text = "text";
+
+    /// <summary>Тег предложила модель интентов.</summary>
+    public const string Model = "model";
+}
+
+/// <summary>
+/// Теги задач: отдельная таблица, а не поле в мете, чтобы по ним можно было фильтровать SQL-ом.
+/// </summary>
+public interface ITagStore
+{
+    /// <summary>
+    /// Добавляет теги задаче. Повторы и уже существующие теги молча пропускаются.
+    /// </summary>
+    /// <param name="taskId">Идентификатор задачи.</param>
+    /// <param name="tags">Теги в канонической форме (без решётки).</param>
+    /// <param name="source">Источник: <see cref="TagSources"/>.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    Task AddAsync(Guid taskId, IEnumerable<string> tags, string source, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Теги одной задачи в порядке добавления.
+    /// </summary>
+    /// <param name="taskId">Идентификатор задачи.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    Task<IReadOnlyList<string>> ListAsync(Guid taskId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Задачи с указанным тегом, новые сверху.
+    /// </summary>
+    /// <param name="tag">Тег в канонической форме.</param>
+    /// <param name="limit">Сколько вернуть.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    Task<IReadOnlyList<Guid>> FindTasksAsync(string tag, int limit, CancellationToken cancellationToken = default);
+}

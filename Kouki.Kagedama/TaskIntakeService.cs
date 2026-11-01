@@ -38,6 +38,7 @@ public sealed class TaskIntakeService
     private readonly IntakeOptions _options;
     private readonly IClassificationJournal? _journal;
     private readonly IUnitOfWork? _work;
+    private readonly ITagStore? _tags;
 
     /// <summary>
     /// Создаёт сервис приёма.
@@ -58,7 +59,8 @@ public sealed class TaskIntakeService
         IContextRegistry contexts,
         IntakeOptions options,
         IClassificationJournal journal,
-        IUnitOfWork? work = null)
+        IUnitOfWork? work = null,
+        ITagStore? tags = null)
     {
         ArgumentNullException.ThrowIfNull(classifier);
         ArgumentNullException.ThrowIfNull(router);
@@ -75,6 +77,21 @@ public sealed class TaskIntakeService
         _options = options;
         _journal = journal ?? throw new ArgumentNullException(nameof(journal));
         _work = work;
+        _tags = tags;
+    }
+
+    /// <summary>
+    /// Прикрепляет теги, вырезанные из фразы. Без хранилища тегов (юнит-тесты, чужие хосты)
+    /// вызов ничего не делает: теги — необязательная часть приёма.
+    /// </summary>
+    private async Task AttachTagsAsync(Guid taskId, IReadOnlyList<string> tags, CancellationToken cancellationToken)
+    {
+        if (_tags is null || tags.Count == 0)
+        {
+            return;
+        }
+
+        await _tags.AddAsync(taskId, tags, TagSources.Text, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -103,6 +120,15 @@ public sealed class TaskIntakeService
         ArgumentException.ThrowIfNullOrWhiteSpace(source);
 
         string trimmed = text.Trim();
+
+        // Теги в фразе (`#работа`, `[срочно]`) — часть метки, а не формулировки: в режиме
+        // extract они вырезаются из текста и уходят в task_tags отдельными строками.
+        (trimmed, IReadOnlyList<string> tags) = TagParser.Split(trimmed, _options.TagMode);
+        if (trimmed.Length == 0)
+        {
+            throw new ArgumentException("После вырезания тегов в фразе ничего не осталось.", nameof(text));
+        }
+
         long started = Stopwatch.GetTimestamp();
         IExecutionContext? context = _contexts.GetDefaultContext();
 
@@ -163,6 +189,7 @@ public sealed class TaskIntakeService
                 return (created, actionId);
             }, cancellationToken).ConfigureAwait(false);
 
+            await AttachTagsAsync(task.Id, tags, cancellationToken).ConfigureAwait(false);
             return new IntakeResult(task, review, false, ActionOutcomes.NeedsReview, reviewAction);
         }
 
@@ -180,6 +207,8 @@ public sealed class TaskIntakeService
                 await LinkJournalAsync(classificationId, question.Id, cancellationToken).ConfigureAwait(false);
                 return question;
             }, cancellationToken).ConfigureAwait(false);
+
+            await AttachTagsAsync(recorded.Id, tags, cancellationToken).ConfigureAwait(false);
         }
 
         // Уверенная фраза: всё уходит в роутер, он найдёт команду и вызовет диспатчер.
@@ -212,6 +241,7 @@ public sealed class TaskIntakeService
             {
                 string metaJson = BuildMeta(route, route.Executed, outcome, asrConfidence, audioPath, text: text, classifierVerdict: classifierVerdict);
                 await _store.UpdateAsync(created.Id, null, null, null, metaJson, cancellationToken).ConfigureAwait(false);
+                await AttachTagsAsync(created.Id, tags, cancellationToken).ConfigureAwait(false);
                 created.MetaJson = metaJson;
             }
 

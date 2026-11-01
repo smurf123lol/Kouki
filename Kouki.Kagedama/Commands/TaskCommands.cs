@@ -171,13 +171,18 @@ public sealed record GetTaskCommand(string? TaskId = null) : ICommand;
 public sealed class GetTaskHandler : ICommandHandler<GetTaskCommand>
 {
     private readonly ITaskStore _store;
+    private readonly ITagStore? _tags;
 
     /// <summary>
     /// Создаёт обработчик чтения задачи.
     /// </summary>
     /// <param name="store">Хранилище задач.</param>
-    public GetTaskHandler(ITaskStore store)
-        => _store = store ?? throw new ArgumentNullException(nameof(store));
+    /// <param name="tags">Хранилище тегов: без него задача отдаётся без тегов.</param>
+    public GetTaskHandler(ITaskStore store, ITagStore? tags = null)
+    {
+        _store = store ?? throw new ArgumentNullException(nameof(store));
+        _tags = tags;
+    }
 
     /// <inheritdoc />
     public async Task<JsonNode> HandleAsync(
@@ -209,6 +214,18 @@ public sealed class GetTaskHandler : ICommandHandler<GetTaskCommand>
 
         JsonObject payload = ListTasksHandler.ToJson(task);
         payload["found"] = true;
+        if (_tags is not null)
+        {
+            IReadOnlyList<string> taskTags = await _tags.ListAsync(id, cancellationToken).ConfigureAwait(false);
+            JsonArray tagsArray = new();
+            foreach (string tag in taskTags)
+            {
+                tagsArray.Add(tag);
+            }
+
+            payload["tags"] = tagsArray;
+        }
+
         return payload;
     }
 }

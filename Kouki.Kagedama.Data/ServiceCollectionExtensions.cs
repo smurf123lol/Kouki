@@ -38,6 +38,7 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IActionLog>(sp => new SqliteActionLog(sp.GetRequiredService<SqliteSession>()));
         services.TryAddSingleton<IStateStore>(sp => new SqliteStateStore(sp.GetRequiredService<SqliteSession>()));
         services.TryAddSingleton<IReminderStore>(sp => new SqliteReminderStore(sp.GetRequiredService<SqliteSession>()));
+        services.TryAddSingleton<ITagStore>(sp => new SqliteTagStore(sp.GetRequiredService<SqliteSession>()));
 
         return services;
     }

@@ -172,6 +172,16 @@ public static class DatabaseInitializer
 
         CREATE INDEX IF NOT EXISTS ix_reminders_due ON reminders (state, due_at);
         CREATE INDEX IF NOT EXISTS ix_reminders_task ON reminders (task_id);
+
+        CREATE TABLE IF NOT EXISTS task_tags (
+            task_id    TEXT NOT NULL REFERENCES tasks (id) ON DELETE CASCADE,
+            tag        TEXT NOT NULL,
+            source     TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            PRIMARY KEY (task_id, tag)
+        );
+
+        CREATE INDEX IF NOT EXISTS ix_task_tags_tag ON task_tags (tag);
         """;
 }
 
