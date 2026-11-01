@@ -90,6 +90,30 @@ public sealed class TagExposureTests
     }
 
     [Fact]
+    public async Task List_tasks_applies_tag_status_and_limit_together()
+    {
+        using var fixture = new TagIntakeFixture();
+
+        // «Нужная» задача создана первой: при LIMIT до фильтра статуса она выпадала из выборки.
+        TaskRecord wanted = await fixture.NewTaskAsync("ответить на письмо", "работа");
+        foreach (string title in new[] { "старый отчёт", "созвон" })
+        {
+            TaskRecord finished = await fixture.NewTaskAsync(title, "работа");
+            Assert.True(await fixture.Store.UpdateAsync(finished.Id, TaskStatuses.Done, null, null));
+        }
+
+        var handler = new ListTasksHandler(fixture.Store, fixture.Tags);
+
+        // Ровно тот запрос, который делает GET /api/tasks?tag=работа&status=new&limit=2.
+        JsonObject payload = Assert.IsType<JsonObject>(
+            await handler.HandleAsync(new ListTasksCommand(TaskStatuses.New, 2, "работа")));
+
+        Assert.Equal(1, payload["count"]!.GetValue<int>());
+        JsonObject item = Assert.Single(Assert.IsType<JsonArray>(payload["tasks"]).OfType<JsonObject>());
+        Assert.Equal(wanted.Id, Guid.Parse(item["id"]!.GetValue<string>()));
+    }
+
+    [Fact]
     public async Task Mcp_list_tasks_accepts_tag()
     {
         using var fixture = new TagIntakeFixture(options: McpOptions());

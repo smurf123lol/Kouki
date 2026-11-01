@@ -162,7 +162,7 @@ public sealed class ListTasksHandler : ICommandHandler<ListTasksCommand>
 
     /// <summary>
     /// Задачи с тегом: идентификаторы даёт <see cref="ITagStore.FindTasksAsync"/>,
-    /// статус проверяется здесь — фильтр по тегу и статусу применяется вместе.
+    /// который фильтрует тег и статус одним запросом — предел считается уже по ним.
     /// </summary>
     private async Task<IReadOnlyList<TaskRecord>> FindByTagAsync(
         string tag,
@@ -170,13 +170,15 @@ public sealed class ListTasksHandler : ICommandHandler<ListTasksCommand>
         int limit,
         CancellationToken cancellationToken)
     {
-        IReadOnlyList<Guid> ids = await _tags!.FindTasksAsync(tag, limit, cancellationToken).ConfigureAwait(false);
+        IReadOnlyList<Guid> ids = await _tags!
+            .FindTasksAsync(tag, status, limit, cancellationToken)
+            .ConfigureAwait(false);
 
         List<TaskRecord> found = new(ids.Count);
         foreach (Guid id in ids)
         {
             TaskRecord? task = await _store.GetAsync(id, cancellationToken).ConfigureAwait(false);
-            if (task is null || (status is not null && !string.Equals(task.Status, status, StringComparison.Ordinal)))
+            if (task is null)
             {
                 continue;
             }

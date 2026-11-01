@@ -36,10 +36,19 @@ public interface ITagStore
     /// <summary>
     /// Задачи с указанным тегом, новые сверху.
     /// </summary>
+    /// <remarks>
+    /// Статус фильтруется тем же запросом, что и тег: если сперва отсечь <paramref name="limit"/>,
+    /// а потом отбросить чужие статусы, выборка «тег + статус + предел» потеряет подходящие задачи.
+    /// </remarks>
     /// <param name="tag">Тег в канонической форме.</param>
+    /// <param name="status">Статус задачи; <c>null</c> — любой статус.</param>
     /// <param name="limit">Сколько вернуть.</param>
     /// <param name="cancellationToken">Токен отмены.</param>
-    Task<IReadOnlyList<Guid>> FindTasksAsync(string tag, int limit, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Guid>> FindTasksAsync(
+        string tag,
+        string? status,
+        int limit,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Теги сразу для многих задач — одним запросом.

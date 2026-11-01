@@ -83,6 +83,7 @@ public sealed class SqliteTagStore : ITagStore
     /// <inheritdoc />
     public async Task<IReadOnlyList<Guid>> FindTasksAsync(
         string tag,
+        string? status,
         int limit,
         CancellationToken cancellationToken = default)
     {
@@ -91,11 +92,14 @@ public sealed class SqliteTagStore : ITagStore
 
         await using SqliteLease lease = await _session.OpenAsync(cancellationToken).ConfigureAwait(false);
 
+        // Статус в том же WHERE, что и тег: LIMIT должен считать уже отфильтрованные строки,
+        // иначе «тег + статус + предел» отдаёт меньше задач, чем просили (или пусто).
         IEnumerable<string> ids = await lease.Connection.QueryAsync<string>(
             new CommandDefinition(
                 "SELECT t.task_id FROM task_tags t JOIN tasks k ON k.id = t.task_id " +
-                "WHERE t.tag = @tag ORDER BY k.created_at DESC LIMIT @limit",
-                new { tag = tag.Trim().ToLowerInvariant(), limit },
+                "WHERE t.tag = @tag AND (@status IS NULL OR k.status = @status) " +
+                "ORDER BY k.created_at DESC LIMIT @limit",
+                new { tag = tag.Trim().ToLowerInvariant(), status, limit },
                 transaction: lease.Transaction,
                 cancellationToken: cancellationToken)).ConfigureAwait(false);
 

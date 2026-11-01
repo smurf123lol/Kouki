@@ -81,10 +81,39 @@ public sealed class TagTests : IDisposable
         await tags.AddAsync(task.Id, new[] { "магазин" }, TagSources.Model); // повтор — no-op
 
         IReadOnlyList<string> listed = await tags.ListAsync(task.Id);
-        IReadOnlyList<Guid> found = await tags.FindTasksAsync("магазин", 10);
+        IReadOnlyList<Guid> found = await tags.FindTasksAsync("магазин", null, 10);
 
         Assert.Equal(new[] { "магазин", "дом" }, listed);
         Assert.Equal(task.Id, Assert.Single(found));
+    }
+
+    [Fact]
+    public async Task Tag_status_and_limit_are_applied_together()
+    {
+        string path = Path.Combine(_directory, "kouki.sqlite");
+        SqliteTaskStore tasks = new(new SqliteSession(path));
+        SqliteTagStore tags = new(path);
+
+        // Нужная задача создана первой: если LIMIT отсекает раньше фильтра статуса, она выпадает.
+        TaskRecord wanted = Kouki.Kagedama.TaskFactory.Create("ответить на письмо", TaskSources.Api);
+        await tasks.AddAsync(wanted);
+        await tags.AddAsync(wanted.Id, new[] { "работа" }, TagSources.Text);
+
+        foreach (string title in new[] { "старый отчёт", "созвон" })
+        {
+            TaskRecord finished = Kouki.Kagedama.TaskFactory.Create(title, TaskSources.Api);
+            await tasks.AddAsync(finished);
+            await tags.AddAsync(finished.Id, new[] { "работа" }, TagSources.Text);
+            Assert.True(await tasks.UpdateAsync(finished.Id, TaskStatuses.Done, null, null));
+        }
+
+        // Предел считается по строкам, уже отфильтрованным по тегу и статусу.
+        IReadOnlyList<Guid> found = await tags.FindTasksAsync("работа", TaskStatuses.New, 2);
+
+        Assert.Equal(wanted.Id, Assert.Single(found));
+
+        // Без фильтра статуса тот же предел отдаёт две самые новые задачи: выборка не пустая.
+        Assert.Equal(2, (await tags.FindTasksAsync("работа", null, 2)).Count);
     }
 
     [Fact]

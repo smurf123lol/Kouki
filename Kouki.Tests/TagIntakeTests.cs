@@ -33,6 +33,7 @@ public sealed class TagIntakeTests
 
         public Task<IReadOnlyList<Guid>> FindTasksAsync(
             string tag,
+            string? status,
             int limit,
             CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<Guid>>(Array.Empty<Guid>());

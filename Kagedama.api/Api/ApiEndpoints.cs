@@ -440,8 +440,10 @@ public static class ApiEndpoints
         }
 
         // Тег фильтрует задачи: «#» и скобки снимает нормализация, но пустой тег — ошибка клиента.
+        // Параметр отсутствует (null) — фильтра нет; параметр есть и пуст после нормализации — 400:
+        // «?tag=» значит «отфильтруй по пустому тегу», а не «покажи всё» (E4).
         string? tagFilter = null;
-        if (!string.IsNullOrWhiteSpace(tag))
+        if (tag is not null)
         {
             tagFilter = TagParser.Normalize(tag);
             if (tagFilter.Length == 0)
