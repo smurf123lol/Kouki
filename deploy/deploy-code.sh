@@ -15,7 +15,8 @@
 # маркеры в каждом каталоге (`Kagedama.api.dll`, `Kagedama.mcp.dll`), форма деплоя
 # (self-contained и наличие нативок sherpa) и то, что ни один из путей не лежит
 # внутри другого. Перед заменой файлов делается копия в `<каталог>.prev`, и при
-# провале health или смоука прод возвращается на неё автоматически.
+# провале health или смоука прод возвращается на неё автоматически — если копия
+# не отключена флагом `--no-backup` (тогда скрипт честно скажет, что отката нет).
 #
 # Коды возврата: 0 — успех; 1 — проверка или деплой провалился; 2 — аргументы.
 set -euo pipefail
@@ -127,9 +128,6 @@ if inside "$APP_DIR_REAL" "$FROM_REAL" || inside "$MCP_DIR_REAL" "$FROM_REAL"; t
     die "цель деплоя лежит внутри артефакта $FROM_REAL"
 fi
 
-[ -w "$APP_DIR_REAL" ] || die "нет прав на запись в $APP_DIR_REAL (нужен пользователь-владелец)"
-[ -w "$MCP_DIR_REAL" ] || die "нет прав на запись в $MCP_DIR_REAL"
-
 # Форма деплоя должна совпадать: если в проде self-contained (рантайм лежит рядом,
 # потому что пакета aspnetcore-runtime для 26.04 может не быть), framework-dependent
 # артефакт снёс бы рантайм через --delete, и сервис не поднялся бы.
@@ -146,16 +144,18 @@ fi
 
 # Распознавание речи: без него /api/speech отвечает 503, поэтому потеря нативок sherpa
 # в проде — это ошибка, а не «уменьшили размер». Тот же флаг, что при публикации.
-has_sherpa() {
-    find "$1" -type f -name 'libsherpa-onnx-c-api.so' -print -quit | grep -q .
+has_native() {
+    find "$1" -type f -name "$2" -print -quit | grep -q .
 }
 
-target_has_sherpa=0
-has_sherpa "$APP_DIR_REAL" && target_has_sherpa=1
-artifact_has_sherpa=0
-has_sherpa "$FROM_REAL" && artifact_has_sherpa=1
-if [ "$target_has_sherpa" -eq 1 ] && [ "$artifact_has_sherpa" -eq 0 ]; then
-    [ "$ALLOW_NO_SPEECH" -eq 1 ] || die "в проде есть sherpa-onnx, а в артефакте нет: соберите без --no-speech (или --allow-no-speech, если распознавание убирается осознанно)"
+missing_natives=()
+for native in libsherpa-onnx-c-api.so libonnxruntime.so; do
+    if has_native "$APP_DIR_REAL" "$native" && ! has_native "$FROM_REAL" "$native"; then
+        missing_natives+=("$native")
+    fi
+done
+if [ "${#missing_natives[@]}" -gt 0 ]; then
+    [ "$ALLOW_NO_SPEECH" -eq 1 ] || die "в проде есть ${missing_natives[*]}, а в артефакте нет: соберите без --no-speech (или --allow-no-speech, если распознавание убирается осознанно)"
     echo "ВНИМАНИЕ: распознавание речи будет удалено из прода (--allow-no-speech)" >&2
 fi
 
@@ -184,6 +184,11 @@ if [ "$DRY_RUN" -eq 1 ]; then
     exit 0
 fi
 
+# Права на запись нужны только реальному деплою: read-only предпросмотр должен
+# работать и от пользователя без доступа к /opt.
+[ -w "$APP_DIR_REAL" ] || die "нет прав на запись в $APP_DIR_REAL (нужен пользователь-владелец)"
+[ -w "$MCP_DIR_REAL" ] || die "нет прав на запись в $MCP_DIR_REAL"
+
 PREV_APP="$APP_DIR_REAL.prev"
 PREV_MCP="$MCP_DIR_REAL.prev"
 ROLLBACK_READY=0
@@ -210,6 +215,16 @@ rollback() {
     sudo -n kouki-admin restart-bot >/dev/null 2>&1 || echo "restart-bot после отката не удался" >&2
 }
 
+# Провал после замены файлов: откатиться, если есть копия, и сказать правду в обоих случаях.
+fail_after_change() {
+    local reason="$1"
+    rollback
+    if [ "$ROLLBACK_READY" -eq 1 ]; then
+        die "$reason — прод возвращён к предыдущему артефакту ($PREV_APP)"
+    fi
+    die "$reason — откат отключён (--no-backup): прод остался на новом артефакте"
+}
+
 rsync -a --delete \
     --exclude 'appsettings.Development.json' --exclude 'bot/' --exclude 'mcp/' \
     "$FROM_REAL"/ "$APP_DIR_REAL"/ || { rollback; die "rsync API завершился с ошибкой"; }
@@ -218,12 +233,16 @@ rsync -a --delete "$FROM_REAL/mcp/" "$MCP_DIR_REAL"/ || { rollback; die "rsync M
 echo "Файлы обновлены"
 
 if [ "$NO_RESTART" -eq 1 ]; then
-    echo "Сервисы не перезапускались (--no-restart); копия для отката — $PREV_APP и $PREV_MCP"
+    if [ "$BACKUP" -eq 1 ]; then
+        echo "Сервисы не перезапускались (--no-restart); копия для отката — $PREV_APP и $PREV_MCP"
+    else
+        echo "Сервисы не перезапускались (--no-restart), копии нет (--no-backup)"
+    fi
     exit 0
 fi
 
-sudo -n kouki-admin restart-kouki || { rollback; die "restart-kouki завершился с ошибкой"; }
-sudo -n kouki-admin restart-bot || { rollback; die "restart-bot завершился с ошибкой"; }
+sudo -n kouki-admin restart-kouki || fail_after_change "restart-kouki завершился с ошибкой"
+sudo -n kouki-admin restart-bot || fail_after_change "restart-bot завершился с ошибкой"
 
 # Ждём подъёма: 401 — тоже признак живого сервера (эндпоинт требует токен).
 code=""
@@ -235,14 +254,13 @@ done
 echo "/api/health -> ${code:-нет ответа}"
 case "$code" in
     200|401) ;;
-    *) rollback; die "сервер не поднялся после деплоя (журнал: sudo -n kouki-admin logs-kouki 80)" ;;
+    *) fail_after_change "сервер не поднялся после деплоя (журнал: sudo -n kouki-admin logs-kouki 80)" ;;
 esac
 
 if [ "$SKIP_SMOKE" -eq 0 ]; then
-    TOKEN=$(sudo -n kouki-admin api-token) || { rollback; die "не удалось получить токен API"; }
+    TOKEN=$(sudo -n kouki-admin api-token) || fail_after_change "не удалось получить токен API"
     if ! KOUKI_TOKEN="$TOKEN" bash "$REPO_ROOT/deploy/smoke.sh" --quiet; then
-        rollback
-        die "смоук провалился — прод возвращён к предыдущему артефакту, смотрите вывод выше"
+        fail_after_change "смоук провалился, смотрите вывод выше"
     fi
     echo "Смоук пройден"
 fi

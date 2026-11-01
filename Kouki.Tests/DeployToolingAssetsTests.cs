@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 
 namespace Kouki.Tests;
 
@@ -105,9 +106,13 @@ public sealed class DeployToolingAssetsTests
         Assert.Contains("rollback()", script, StringComparison.Ordinal);
         Assert.Contains("cp -a \"$APP_DIR_REAL\" \"$PREV_APP\"", script, StringComparison.Ordinal);
         Assert.Contains("Откат к предыдущему артефакту", script, StringComparison.Ordinal);
-        // Откат обязан срабатывать и на health, и на смоуке.
+        // Откат обязан срабатывать и на health, и на смоуке, и говорить правду,
+        // когда копии нет (--no-backup): иначе сообщение обещает несуществующий откат.
         Assert.Contains("сервер не поднялся после деплоя", script, StringComparison.Ordinal);
-        Assert.Contains("смоук провалился — прод возвращён", script, StringComparison.Ordinal);
+        Assert.Contains("смоук провалился", script, StringComparison.Ordinal);
+        Assert.Contains("прод возвращён к предыдущему артефакту", script, StringComparison.Ordinal);
+        Assert.Contains("откат отключён (--no-backup): прод остался на новом артефакте", script, StringComparison.Ordinal);
+        Assert.Contains("копии нет (--no-backup)", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -143,14 +148,58 @@ public sealed class DeployToolingAssetsTests
     }
 
     [Fact]
+    public void Publish_succeeds_with_a_stub_dotnet_even_in_a_fresh_tree()
+    {
+        // Скрипт рассчитан на Linux-сервер: в Git Bash на Windows он не проверяется.
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        string root = Directory.CreateTempSubdirectory("kouki-pub-").FullName;
+        try
+        {
+            string stub = Path.Combine(root, "stub");
+            Directory.CreateDirectory(stub);
+            string stubPath = Path.Combine(stub, "dotnet");
+            File.WriteAllText(stubPath, DotnetStub, new UTF8Encoding(false));
+            var chmod = RunBash("-c", $"chmod +x '{stubPath}'");
+            Assert.Equal(0, chmod.Rc);
+
+            // Родителя ещё нет: именно на этом ломался первый запуск в свежем дереве.
+            string output = Path.Combine(root, "fresh", "linux-x64");
+            var env = new Dictionary<string, string>
+            {
+                ["PATH"] = stub + ":" + (Environment.GetEnvironmentVariable("PATH") ?? "/usr/bin:/bin"),
+            };
+
+            var first = RunBashWithEnv(TestPaths.Path("tools", "publish-linux.sh"), env, "--output", output);
+            Assert.True(first.Rc == 0, $"rc={first.Rc} err={first.Error}");
+            Assert.True(File.Exists(Path.Combine(output, "Kagedama.api.dll")), "артефакт не создан");
+            Assert.True(Directory.Exists(Path.Combine(output, "bot")), "бот не опубликован");
+            Assert.True(Directory.Exists(Path.Combine(output, "mcp")), "MCP не опубликован");
+
+            var second = RunBashWithEnv(TestPaths.Path("tools", "publish-linux.sh"), env, "--output", output);
+            Assert.True(second.Rc == 0, $"rc={second.Rc} err={second.Error}");
+            Assert.True(
+                File.Exists(Path.Combine(output + ".prev", "Kagedama.api.dll")),
+                "предыдущий артефакт не сохранён в .prev");
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Deploy_rejects_unknown_arguments_and_flag_like_values()
     {
-        var (rc, _, err) = RunBash(TestPaths.Path("deploy", "deploy-code.sh"), "--bogus");
+        var (rc, _, err) = RunBashWithEnv(TestPaths.Path("deploy", "deploy-code.sh"), new Dictionary<string, string>(), "--bogus");
         Assert.Equal(2, rc);
         Assert.Contains("неизвестный аргумент", err, StringComparison.Ordinal);
 
         // `--from --dry-run` не должно принимать флаг за путь.
-        var (rc2, _, err2) = RunBash(TestPaths.Path("deploy", "deploy-code.sh"), "--from", "--dry-run");
+        var (rc2, _, err2) = RunBashWithEnv(TestPaths.Path("deploy", "deploy-code.sh"), new Dictionary<string, string>(), "--from", "--dry-run");
         Assert.Equal(2, rc2);
         Assert.Contains("похоже на флаг", err2, StringComparison.Ordinal);
     }
@@ -158,7 +207,7 @@ public sealed class DeployToolingAssetsTests
     [Fact]
     public void Publish_rejects_unknown_arguments_and_flag_like_values()
     {
-        var (rc, _, err) = RunBash(TestPaths.Path("tools", "publish-linux.sh"), "--runtime", "--output");
+        var (rc, _, err) = RunBashWithEnv(TestPaths.Path("tools", "publish-linux.sh"), new Dictionary<string, string>(), "--runtime", "--output");
         Assert.Equal(2, rc);
         Assert.Contains("похоже на флаг", err, StringComparison.Ordinal);
     }
@@ -168,7 +217,7 @@ public sealed class DeployToolingAssetsTests
     {
         foreach (var path in new[] { new[] { "tools", "publish-linux.sh" }, new[] { "deploy", "deploy-code.sh" } })
         {
-            var (rc, output, _) = RunBash(TestPaths.Path(path), "--help");
+            var (rc, output, _) = RunBashWithEnv(TestPaths.Path(path), new Dictionary<string, string>(), "--help");
 
             Assert.Equal(0, rc);
             Assert.Contains("Использование:", output, StringComparison.Ordinal);
@@ -179,7 +228,37 @@ public sealed class DeployToolingAssetsTests
         }
     }
 
-    private static (int Rc, string Output, string Error) RunBash(string scriptPath, params string[] args)
+    /// <summary>Подставной dotnet: создаёт обязательные файлы артефакта и выходит с нулём.</summary>
+    private const string DotnetStub = """
+        #!/usr/bin/env bash
+        out=""
+        prev=""
+        for a in "$@"; do
+          if [ "$prev" = "-o" ]; then out="$a"; fi
+          prev="$a"
+        done
+        [ -n "$out" ] || exit 3
+        mkdir -p "$out/wwwroot" "$out/bot" "$out/mcp"
+        printf x > "$out/Kagedama.api.dll"
+        printf '{}' > "$out/appsettings.json"
+        printf x > "$out/wwwroot/app.js"
+        printf x > "$out/bot/Kouki.Kagedama.Bot.dll"
+        printf '{}' > "$out/bot/appsettings.json"
+        printf x > "$out/mcp/Kagedama.mcp.dll"
+        printf '{}' > "$out/mcp/appsettings.json"
+        printf x > "$out/libonnxruntime.so"
+        printf x > "$out/libsherpa-onnx-c-api.so"
+        printf x > "$out/libe_sqlite3.so"
+        exit 0
+        """;
+
+    private static (int Rc, string Output, string Error) RunBash(params string[] args)
+        => RunBashWithEnv(null, new Dictionary<string, string>(), args);
+
+    private static (int Rc, string Output, string Error) RunBashWithEnv(
+        string? scriptPath,
+        Dictionary<string, string> env,
+        params string[] args)
     {
         string? bash = FindBash();
         if (bash is null)
@@ -197,10 +276,18 @@ public sealed class DeployToolingAssetsTests
         };
         start.ArgumentList.Add("--noprofile");
         start.ArgumentList.Add("--norc");
-        start.ArgumentList.Add(scriptPath.Replace('\\', '/'));
+        if (scriptPath is not null)
+        {
+            start.ArgumentList.Add(scriptPath.Replace('\\', '/'));
+        }
         foreach (string arg in args)
         {
             start.ArgumentList.Add(arg);
+        }
+
+        foreach ((string key, string value) in env)
+        {
+            start.Environment[key] = value;
         }
 
         using Process process = Process.Start(start)!;

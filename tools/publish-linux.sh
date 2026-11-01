@@ -9,8 +9,9 @@
 # Отличия от `.ps1`, которые важны на сервере:
 #   * self-contained по умолчанию — прод на 26.04 собран так, и deploy-code.sh
 #     отказывается класть framework-dependent артефакт поверх;
-#   * публикация идёт во временный каталог и подменяет OUTPUT только после успеха,
-#     поэтому неудачная сборка не уничтожает предыдущий артефакт (он остаётся в `.prev`);
+#   * публикация идёт во временный каталог и подменяет OUTPUT только после успеха:
+#     при провале предыдущий артефакт остаётся на месте, а при успешной подмене
+#     старый уезжает в `<OUTPUT>.prev`;
 #   * OUTPUT вне `publish/` и вне временного каталога требует явного --allow-any-output:
 #     иначе `--output <корень репозитория>` мог бы снести репозиторий.
 #
@@ -25,6 +26,8 @@ usage() {
   --runtime RID           идентификатор рантайма (по умолчанию linux-x64)
   --output DIR            каталог артефакта (по умолчанию <репозиторий>/publish/<RID>)
   --no-speech             собрать без sherpa-onnx: /api/voice будет отвечать 503
+  --self-contained        оставить рантайм .NET в артефакте (это и так значение
+                          по умолчанию; флаг принимается для совместимости)
   --framework-dependent   не класть рантайм .NET в артефакт (нужен aspnetcore-runtime-10.0
                           на целевой машине; прод собран self-contained, поэтому deploy
                           такой артефакт отклонит)
@@ -65,6 +68,7 @@ while [ $# -gt 0 ]; do
         --runtime) [ $# -ge 2 ] || arg_error "у --runtime нет значения"; need_value "$2" "--runtime"; RUNTIME="$2"; shift 2 ;;
         --output) [ $# -ge 2 ] || arg_error "у --output нет значения"; need_value "$2" "--output"; OUTPUT="$2"; shift 2 ;;
         --no-speech) SPEECH=false; shift ;;
+        --self-contained) SELF_CONTAINED=true; shift ;;
         --framework-dependent) SELF_CONTAINED=false; shift ;;
         --allow-any-output) ALLOW_ANY_OUTPUT=1; shift ;;
         --help|-h) usage; exit 0 ;;
@@ -86,12 +90,30 @@ fi
 
 # Куда разрешено писать. `publish/` — обычный путь; временный каталог — для проверок.
 # Всё остальное только с явным флагом: `rm -rf` по опечатке в пути стоит репозитория.
-OUTPUT_ABS="$(cd "$(dirname "$OUTPUT")" 2>/dev/null && pwd -P || echo "")"
-[ -n "$OUTPUT_ABS" ] || OUTPUT_ABS="$REPO_ROOT"
-OUTPUT_NORMALIZED="$OUTPUT_ABS/$(basename "$OUTPUT")"
+#
+# Нормализация не требует существующего каталога: в свежем дереве задачи `publish/`
+# ещё нет, а первый же запуск должен работать (realpath -m не проверяет путь).
+normalize_path() {
+    local path="$1"
+    case "$path" in
+        /*) ;;
+        *) path="$PWD/$path" ;;
+    esac
+    if command -v realpath >/dev/null 2>&1; then
+        realpath -m "$path"
+    elif command -v readlink >/dev/null 2>&1; then
+        readlink -m "$path" 2>/dev/null || printf '%s\n' "$path"
+    else
+        printf '%s\n' "$path"
+    fi
+}
+
+OUTPUT_NORMALIZED="$(normalize_path "$OUTPUT")"
+REPO_REAL="$(normalize_path "$REPO_ROOT")"
+TMP_REAL="$(normalize_path "${TMPDIR:-/tmp}")"
 case "$OUTPUT_NORMALIZED" in
-    "$REPO_ROOT"/publish/*) ;;
-    "${TMPDIR:-/tmp}"/*) ;;
+    "$REPO_REAL"/publish/*) ;;
+    "$TMP_REAL"/*) ;;
     *)
         [ "$ALLOW_ANY_OUTPUT" -eq 1 ] || die "output вне publish/ и вне временного каталога: $OUTPUT_NORMALIZED (осознанно — с --allow-any-output)"
         ;;
@@ -102,7 +124,12 @@ command -v dotnet >/dev/null 2>&1 || die "нет dotnet в PATH (нужен /etc
 mkdir -p "$(dirname "$OUTPUT_NORMALIZED")"
 STAGE="$(mktemp -d "$(dirname "$OUTPUT_NORMALIZED")/.publish.XXXXXX")" || die "не удалось создать временный каталог рядом с $OUTPUT_NORMALIZED"
 cleanup() {
-    [ -d "$STAGE" ] && rm -rf "$STAGE"
+    # Функция обязана вернуть 0: EXIT-trap с `set -e` иначе перевернёт код успешной
+    # публикации в 1 (после `mv "$STAGE"` каталога уже нет).
+    if [ -d "$STAGE" ]; then
+        rm -rf "$STAGE"
+    fi
+    return 0
 }
 trap cleanup EXIT
 

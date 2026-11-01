@@ -24,13 +24,15 @@ deploy/
 - `curl`, `rsync` и `sqlite3` — без `rsync`/`sqlite3` установщик **не включит**
   бэкап и завершится с кодом 1 (снимки делаются `sqlite3 .backup` + `rsync`);
 - артефакт публикации: на Windows `Kouki\tools\publish-linux.ps1`, на Linux
-  `dotnet publish Kagedama.api/Kagedama.api.csproj -c Release -r linux-x64 --self-contained false -p:KoukiEnableSherpa=true -o publish/linux-x64`.
+  `tools/publish-linux.sh` (он собирает API, `bot/` и `mcp/` и проверяет нативные `.so`).
 
-Публикация по умолчанию — framework-dependent: сам .NET на сервере ставится
-отдельно, зато артефакт 33 МБ. Ключ `-SelfContained` (или
-`--self-contained true`) кладёт рантайм внутрь: 330 МБ, но серверу не нужен
-`dotnet` в системе и нет зависимости от наличия пакета под конкретный
-дистрибутив.
+На Linux-сервере скрипт по умолчанию собирает **self-contained**: в проде на
+Ubuntu 26.04 пакета `aspnetcore-runtime-10.0` может не быть, поэтому рантайм
+лежит рядом с приложением (330 МБ). `tools/publish-linux.sh --framework-dependent`
+делает артефакт на 33 МБ — тогда `dotnet` ставится в систему отдельно, но
+`deploy/deploy-code.sh` такой артефакт поверх self-contained прода отклонит
+(форма деплоя должна совпадать). На Windows у `publish-linux.ps1` то же
+переключение — ключ `-SelfContained`.
 
 ## Установка
 
@@ -62,7 +64,8 @@ curl -H "Authorization: Bearer $(sudo grep '^Kouki__Token=' /etc/kouki/kouki.env
 
 | Путь | Что |
 | --- | --- |
-| `/opt/kouki/app` | артефакт публикации (перезаписывается при обновлении; каталоги `bot/` и `mcp/` не трогаются — они публикуются отдельно) |
+| `/opt/kouki/app` | артефакт публикации API (перезаписывается при обновлении; каталог `bot/` не трогается — обновляется отдельным rsync) |
+| `/opt/kouki/mcp` | MCP-сервер (`Kagedama.mcp`), отдельный каталог: `install.sh` его не копирует |
 | `/etc/kouki/kouki.env` | конфигурация, права `640 root:kouki` |
 | `/var/lib/kouki/db/kouki.sqlite` | база (WAL рядом) |
 | `/var/lib/kouki/audio` | записи, старше `AudioRetentionDays` удаляются |
