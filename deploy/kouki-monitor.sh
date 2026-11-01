@@ -35,8 +35,10 @@ EOF
 }
 
 need_value() {
-    if [ $# -lt 2 ]; then
-        echo "Параметр $1 требует значения" >&2
+    local name="$1"
+    local value="${2:-}"
+    if [ $# -lt 2 ] || [ -z "$value" ] || [ "${value#--}" != "$value" ]; then
+        echo "Параметр $name требует значения" >&2
         usage >&2
         exit 2
     fi
@@ -54,6 +56,7 @@ done
 mkdir -p "$STATE_DIR"
 STATE_FILE="$STATE_DIR/state"
 STAMP_FILE="$STATE_DIR/last-alert"
+RECOVERY_FILE="$STATE_DIR/recovery-pending"
 TMP_FILES=()
 
 # trap не должен менять код возврата: последняя проверка в цикле может быть ложной.
@@ -95,22 +98,29 @@ secret_config() {
     printf '%s' "$file"
 }
 
-# Возвращает 0, если алерт доставлен (или алерты не настроены),
-# 1 — если Telegram не принял сообщение.
+# 0 — алерт доставлен (или алерты не настроены), 1 — Telegram не подтвердил.
+# Мало кода 0 от curl: Telegram отвечает 200 и с {"ok":false}, а на неверный
+# токен — 401 при живой сети. Поэтому --fail-with-body и проверка ok:true.
 notify() {
     local text="$1"
+    local conf body
     log "ALERT $text"
     if [ -z "${KOUKI_ALERT_TOKEN:-}" ] || [ -z "${KOUKI_ALERT_CHAT:-}" ]; then
         return 0
     fi
-    local conf
     conf="$(secret_config "url = \"https://api.telegram.org/bot${KOUKI_ALERT_TOKEN}/sendMessage\"")"
-    if curl -s -K "$conf" -o /dev/null --max-time "$TIMEOUT" -X POST \
+    body="$(mktemp "${TMPDIR:-/tmp}/kouki-alert.XXXXXX")"
+    TMP_FILES+=("$body")
+    if ! curl -s --fail-with-body -K "$conf" -o "$body" --max-time "$TIMEOUT" -X POST \
         -d "chat_id=${KOUKI_ALERT_CHAT}" --data-urlencode "text=${text}"; then
-        return 0
+        log "WARN алерт не доставлен (curl: сеть или ответ не 2xx) — повторю"
+        return 1
     fi
-    log "WARN алерт не доставлен (Telegram недоступен) — повторю при следующей проверке"
-    return 1
+    if ! grep -q '"ok"[[:space:]]*:[[:space:]]*true' "$body"; then
+        log "WARN Telegram ответил без ok:true — алерт не принят, повторю"
+        return 1
+    fi
+    return 0
 }
 
 check_health() {
@@ -152,10 +162,20 @@ previous="$(cat "$STATE_FILE" 2>/dev/null || echo unknown)"
 
 if [ -z "$problem" ]; then
     printf 'ok\n' >"$STATE_FILE"
-    rm -f "$STAMP_FILE"
     if [ "$previous" != "ok" ] && [ "$previous" != "unknown" ]; then
-        notify "Kouki снова в порядке: $BASE_URL" || true
+        # «Снова в порядке» тоже должно дойти: если Telegram лежит, оставляем
+        # маркер и повторяем, пока доставка не подтвердится.
+        if notify "Kouki снова в порядке: $BASE_URL"; then
+            rm -f "$RECOVERY_FILE"
+        else
+            printf 'recovery\n' >"$RECOVERY_FILE"
+        fi
+    elif [ -f "$RECOVERY_FILE" ]; then
+        if notify "Kouki снова в порядке: $BASE_URL (повтор)"; then
+            rm -f "$RECOVERY_FILE"
+        fi
     fi
+    rm -f "$STAMP_FILE"
     # Журнал — только на смену состояния: иначе каждые 5 минут «ok».
     if [ "$previous" != "ok" ]; then
         log "ok: $BASE_URL"

@@ -527,20 +527,29 @@ if [ "$WITH_MONITOR" -eq 1 ]; then
             PROBLEMS=1
         fi
         # Пробный прогон: юнит oneshot, а SuccessExitStatus=0 1 делает start
-        # успешным и при провале health — поэтому смотрим не код systemctl,
-        # а состояние, которое сторож записал: «ok» или «fail:…».
+        # успешным и при провале health — поэтому смотрим не код systemctl, а
+        # состояние, которое сторож записал. Старый state удаляем: иначе «ok»
+        # от прошлой установки выдаст себя за результат этой проверки.
+        MONITOR_STATE_DIR="${KOUKI_MONITOR_STATE:-/var/lib/kouki/monitor}"
+        rm -f "$MONITOR_STATE_DIR/state"
         if systemctl start kouki-monitor.service; then
-            MONITOR_STATE="$(cat /var/lib/kouki/monitor/state 2>/dev/null || echo unknown)"
-            case "$MONITOR_STATE" in
-                ok)
-                    echo "   пробная проверка: сервер отвечает"
-                    ;;
-                *)
-                    echo "ВНИМАНИЕ: сторож не видит сервер ($MONITOR_STATE) —" \
-                         "проверьте /api/health вручную и journalctl -u kouki-monitor" >&2
-                    PROBLEMS=1
-                    ;;
-            esac
+            if [ ! -f "$MONITOR_STATE_DIR/state" ]; then
+                echo "ВНИМАНИЕ: сторож не записал состояние — проверьте" \
+                     "journalctl -u kouki-monitor (права на $MONITOR_STATE_DIR?)" >&2
+                PROBLEMS=1
+            else
+                MONITOR_STATE="$(cat "$MONITOR_STATE_DIR/state")"
+                case "$MONITOR_STATE" in
+                    ok)
+                        echo "   пробная проверка: сервер отвечает"
+                        ;;
+                    *)
+                        echo "ВНИМАНИЕ: сторож не видит сервер ($MONITOR_STATE) —" \
+                             "проверьте /api/health вручную и journalctl -u kouki-monitor" >&2
+                        PROBLEMS=1
+                        ;;
+                esac
+            fi
         else
             echo "ВНИМАНИЕ: пробная проверка сторожа упала — journalctl -u kouki-monitor" >&2
             PROBLEMS=1
@@ -554,7 +563,10 @@ else
     echo "== сторож живости: не ставлю (--no-monitor)"
     if ! systemctl disable --now kouki-monitor.timer 2>/dev/null; then
         # Таймер мог быть не включён вовсе — это не ошибка; проверяем результат.
-        if systemctl is-enabled kouki-monitor.timer >/dev/null 2>&1; then
+        # Включённый и активный таймер продолжит будить сервис, даже если
+        # установщик говорит «не ставлю»: это надо честно назвать.
+        if systemctl is-enabled kouki-monitor.timer >/dev/null 2>&1 || \
+            systemctl is-active kouki-monitor.timer >/dev/null 2>&1; then
             echo "ВНИМАНИЕ: не удалось выключить kouki-monitor.timer" >&2
             PROBLEMS=1
         fi

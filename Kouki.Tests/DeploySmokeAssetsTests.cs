@@ -194,7 +194,8 @@ public sealed class DeploySmokeAssetsTests
     {
         var installer = DeployFile("install.sh");
 
-        Assert.Contains("/var/lib/kouki/monitor/state", installer, StringComparison.Ordinal);
+        Assert.Contains("KOUKI_MONITOR_STATE", installer, StringComparison.Ordinal);
+        Assert.Contains("$MONITOR_STATE_DIR/state", installer, StringComparison.Ordinal);
         Assert.Contains("case \"$MONITOR_STATE\"", installer, StringComparison.Ordinal);
     }
 

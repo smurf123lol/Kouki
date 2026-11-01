@@ -42,8 +42,10 @@ EOF
 }
 
 need_value() {
-    if [ $# -lt 2 ]; then
-        echo "Параметр $1 требует значения" >&2
+    local name="$1"
+    local value="${2:-}"
+    if [ $# -lt 2 ] || [ -z "$value" ] || [ "${value#--}" != "$value" ]; then
+        echo "Параметр $name требует значения" >&2
         usage >&2
         exit 2
     fi
@@ -65,9 +67,14 @@ FAIL=0
 declare -a FAILURES=()
 declare -a REPORT=()
 AUTH_CONFIG=""
+TMP_FILES=()
 
 cleanup() {
-    [ -n "$AUTH_CONFIG" ] && rm -f "$AUTH_CONFIG"
+    for f in ${TMP_FILES[@]+"${TMP_FILES[@]}"}; do
+        [ -n "$f" ] || continue
+        rm -f "$f" || true
+    done
+    return 0
 }
 trap cleanup EXIT
 
@@ -105,6 +112,7 @@ if [ -n "$TOKEN" ]; then
     AUTH_CONFIG="$(mktemp "${TMPDIR:-/tmp}/kouki-smoke.XXXXXX")"
     chmod 600 "$AUTH_CONFIG"
     printf 'header = "Authorization: Bearer %s"\n' "$TOKEN" >"$AUTH_CONFIG"
+    TMP_FILES+=("$AUTH_CONFIG")
 fi
 
 http_code() {
@@ -120,6 +128,19 @@ http_code() {
     printf '%s' "${code:-000}"
 }
 
+# Код ответа и тело сразу: нужно для проверок, где важна полезная нагрузка.
+http_code_to() {
+    local max="$1"
+    local out="$2"
+    shift 2
+    local code
+    if [ -n "$AUTH_CONFIG" ]; then
+        code="$(curl -s -K "$AUTH_CONFIG" --max-time "$max" -o "$out" -w '%{http_code}' "$@" 2>/dev/null || true)"
+    else
+        code="$(curl -s --max-time "$max" -o "$out" -w '%{http_code}' "$@" 2>/dev/null || true)"
+    fi
+    printf '%s' "${code:-000}"
+}
 http_body() {
     local max="$1"
     shift
@@ -208,11 +229,28 @@ if [ "$WITH_WRITES" -eq 1 ]; then
     fi
 
     # Первый вызов ответчика после простоя грузит модель — у него свой таймаут.
-    code="$(http_code "$INTAKE_TIMEOUT" -X POST -H 'Content-Type: application/json' \
+    intake_body="$(mktemp "${TMPDIR:-/tmp}/kouki-intake.XXXXXX")"
+    TMP_FILES+=("$intake_body")
+    code="$(http_code_to "$INTAKE_TIMEOUT" "$intake_body" -X POST \
+        -H 'Content-Type: application/json' \
         --data '{"text":"Смоук: сколько минут варить яйцо","source":"dashboard","intent":"ask"}' \
         "$BASE_URL/api/intake")"
     if [ "$code" = "200" ]; then
-        ok "POST /api/intake (intent=ask) → 200 (задача «Смоук: …»)"
+        # Смоук не должен копить мусор в базе: задача «Смоук: …» отменяется сразу.
+        task_id="$(grep -o '"id"[[:space:]]*:[[:space:]]*"[^"]*"' "$intake_body" | head -1 |
+            sed 's/.*"\([^"]*\)"$/\1/')"
+        cancel_code=""
+        if [ -n "$task_id" ]; then
+            cancel_code="$(http_code "$TIMEOUT" -X PATCH -H 'Content-Type: application/json' \
+                --data '{"status":"cancelled"}' "$BASE_URL/api/tasks/$task_id")"
+        fi
+        if [ "$cancel_code" = "200" ]; then
+            ok "POST /api/intake (intent=ask) → 200, задача отменена"
+        elif [ -n "$task_id" ]; then
+            bad "POST /api/intake (intent=ask)" "ответ 200, но задачу $task_id не отменить ($cancel_code)"
+        else
+            ok "POST /api/intake (intent=ask) → 200"
+        fi
     elif [ "$code" = "503" ]; then
         bad "POST /api/intake (intent=ask)" "503 — ответчик недоступен (kouki-llm?)"
     else
