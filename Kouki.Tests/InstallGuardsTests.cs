@@ -366,6 +366,9 @@ public sealed class InstallGuardsTests
                     return 0
                 }
                 stat() {
+                    # STAT_FAIL=1 — «stat не смог»: guards обязан предупредить
+                    # и отдать create_group=4, а не тихий обычный режим.
+                    [ "${STAT_FAIL:-0}" = "1" ] && return 1
                     case "$2" in
                         %u) echo "${STAT_UID:-1000}" ;;
                         %g) echo "${STAT_GID:-1000}" ;;
@@ -609,6 +612,63 @@ public sealed class InstallGuardsTests
 
         Assert.Contains("отвергнут", result.Stdout, StringComparison.Ordinal);
         Assert.Contains("uid=[] gid=[] create=[]", result.Stdout, StringComparison.Ordinal);
+    }
+    [Fact]
+    public void Truncated_line_is_rejected()
+    {
+        // Пять полей — часть контракта: «kouki-id» без полей не должен
+        // считаться валидной строкой «всё пустое».
+        GuardResult result = Run(
+            """
+            if read_share_ids "kouki-id"; then echo "принят"; else echo "отвергнут"; fi
+            if read_share_ids "kouki-id:-:1000"; then echo "принят"; else echo "отвергнут"; fi
+            echo "rc=$?"
+            """,
+            new Dictionary<string, string>());
+
+        Assert.Equal(2, System.Text.RegularExpressions.Regex.Matches(result.Stdout, "отвергнут").Count);
+        Assert.DoesNotContain("принят", result.Stdout, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Installer_style_parse_survives_a_broken_line()
+    {
+        // Сценарий установщика: поля объявлены до разбора, строка битая.
+        // Раньше это давало `SHARE_UID: unbound variable` под `set -u`.
+        GuardResult result = Run(
+            """
+            share_uid=""; share_gid=""; share_group=""; share_create_group=0
+            if apply_share_ids "::0"; then
+                echo "разобрано"
+            else
+                echo "ошибка-разбора share_uid=[$share_uid] SHARE_UID=[$SHARE_UID]"
+            fi
+            echo "rc=$?"
+            """,
+            new Dictionary<string, string>());
+
+        Assert.Contains("ошибка-разбора share_uid=[] SHARE_UID=[]", result.Stdout, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Broken_stat_marks_the_share_as_unknown()
+    {
+        Dictionary<string, string> env = new()
+        {
+            ["STAT_FAIL"] = "1",
+            ["SHARE_DIR"] = "$HOME/share",
+        };
+
+        GuardResult result = Run(
+            """
+            mkdir -p "$SHARE_DIR"
+            parse_share "$SHARE_DIR"
+            echo "rc=$?"
+            """,
+            env);
+
+        Assert.Contains("create=4", result.Stdout, StringComparison.Ordinal);
+        Assert.Contains("не удалось узнать владельца", result.Stderr, StringComparison.Ordinal);
     }
     [Fact]
     public void Create_share_user_passes_group_only_when_known()

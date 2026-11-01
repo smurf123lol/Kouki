@@ -136,15 +136,21 @@ emit_share_ids() {
 # SHARE_CREATE_GROUP. Возвращает 1, если строка не того формата.
 read_share_ids() {
     local tag uid gid group create
-    IFS=: read -r tag uid gid group create <<< "$1"
-
-    # Сбрасываем поля до разбора: при ошибке вызывающий видит пустые значения,
-    # а не остатки от предыдущего вызова (установщик идёт под `set -u`).
+    # Сбрасываем поля до любых проверок: при ошибке вызывающий видит пустые
+    # значения, а не остатки от предыдущего вызова (установщик идёт под `set -u`).
     # shellcheck disable=SC2034  # эти переменные читает вызывающий (install.sh)
     SHARE_UID=""
     SHARE_GID=""
     SHARE_GROUP=""
     SHARE_CREATE_GROUP=""
+
+    # Поле «create» может быть пустым только как «-», поэтому обрезанная строка
+    # (меньше пяти полей) — ошибка, а не «всё пустое».
+    if [ "$(printf '%s' "$1" | awk -F: '{print NF}')" -lt 5 ]; then
+        return 1
+    fi
+
+    IFS=: read -r tag uid gid group create <<< "$1"
     if [ "$tag" != "kouki-id" ]; then
         return 1
     fi
@@ -162,6 +168,17 @@ read_share_ids() {
         SHARE_CREATE_GROUP="$create"
     fi
     return 0
+}
+
+# Разбор для установщика: сбрасывает поля, затем читает строку. Возвращает 1,
+# если строку не разобрать — вызывающий обязан пропустить SMB-блок.
+apply_share_ids() {
+    # shellcheck disable=SC2034  # эти переменные читает вызывающий (install.sh)
+    SHARE_UID=""
+    SHARE_GID=""
+    SHARE_GROUP=""
+    SHARE_CREATE_GROUP=""
+    read_share_ids "$1"
 }
 
 resolve_share_ids() {
