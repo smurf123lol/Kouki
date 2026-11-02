@@ -477,6 +477,24 @@ textarea { resize: vertical; width: 100%; line-height: 1.5; }
 .entry-top { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; }
 .entry-meta { margin-top: 3px; font-size: 10px; color: var(--sand-faint); }
 
+/* история распознавания: фраза, вердикт, аудио по требованию */
+.phrase-text { font-family: var(--serif); font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
+.phrase-intent { color: var(--gold); }
+.phrase-flag {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 0 5px;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    font-size: 8.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--vermilion);
+}
+.phrase-flag.is-bad { color: var(--bad); }
+.phrase-audio { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 7px; }
+.phrase-audio audio { height: 30px; max-width: 100%; }
+
 .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
 /* ---------- подвал ---------- */

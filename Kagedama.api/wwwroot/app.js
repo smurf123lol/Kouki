@@ -25,6 +25,7 @@ const state = {
     taskId: null,
     detailId: null,
     detailSig: null,
+    audioUrls: new Map(),
     timer: null,
 };
 
@@ -78,6 +79,72 @@ function formatTime(iso) {
     return today
         ? date.toLocaleTimeString('ru-RU', { hour12: false })
         : date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+// Уверенность в журнале — доля 0…1; старые записи могут прийти без score.
+function formatScore(score) {
+    if (score === null || score === undefined || score === '') return '—';
+    const value = Number(score);
+    return Number.isFinite(value) ? Math.round(value * 100) + '%' : '—';
+}
+
+// Blob-URL аудио живут, пока открыта карточка: при перерисовке и закрытии их надо
+// отзывать, иначе браузер держит в памяти каждую прослушанную запись.
+function releaseAudioUrls() {
+    state.audioUrls.forEach((url) => URL.revokeObjectURL(url));
+    state.audioUrls.clear();
+}
+
+async function playPhraseAudio(id) {
+    const status = document.querySelector(`[data-audio-status="${id}"]`);
+    const player = document.querySelector(`[data-audio-player="${id}"]`);
+    const setStatus = (text) => { if (status) status.textContent = text; };
+    const play = () => {
+        if (!player) return;
+        player.hidden = false;
+        if (typeof player.play !== 'function') return;
+        const started = player.play();
+        if (started && typeof started.catch === 'function') started.catch(() => {});
+    };
+
+    // Повторное нажатие не качает запись заново: URL уже лежит в state.audioUrls.
+    const cached = state.audioUrls.get(id);
+    if (cached) {
+        setStatus('');
+        if (player && player.src !== cached) player.src = cached;
+        play();
+        return;
+    }
+
+    setStatus('загружаю…');
+
+    try {
+        const response = await fetch('/api/audio/' + encodeURIComponent(id), {
+            headers: state.token ? { Authorization: 'Bearer ' + state.token } : {},
+        });
+
+        if (response.status === 401) throw new AuthError('неверный или отсутствующий токен');
+        if (!response.ok) {
+            setStatus('Не удалось загрузить запись.');
+            return;
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        state.audioUrls.set(id, url);
+        setStatus('');
+        if (player) player.src = url;
+        play();
+    } catch (error) {
+        // 401 не маскируем под «запись не загрузилась»: это тот же отказ доступа,
+        // что и у остальных запросов дашборда.
+        if (error instanceof AuthError) {
+            setServerStatus('нет доступа', 'down');
+            showBanner('Нужен bearer-токен: введите его справа и нажмите «сохранить».');
+            return;
+        }
+        setStatus('Не удалось загрузить запись.');
+    }
 }
 
 /* ---------- сводка ---------- */
@@ -280,18 +347,28 @@ async function openTask(id, options = {}) {
         $('detail-title').textContent = 'Загрузка…';
         $('detail-body').innerHTML = '';
         state.detailSig = null;
+        releaseAudioUrls();
     }
 
-    const [task, actions] = await Promise.all([
+    const [task, actions, classifications] = await Promise.all([
         api(`/api/tasks/${id}`),
         api(`/api/actions?taskId=${id}&limit=100`),
+        api(`/api/classifications?taskId=${id}&limit=50`),
     ]);
 
     // Автообновление не должно перерисовывать карточку, если ничего не поменялось:
-    // иначе прокрутка таймлайна прыгает к началу каждые пять секунд.
-    const signature = [task.id, task.updatedAt, task.status, task.title, actions.length, actions[0]?.id ?? ''].join('|');
+    // иначе прокрутка таймлайна прыгает к началу каждые пять секунд, а играющее
+    // аудио обрывается. Фразы входят в ключ: без них новые записи не появятся.
+    const signature = [
+        task.id, task.updatedAt, task.status, task.title,
+        actions.length, actions[0]?.id ?? '',
+        classifications.length,
+        classifications[0]?.id ?? '',
+        classifications[classifications.length - 1]?.id ?? '',
+    ].join('|');
     if (!force && state.detailSig === signature) return;
     state.detailSig = signature;
+    releaseAudioUrls();
 
     $('detail-title').textContent = task.title;
 
@@ -314,6 +391,28 @@ async function openTask(id, options = {}) {
             </div>`).join('')
         : '<div class="empty">Действий по этой задаче нет.</div>';
 
+    const phrases = classifications.length
+        ? classifications.map((item) => `
+            <div class="entry phrase" data-phrase="${esc(item.id)}">
+                <div class="entry-top">
+                    <span class="phrase-text">«${esc(item.inputText)}»</span>
+                    <span class="muted mono">${esc(formatTime(item.createdAt))}</span>
+                </div>
+                <div class="entry-meta">
+                    ${esc(item.source)} · <span class="phrase-intent mono">${esc(item.intent)}</span> · ${esc(formatScore(item.score))}
+                    ${item.confident === false ? '<span class="phrase-flag">неуверенно</span>' : ''}
+                    ${item.error ? `<span class="phrase-flag is-bad">${esc(item.error)}</span>` : ''}
+                </div>
+                <div class="entry-meta">модель: <span class="mono">${esc(item.model)}</span></div>
+                ${item.hasAudio === true ? `
+                <div class="phrase-audio">
+                    <button type="button" class="btn small" data-audio-play="${esc(item.id)}">▶ прослушать</button>
+                    <audio controls preload="none" data-audio-player="${esc(item.id)}" hidden></audio>
+                    <span class="muted" data-audio-status="${esc(item.id)}"></span>
+                </div>` : ''}
+            </div>`).join('')
+        : '<div class="empty">Связанных фраз нет.</div>';
+
     const meta = task.meta
         ? `<pre class="result" style="max-height:160px">${esc(JSON.stringify(task.meta, null, 2))}</pre>`
         : '<span class="muted">нет</span>';
@@ -332,6 +431,10 @@ async function openTask(id, options = {}) {
         <div>
             <div class="section-title">Действия</div>
             <div class="timeline">${timeline}</div>
+        </div>
+        <div>
+            <div class="section-title">История распознавания</div>
+            <div class="timeline phrases">${phrases}</div>
         </div>
         <div>
             <div class="section-title">Разбор (meta)</div>
@@ -536,6 +639,14 @@ document.addEventListener('click', async (event) => {
         return;
     }
 
+    // Аудио в карточке качается только по нажатию: preload="none" и src не задан.
+    const audioButton = event.target.closest('[data-audio-play]');
+    if (audioButton) {
+        event.preventDefault();
+        await playPhraseAudio(audioButton.dataset.audioPlay);
+        return;
+    }
+
     const target = event.target.closest('[data-task]');
     if (target) {
         event.preventDefault();
@@ -581,6 +692,7 @@ $('detail-close').addEventListener('click', () => {
     state.taskId = null;
     state.detailId = null;
     state.detailSig = null;
+    releaseAudioUrls();
     $('detail').hidden = true;
 });
 
