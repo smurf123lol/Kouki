@@ -209,6 +209,208 @@ public sealed class SqliteTaskStore : ITaskStore
     }
 
     /// <inheritdoc />
+    public Task<TaskRecord?> MoveAsync(
+        Guid id,
+        string status,
+        int position,
+        CancellationToken cancellationToken = default)
+    {
+        if (position < TaskPositions.First)
+        {
+            throw new ArgumentOutOfRangeException(nameof(position), position, "Позиция не может быть отрицательной.");
+        }
+
+        return _work.RunAsync(
+            async token =>
+            {
+                await using SqliteLease lease = await _session.OpenAsync(token).ConfigureAwait(false);
+
+                TaskRecord? current = await lease.Connection.QuerySingleOrDefaultAsync<TaskRecord>(
+                    new CommandDefinition(
+                        $"SELECT {SelectColumns} FROM tasks WHERE id = @id",
+                        new { id = id.ToString() },
+                        transaction: lease.Transaction,
+                        cancellationToken: token)).ConfigureAwait(false);
+
+                if (current is null)
+                {
+                    return null;
+                }
+
+                // Повторный вызов с теми же значениями ничего не двигает: иначе каждый
+                // «перетащил туда же» сдвигал бы соседей и менял порядок.
+                if (string.Equals(current.Status, status, StringComparison.Ordinal)
+                    && current.Position == position)
+                {
+                    return current;
+                }
+
+                string? parentId = current.ParentId?.ToString();
+                bool sameColumn = string.Equals(current.Status, status, StringComparison.Ordinal);
+                int target = position;
+
+                if (sameColumn)
+                {
+                    int others = await lease.Connection.ExecuteScalarAsync<int>(
+                        new CommandDefinition(
+                            "SELECT COUNT(*) FROM tasks " +
+                            "WHERE status = @status AND parent_id IS @parentId AND id <> @id",
+                            new { status, parentId, id = id.ToString() },
+                            transaction: lease.Transaction,
+                            cancellationToken: token)).ConfigureAwait(false);
+
+                    // Дальше конца колонки — в конец. Внутри своей колонки последняя
+                    // позиция — это max соседей, а не max + 1: саму карточку мы исключили.
+                    if (target > others)
+                    {
+                        target = Math.Max(
+                            TaskPositions.First,
+                            await NextPositionAsync(lease, status, parentId, id, token).ConfigureAwait(false) - 1);
+                    }
+
+                    if (target < current.Position)
+                    {
+                        await lease.Connection.ExecuteAsync(
+                            new CommandDefinition(
+                                "UPDATE tasks SET position = position + 1 " +
+                                "WHERE status = @status AND parent_id IS @parentId AND id <> @id " +
+                                "AND position >= @target AND position < @current",
+                                new
+                                {
+                                    status,
+                                    parentId,
+                                    id = id.ToString(),
+                                    target,
+                                    current = current.Position,
+                                },
+                                transaction: lease.Transaction,
+                                cancellationToken: token)).ConfigureAwait(false);
+                    }
+                    else if (target > current.Position)
+                    {
+                        await lease.Connection.ExecuteAsync(
+                            new CommandDefinition(
+                                "UPDATE tasks SET position = position - 1 " +
+                                "WHERE status = @status AND parent_id IS @parentId AND id <> @id " +
+                                "AND position > @current AND position <= @target",
+                                new
+                                {
+                                    status,
+                                    parentId,
+                                    id = id.ToString(),
+                                    target,
+                                    current = current.Position,
+                                },
+                                transaction: lease.Transaction,
+                                cancellationToken: token)).ConfigureAwait(false);
+                    }
+                }
+                else
+                {
+                    int count = await lease.Connection.ExecuteScalarAsync<int>(
+                        new CommandDefinition(
+                            "SELECT COUNT(*) FROM tasks WHERE status = @status AND parent_id IS @parentId",
+                            new { status, parentId },
+                            transaction: lease.Transaction,
+                            cancellationToken: token)).ConfigureAwait(false);
+
+                    if (target > count)
+                    {
+                        target = await NextPositionAsync(lease, status, parentId, id, token).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        await lease.Connection.ExecuteAsync(
+                            new CommandDefinition(
+                                "UPDATE tasks SET position = position + 1 " +
+                                "WHERE status = @status AND parent_id IS @parentId AND id <> @id " +
+                                "AND position >= @target",
+                                new { status, parentId, id = id.ToString(), target },
+                                transaction: lease.Transaction,
+                                cancellationToken: token)).ConfigureAwait(false);
+                    }
+                }
+
+                await lease.Connection.ExecuteAsync(
+                    new CommandDefinition(
+                        "UPDATE tasks SET status = @status, position = @target, updated_at = @updatedAt " +
+                        "WHERE id = @id",
+                        new
+                        {
+                            status,
+                            target,
+                            updatedAt = DateTimeOffset.UtcNow.ToString("O"),
+                            id = id.ToString(),
+                        },
+                        transaction: lease.Transaction,
+                        cancellationToken: token)).ConfigureAwait(false);
+
+                return await lease.Connection.QuerySingleAsync<TaskRecord>(
+                    new CommandDefinition(
+                        $"SELECT {SelectColumns} FROM tasks WHERE id = @id",
+                        new { id = id.ToString() },
+                        transaction: lease.Transaction,
+                        cancellationToken: token)).ConfigureAwait(false);
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyDictionary<Guid, SubtaskCounts>> CountSubtasksAsync(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        var counts = new Dictionary<Guid, SubtaskCounts>();
+
+        if (ids.Count == 0)
+        {
+            return counts;
+        }
+
+        await using SqliteLease lease = await _session.OpenAsync(cancellationToken).ConfigureAwait(false);
+
+        IEnumerable<SubtaskCountRow> rows = await lease.Connection.QueryAsync<SubtaskCountRow>(
+            new CommandDefinition(
+                "SELECT parent_id AS ParentId, COUNT(*) AS Total, " +
+                "SUM(CASE WHEN status = @done THEN 1 ELSE 0 END) AS Done " +
+                "FROM tasks WHERE parent_id IN @ids GROUP BY parent_id",
+                new { ids = ids.Select(taskId => taskId.ToString()).ToArray(), done = TaskStatuses.Done },
+                transaction: lease.Transaction,
+                cancellationToken: cancellationToken)).ConfigureAwait(false);
+
+        foreach (SubtaskCountRow row in rows)
+        {
+            if (Guid.TryParse(row.ParentId, out Guid parentId))
+            {
+                counts[parentId] = new SubtaskCounts(row.Total, row.Done);
+            }
+        }
+
+        return counts;
+    }
+
+    /// <summary>Следующая позиция в колонке: <c>max + 1</c> или начало пустой.</summary>
+    private static async Task<int> NextPositionAsync(
+        SqliteLease lease,
+        string status,
+        string? parentId,
+        Guid id,
+        CancellationToken cancellationToken)
+        => await lease.Connection.ExecuteScalarAsync<int>(
+            new CommandDefinition(
+                "SELECT COALESCE(MAX(position), @empty) + 1 FROM tasks " +
+                "WHERE status = @status AND parent_id IS @parentId AND id <> @id",
+                new
+                {
+                    status,
+                    parentId,
+                    id = id.ToString(),
+                    empty = TaskPositions.First - 1,
+                },
+                transaction: lease.Transaction,
+                cancellationToken: cancellationToken)).ConfigureAwait(false);
+
+    /// <inheritdoc />
     public Task<TaskDeleteResult> DeleteAsync(
         Guid id,
         TaskDeleteMode mode = TaskDeleteMode.Cascade,
@@ -377,5 +579,15 @@ public sealed class SqliteTaskStore : ITaskStore
         }
 
         return Guid.Parse(treeId);
+    }
+
+    /// <summary>Строка агрегата счётчиков подзадач.</summary>
+    private sealed class SubtaskCountRow
+    {
+        public string ParentId { get; set; } = string.Empty;
+
+        public int Total { get; set; }
+
+        public int Done { get; set; }
     }
 }

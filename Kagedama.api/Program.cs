@@ -9,6 +9,7 @@ using Kouki.Kagedama.Api.Services;
 using Kouki.Kagedama;
 using Kouki.Kagedama.Contracts;
 using Kouki.Kagedama.Hosting;
+using Kouki.Mugura.Dispatcher;
 using Kouki.Shimi.Context;
 using Kouki.Shimi.ServiceAbstractions;
 using Kouki.Un;
@@ -111,6 +112,10 @@ builder.Configuration.GetSection($"{KoukiHostSettings.SectionName}:Answerer").Bi
 // потому что правила быстрее; включённый попадает в сравнение, а UseForIntake — в приём.
 Kouki.Yasabi.LlmIntentOptions intentLlmOptions = new();
 builder.Configuration.GetSection($"{KoukiHostSettings.SectionName}:IntentLlm").Bind(intentLlmOptions);
+
+// API — публичный хост с собственным токеном: подтверждение опасных команд проверяет
+// эндпоинт (confirm=true), а роутер не должен отказывать дважды. MCP и бот так не делают.
+builder.Services.AddSingleton<ICommandConfirmation, AllowAllConfirmation>();
 
 // Одна композиция домена на все хосты: хранилище, команды, контексты, классификатор, приём.
 builder.Services.AddKoukiCore(new KoukiHostSettings
