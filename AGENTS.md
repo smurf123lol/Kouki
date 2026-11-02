@@ -128,7 +128,7 @@ dotnet build   Kouki.slnx --no-restore -m:1 -nodeReuse:false     # 0 ошибо�
 - **Офлайн-окружение:** `dotnet restore` без флагов может падать молча («Ошибок: 0», код 1) —
   это многонодовый MSBuild, которому запрещены named pipes. Всегда `-m:1 -nodeReuse:false`.
 - **Тесты:** на Linux/сервере и в CI — обычный `dotnet test`, `[Theory]` разрешены и исполняются
-  (на 02.11.2026 — **438 тестов** на `master`). В песочнице Windows `dotnet test` недоступен
+  (на 02.11.2026 — **445 тестов** на `master`). В песочнице Windows `dotnet test` недоступен
   (testhost падает на `OpenProcess`), там вспомогательный раннер `_scratch\testrun`, запуск
   `dotnet _scratch\testrun\bin\Debug\net10.0\Kouki.Tests.Runner.dll`. Он исполняет только
   `[Fact]`, поэтому тест, который должен идти и на Windows, пиши `[Fact]` с циклом внутри.
@@ -313,9 +313,16 @@ cd ../_scratch/wt/kouki-t50-backup-timer && dotnet test Kouki.Tests/Kouki.Tests.
 - **Заметки** живут в `/srv/kouki-workspace/notes-updated` (и копия в
   `/srv/files/_kouki/notes-updated`). Двойного редактирования не держим: правит тот,
   кто делает задачу, второй читает.
-- **Тесты на Linux идут через `dotnet test`** (на 01.11.2026 — 438 тестов после T94 фазы 2;
+- **Тесты на Linux идут через `dotnet test`** (на 02.11.2026 — 445 тестов после T94 фазы 2 и инструментов разметки;
   было 402 на master `98b776b`, `[Theory]` исполняются). Свой раннер `tools\test.ps1` нужен
   только на Windows, где `dotnet test` не может запуститься из-за песочницы.
+- **Разметка интентов — `tools/intents.sh` (сервер) и `tools/intents.ps1` (Windows)**:
+  команды `check` (формат `labeled.jsonl`, распределение), `compare` (сверка с `rules+llm`
+  через `POST /api/classify`) и `import` (метки в журнал через `POST /api/classifications/{id}/label`,
+  `unclassified` пропускается). Аналоги в API и MCP есть (`list_classifications`,
+  `label_classification`, `export_dataset`), скрипт только склеивает файл и сервер. Данные
+  (`input.jsonl`, `labeled.jsonl`, `report.md`) живут на шаре, в git не попадают: это реальные
+  фразы пользователей, они выводятся из журнала одной командой.
 - **Публикация и код-деплой на сервере — своими скриптами** (PowerShell там нет):
   `tools/publish-linux.sh` собирает API, бота и MCP в `publish/linux-x64`, а
   `deploy/deploy-code.sh` раскладывает артефакт в `/opt/kouki/{app,app/bot,mcp}` и
