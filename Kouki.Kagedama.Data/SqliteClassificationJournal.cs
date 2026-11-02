@@ -76,21 +76,48 @@ public sealed class SqliteClassificationJournal : IClassificationJournal
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<ClassificationEntry>> ListAsync(int limit, bool onlyUnresolved, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ClassificationEntry>> ListAsync(
+        int limit,
+        bool onlyUnresolved,
+        Guid? taskId = null,
+        CancellationToken cancellationToken = default)
     {
         await using SqliteLease lease = await _session.OpenAsync(cancellationToken).ConfigureAwait(false);
         SqliteConnection connection = lease.Connection;
 
+        // Фильтр по задаче и «неразмеченные» складываются, а не заменяют друг друга:
+        // прошлая редакция при фильтре по задаче теряла «label IS NULL AND hinted_intent IS NULL»,
+        // и в «неразмеченные» попадали уже размеченные записи.
+        string where = "WHERE (@taskId IS NULL OR task_id = @taskId) ";
+        if (onlyUnresolved)
+        {
+            where += "AND label IS NULL AND hinted_intent IS NULL AND (confident = 0 OR error IS NOT NULL) ";
+        }
+
         IEnumerable<ClassificationEntry> rows = await connection.QueryAsync<ClassificationEntry>(
             new CommandDefinition(
                 $"SELECT {SelectColumns} FROM classifications " +
-                (onlyUnresolved ? "WHERE label IS NULL AND hinted_intent IS NULL AND (confident = 0 OR error IS NOT NULL) " : string.Empty) +
+                where +
                 "ORDER BY created_at DESC LIMIT @limit",
-                new { limit },
+                new { limit, taskId = taskId?.ToString() },
                 transaction: lease.Transaction,
                 cancellationToken: cancellationToken)).ConfigureAwait(false);
 
         return rows.ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<ClassificationEntry?> GetAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        await using SqliteLease lease = await _session.OpenAsync(cancellationToken).ConfigureAwait(false);
+        SqliteConnection connection = lease.Connection;
+
+        return await connection.QuerySingleOrDefaultAsync<ClassificationEntry>(
+            new CommandDefinition(
+                $"SELECT {SelectColumns} FROM classifications WHERE id = @id LIMIT 1",
+                new { id = id.ToString() },
+                transaction: lease.Transaction,
+                cancellationToken: cancellationToken)).ConfigureAwait(false);
     }
 
     /// <inheritdoc />

@@ -130,6 +130,7 @@ public static class DatabaseInitializer
 
         CREATE INDEX IF NOT EXISTS ix_classifications_created ON classifications (created_at DESC);
         CREATE INDEX IF NOT EXISTS ix_classifications_label ON classifications (label);
+        CREATE INDEX IF NOT EXISTS ix_classifications_task ON classifications (task_id);
 
         CREATE TABLE IF NOT EXISTS actions (
             id                TEXT PRIMARY KEY,

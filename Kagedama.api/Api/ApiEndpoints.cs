@@ -19,6 +19,12 @@ namespace Kouki.Kagedama.Api.Api;
 /// </summary>
 public static class ApiEndpoints
 {
+    /// <summary>Сколько секунд клиент может кэшировать запись: аудио неизменно после записи.</summary>
+    private const int AudioCacheSeconds = 3600;
+
+    /// <summary>Текст 404 аудио: нет записи журнала, нет пути или нет файла.</summary>
+    private const string AudioNotFoundError = "Записи нет.";
+
     /// <summary>
     /// Регистрирует маршруты <c>/api/*</c>.
     /// </summary>
@@ -51,6 +57,7 @@ public static class ApiEndpoints
         api.MapGet("/api/actions", listActionsHandler);
         api.MapGet("/api/context", contextHandler);
         api.MapGet("/api/classifications", listClassificationsHandler);
+        api.MapGet("/api/audio/{id:guid}", classificationAudioHandler);
         api.MapPost("/api/classifications/{id:guid}/label", labelClassificationHandler);
         api.MapGet("/api/dataset", exportDatasetHandler);
         api.MapGet("/api/reminders", listRemindersHandler);
@@ -556,6 +563,7 @@ public static class ApiEndpoints
     }
 
     private static async Task<IResult> listClassificationsHandler(
+        Guid? taskId,
         int? limit,
         bool? unresolved,
         MuguraRouter router,
@@ -568,11 +576,76 @@ public static class ApiEndpoints
 
         JsonNode? result = await router.RouteAsync(
             "list_classifications",
-            new JsonObject { ["limit"] = take, ["unresolved"] = unresolved ?? false },
+            new JsonObject
+            {
+                ["taskId"] = taskId?.ToString(),
+                ["limit"] = take,
+                ["unresolved"] = unresolved ?? false,
+            },
             context: null,
             cancellationToken).ConfigureAwait(false);
 
         return Results.Ok(ApiMapping.ToClassificationList(result));
+    }
+
+    /// <summary>
+    /// Отдаёт сохранённую запись разговора (WAV) по идентификатору записи журнала.
+    /// </summary>
+    /// <remarks>
+    /// Чтение мимо команды (инвариант 7): WAV — двоичные байты, через JSON-команды они не
+    /// проходят. Путь берётся только из журнала, а не из запроса; файл обязан лежать внутри
+    /// <see cref="KoukiServerOptions.AudioDirectory"/>, иначе ответ 404.
+    /// </remarks>
+    /// <param name="id">Запись журнала.</param>
+    /// <param name="journal">Журнал: единственный источник пути к аудио.</param>
+    /// <param name="options">Настройки сервера: корень каталога аудио.</param>
+    /// <param name="loggers">Фабрика логов: отказы видны в журнале сервера.</param>
+    /// <param name="httpContext">Ответ: заголовок кэширования.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    private static async Task<IResult> classificationAudioHandler(
+        Guid id,
+        IClassificationJournal journal,
+        IOptions<KoukiServerOptions> options,
+        ILoggerFactory loggers,
+        HttpContext httpContext,
+        CancellationToken cancellationToken)
+    {
+        ClassificationEntry? entry = await journal.GetAsync(id, cancellationToken).ConfigureAwait(false);
+        if (entry is null || string.IsNullOrWhiteSpace(entry.AudioPath))
+        {
+            return Results.NotFound(new { error = AudioNotFoundError });
+        }
+
+        string root = Path.GetFullPath(options.Value.AudioDirectory);
+        string rootPrefix = root.EndsWith(Path.DirectorySeparatorChar)
+            ? root
+            : root + Path.DirectorySeparatorChar;
+        StringComparison comparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+
+        // Путь только из базы: сначала нормализуем его (это раскрывает «..») и проверяем,
+        // что результат лежит внутри каталога аудио. Относительные пути не принимаем.
+        string fullPath = Path.GetFullPath(entry.AudioPath);
+        if (!Path.IsPathFullyQualified(entry.AudioPath) ||
+            !fullPath.StartsWith(rootPrefix, comparison) ||
+            !File.Exists(fullPath))
+        {
+            // В базе мог остаться путь за пределы каталога аудио, а файл мог удалить
+            // санитайзер: не отдаём ни байта, причину пишем в лог.
+            ILogger logger = loggers.CreateLogger(typeof(ApiEndpoints).FullName!);
+            logger.LogWarning(
+                "Аудио записи {Id} не отдано: путь {AudioPath} вне каталога {AudioRoot} или файла нет.",
+                id,
+                entry.AudioPath,
+                root);
+
+            return Results.NotFound(new { error = AudioNotFoundError });
+        }
+
+        byte[] wav = await File.ReadAllBytesAsync(fullPath, cancellationToken).ConfigureAwait(false);
+        httpContext.Response.Headers.CacheControl = $"private, max-age={AudioCacheSeconds}";
+        return Results.File(wav, "audio/wav");
     }
 
     private static async Task<IResult> labelClassificationHandler(

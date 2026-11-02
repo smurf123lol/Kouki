@@ -46,8 +46,21 @@ public interface IClassificationJournal
     /// </summary>
     /// <param name="limit">Сколько вернуть.</param>
     /// <param name="onlyUnresolved">Только те, что ещё не размечены: неуверенные или упавшие.</param>
+    /// <param name="taskId">Только записи, связанные с задачей; <c>null</c> — без фильтра.</param>
     /// <param name="cancellationToken">Токен отмены.</param>
-    Task<IReadOnlyList<ClassificationEntry>> ListAsync(int limit, bool onlyUnresolved, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ClassificationEntry>> ListAsync(
+        int limit,
+        bool onlyUnresolved,
+        Guid? taskId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Одна запись журнала по идентификатору.
+    /// </summary>
+    /// <param name="id">Идентификатор записи.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <returns>Запись или <c>null</c>, если её нет.</returns>
+    Task<ClassificationEntry?> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Дописывает к записи данные распознавания речи: уверенность и путь к аудио.
@@ -174,8 +187,16 @@ public sealed class NullClassificationJournal : IClassificationJournal
         => Task.FromResult(Guid.Empty);
 
     /// <inheritdoc />
-    public Task<IReadOnlyList<ClassificationEntry>> ListAsync(int limit, bool onlyUnresolved, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<ClassificationEntry>> ListAsync(
+        int limit,
+        bool onlyUnresolved,
+        Guid? taskId = null,
+        CancellationToken cancellationToken = default)
         => Task.FromResult<IReadOnlyList<ClassificationEntry>>(Array.Empty<ClassificationEntry>());
+
+    /// <inheritdoc />
+    public Task<ClassificationEntry?> GetAsync(Guid id, CancellationToken cancellationToken = default)
+        => Task.FromResult<ClassificationEntry?>(null);
 
     /// <inheritdoc />
     public Task<bool> LabelAsync(Guid id, string label, CancellationToken cancellationToken = default)

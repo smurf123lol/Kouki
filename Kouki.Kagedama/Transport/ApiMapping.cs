@@ -133,7 +133,9 @@ public static class ApiMapping
             entry.Model,
             entry.Error,
             entry.Label,
-            entry.LabeledAt);
+            entry.LabeledAt,
+            entry.TaskId,
+            !string.IsNullOrWhiteSpace(entry.AudioPath));
     }
 
     /// <summary>Действие → DTO.</summary>

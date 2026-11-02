@@ -91,7 +91,9 @@ public sealed record ClassificationDto(
     string Model,
     string? Error,
     string? Label,
-    string? LabeledAt);
+    string? LabeledAt,
+    Guid? TaskId,
+    bool HasAudio);
 
 /// <summary>Ответ на голосовой запрос.</summary>
 /// <remarks>
