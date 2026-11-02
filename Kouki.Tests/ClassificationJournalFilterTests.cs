@@ -25,26 +25,38 @@ public sealed class ClassificationJournalFilterTests : IDisposable
     [Fact]
     public async Task ListAsync_filters_by_task_and_keeps_unresolved_condition()
     {
-        // Две записи привязаны к задаче (одна неразмеченная, одна уверенная) и одна
-        // неразмеченная запись без задачи. Так видно оба прошлых дефекта: фильтр по задаче
-        // не должен ни терять условие «неразмеченные», ни перебивать его собой.
+        // Четыре записи привязаны к задаче: неразмеченная, уверенная, с ручной меткой и с
+        // подсказкой сессии; одна неразмеченная запись без задачи. Так видно оба прошлых
+        // дефекта: фильтр по задаче не должен ни терять условие «неразмеченные», ни
+        // перебивать его собой, а разобранные записи (`label` / `hinted_intent`) не должны
+        // попадать в список неразобранных.
         Guid target = Guid.NewGuid();
         Guid foreign = Guid.NewGuid();
 
         Guid unresolvedTarget = await RecordAsync("покажи задачи по дому", Confident: false);
         Guid resolvedTarget = await RecordAsync("покажи все задачи", Confident: true);
+        Guid labeledTarget = await RecordAsync("купи хлеб", Confident: false);
+        Guid hintedTarget = await RecordAsync("поставь будильник", Confident: false);
         Guid unresolvedForeign = await RecordAsync("погода завтра", Confident: false);
 
         Assert.True(await _journal.LinkToTaskAsync(unresolvedTarget, target));
         Assert.True(await _journal.LinkToTaskAsync(resolvedTarget, target));
+        Assert.True(await _journal.LinkToTaskAsync(labeledTarget, target));
+        Assert.True(await _journal.LinkToTaskAsync(hintedTarget, target));
         Assert.True(await _journal.LinkToTaskAsync(unresolvedForeign, foreign));
+
+        // Ручная метка и подсказка сессии делают запись разобранной. Уверенность намеренно
+        // ниже порога: убери из SQL `AND label IS NULL` или `AND hinted_intent IS NULL` —
+        // и такая запись вернётся в список неразобранных, тест обязан упасть.
+        Assert.True(await _journal.LabelAsync(labeledTarget, "add_task"));
+        Assert.True(await _journal.AnnotateHintAsync(hintedTarget, "add_task"));
 
         IReadOnlyList<ClassificationEntry> byTask = await _journal.ListAsync(
             limit: 10,
             onlyUnresolved: false,
             taskId: target);
 
-        Assert.Equal(2, byTask.Count);
+        Assert.Equal(4, byTask.Count);
         Assert.All(byTask, entry => Assert.Equal(target, entry.TaskId));
 
         IReadOnlyList<ClassificationEntry> unresolvedByTask = await _journal.ListAsync(
@@ -54,6 +66,13 @@ public sealed class ClassificationJournalFilterTests : IDisposable
 
         ClassificationEntry single = Assert.Single(unresolvedByTask);
         Assert.Equal(unresolvedTarget, single.Id);
+
+        // Обе разобранные записи не вернулись: у одной ручная метка, у другой — подсказка
+        // сессии. Уверенная запись тоже не «неразобранная», хотя условия label/hint её
+        // не касаются.
+        Assert.DoesNotContain(unresolvedByTask, entry => entry.Id == labeledTarget);
+        Assert.DoesNotContain(unresolvedByTask, entry => entry.Id == hintedTarget);
+        Assert.DoesNotContain(unresolvedByTask, entry => entry.Id == resolvedTarget);
     }
 
     [Fact]
