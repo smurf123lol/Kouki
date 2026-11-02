@@ -60,6 +60,8 @@ Kagedama.api / .mcp / Kouki.Kagedama.Bot — хосты
 
 1. **Задачу создаёт только `Kouki.Kagedama/TaskFactory.cs`.** Ни в команде, ни в приёме, ни в
    эндпоинте не собирай `TaskRecord` руками: разъедется статус, приоритет и заголовок.
+   Первичные теги пишутся `ITagStore.AddAsync` в той же транзакции, что и задача (это делает
+   `TaskIntakeService`), а не отдельной вставкой из хоста.
 2. **Источник — только `TaskSources.*`** (`api`, `telegram`, `voice`, `station`, `dashboard`,
    `mcp`, `command`). Строку из запроса валидируй `TaskSources.IsKnown` и отвечай 400 со
    списком допустимых. Никаких `"api"` литералами.
@@ -76,8 +78,9 @@ Kagedama.api / .mcp / Kouki.Kagedama.Bot — хосты
    умолчанию — `KoukiHosting.DefaultDatabasePath()`, не свой.
 7. **Чтение и запись по HTTP и MCP — через команды** (`list_tasks`, `patch_task`,
    `complete_task`, `list_actions`, `list_classifications`, `label_classification`),
-   а не прямо в хранилища из хоста. Единственное исключение — `GET /api/tasks/{id}`:
-   пиши рядом комментарий, почему это чтение одной записи мимо команды.
+   а не прямо в хранилища из хоста. Исключения — `GET /api/tasks/{id}` и
+   `GET /api/reminders/due` (одна запись / выборка «что пора»); рядом — комментарий,
+   почему это чтение мимо команды. Новый такой эндпоинт — только с таким комментарием.
    Хост MCP поэтому получает в конструктор только `TaskIntakeService`, `IRouter` и
    `IContextRegistry`: если ему понадобилось хранилище, значит операция забыла команду.
 8. **Авторизация fail-closed.** Пустой `Kouki:Token` — это ошибка запуска, а не «без пароля».
