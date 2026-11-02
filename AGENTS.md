@@ -124,12 +124,11 @@ dotnet build   Kouki.slnx --no-restore -m:1 -nodeReuse:false     # 0 ошибо�
 
 - **Офлайн-окружение:** `dotnet restore` без флагов может падать молча («Ошибок: 0», код 1) —
   это многонодовый MSBuild, которому запрещены named pipes. Всегда `-m:1 -nodeReuse:false`.
-- **Тесты:** в песочнице Windows `dotnet test` недоступен (testhost падает на `OpenProcess`) —
-  там свой раннер `_scratch\testrun`, запуск
-  `dotnet _scratch\testrun\bin\Debug\net10.0\Kouki.Tests.Runner.dll`; он исполняет только
-  `[Fact]`, поэтому тесты пишем `[Fact]` с циклом внутри — так они идут и на Windows.
-  На Linux/сервере — обычный `dotnet test`, `[Theory]` там исполняются
-  (на 01.11.2026: 402 на master `98b776b` / 438 в дереве T94).
+- **Тесты:** на Linux/сервере и в CI — обычный `dotnet test`, `[Theory]` разрешены и исполняются
+  (на 02.11.2026 — **438 тестов** на `master`). В песочнице Windows `dotnet test` недоступен
+  (testhost падает на `OpenProcess`), там вспомогательный раннер `_scratch\testrun`, запуск
+  `dotnet _scratch\testrun\bin\Debug\net10.0\Kouki.Tests.Runner.dll`. Он исполняет только
+  `[Fact]`, поэтому тест, который должен идти и на Windows, пиши `[Fact]` с циклом внутри.
 - **После переноса сборок** (`AssemblyName`, новые проекты) чисти `_scratch\testrun\bin` и
   `obj`: иначе раннер падает `FileNotFoundException` на старой копии.
 - **Добавил новый файл тестов — пересобери раннер** (`dotnet build _scratch\testrun\testrun.csproj`):
@@ -143,7 +142,8 @@ dotnet build   Kouki.slnx --no-restore -m:1 -nodeReuse:false     # 0 ошибо�
 
 ## Гигиена файлов
 
-- Временные файлы, логи, БД-стенды — только в `E:\dsharness-workspaces\Kouki Workspace\_scratch`.
+- Временные файлы, логи, БД-стенды — только в `_scratch/` в корне воркспейса
+  (Windows: `Z:\_scratch`, сервер: `/srv/kouki-workspace/_scratch`).
   В корне воркспейса и в корне репозитория ничего временного не оставлять.
 - `bin/`, `obj/`, `models/`, `*.sqlite`, `station-audio/` — в `.gitignore`; проверить перед
   коммитом, что в индекс не попали.
@@ -165,7 +165,7 @@ dotnet build   Kouki.slnx --no-restore -m:1 -nodeReuse:false     # 0 ошибо�
 - Писать в журнал «правильный» интент вместо классификатора (см. инвариант 4).
 - Открывать `SqliteConnection` вне `SqliteSession`.
 - Логировать токены, пароли и тела с персональными данными.
-- Оставлять `[Theory]`, «временно» отключённые тесты и `catch { }` без лога.
+- Оставлять «временно» отключённые тесты и `catch { }` без лога.
 
 ## Порядок работы над задачей
 
