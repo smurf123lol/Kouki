@@ -2,6 +2,8 @@ using System.Data;
 using Dapper;
 using Microsoft.Data.Sqlite;
 
+using Kouki.Kagedama.Contracts;
+
 namespace Kouki.Kagedama.Data;
 
 /// <summary>
@@ -64,7 +66,43 @@ public static class DatabaseInitializer
             "UPDATE classifications SET id = lower(id) WHERE id <> lower(id);";
         command.ExecuteNonQuery();
 
+        // Дерево было позже задач: колонки добавляются после выравнивания идентификаторов,
+        // иначе tree_id у старой базы остался бы в верхнем регистре.
+        EnsureTaskTreeSchema(connection);
+
         return fullPath;
+    }
+
+    /// <summary>
+    /// Догоняет старую базу до схемы дерева задач: колонки, индексы и backfill.
+    /// </summary>
+    /// <remarks>
+    /// Идемпотентно: на новой базе колонки добавляются один раз, backfill выбирает только
+    /// <c>tree_id IS NULL</c>, а <c>INSERT OR IGNORE</c> не дублирует строки деревьев.
+    /// </remarks>
+    private static void EnsureTaskTreeSchema(SqliteConnection connection)
+    {
+        EnsureColumn(connection, "tasks", "tree_id", "TEXT NULL REFERENCES task_trees (id)");
+        EnsureColumn(connection, "tasks", "parent_id", "TEXT NULL REFERENCES tasks (id)");
+        EnsureColumn(connection, "tasks", "position", $"INTEGER NOT NULL DEFAULT {TaskPositions.First}");
+
+        using (var indexes = connection.CreateCommand())
+        {
+            indexes.CommandText =
+                "CREATE INDEX IF NOT EXISTS ix_tasks_tree ON tasks (tree_id); " +
+                "CREATE INDEX IF NOT EXISTS ix_tasks_parent ON tasks (parent_id); " +
+                "CREATE INDEX IF NOT EXISTS ix_tasks_status_position ON tasks (status, position);";
+            indexes.ExecuteNonQuery();
+        }
+
+        // Отдельная задача становится деревом из одного узла: tree_id = id, parent_id = null.
+        // Порядок у старых задач одинаковый (position = 0), его добирает created_at DESC.
+        using var backfill = connection.CreateCommand();
+        backfill.CommandText =
+            "INSERT OR IGNORE INTO task_trees (id, created_at) " +
+            "SELECT id, created_at FROM tasks WHERE tree_id IS NULL; " +
+            "UPDATE tasks SET tree_id = id WHERE tree_id IS NULL;";
+        backfill.ExecuteNonQuery();
     }
 
     /// <summary>
@@ -92,6 +130,11 @@ public static class DatabaseInitializer
 
     private const string Schema = """
         PRAGMA journal_mode = WAL;
+
+        CREATE TABLE IF NOT EXISTS task_trees (
+            id         TEXT PRIMARY KEY,
+            created_at TEXT NOT NULL
+        );
 
         CREATE TABLE IF NOT EXISTS tasks (
             id          TEXT PRIMARY KEY,
