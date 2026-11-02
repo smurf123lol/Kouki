@@ -2,6 +2,10 @@
    Палитра: чернила на тёплой бумаге, вермильон печати, песочные волоски.
    Не «SaaS-карточки», а разворот учётной книги: корешок, таблички, линейки. */
 
+/* Атрибут hidden обязан побеждать классы вроде .chips { display: flex }: иначе
+   скрытый #status-filter снова виден на доске. */
+[hidden] { display: none !important; }
+
 :root {
     --ink: #0b0a08;
     --paper: #16130f;
@@ -267,7 +271,9 @@ textarea { resize: vertical; width: 100%; line-height: 1.5; }
 .panel-head .meta:last-child { margin-left: auto; }
 
 /* фильтры */
-.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+/* :not([hidden]) — каскад закодирован в селекторе: при скрытом блоке правило
+   display: flex не применяется и атрибут hidden снова работает. */
+.chips:not([hidden]) { display: flex; gap: 6px; flex-wrap: wrap; }
 .chip {
     font: inherit;
     font-size: 9.5px;

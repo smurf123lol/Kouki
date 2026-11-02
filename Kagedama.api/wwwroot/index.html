@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Kouki — журнал задач</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css">
+    <!-- ?v= — смена URL после деплоя: у части браузеров app.js/styles.css успевают осесть в эвристическом кэше и играют со старым HTML. -->
+    <link rel="stylesheet" href="styles.css?v=2026-11-02.1">
 </head>
 <body>
 <div class="spine" aria-hidden="true">こ う き 帳</div>
@@ -229,6 +230,6 @@
     <span class="meta">token: localStorage</span>
 </footer>
 
-<script src="app.js"></script>
+<script src="app.js?v=2026-11-02.1"></script>
 </body>
 </html>

@@ -1,4 +1,17 @@
+using System.Net;
+using System.Net;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.FileProviders;
+
+using Kouki.Kagedama.Api;
+
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
 using Xunit;
 
 namespace Kouki.Tests;
@@ -149,6 +162,115 @@ public sealed class DashboardAssetsTests
         // полная перерисовка списков через innerHTML не должна вернуться
         Assert.DoesNotContain("list.innerHTML = tasks.map", app, StringComparison.Ordinal);
         Assert.DoesNotContain("body.innerHTML = actions.map", app, StringComparison.Ordinal);
+    }
+
+    // Живой деплой 02.11 показал две дыры, которые ловятся только на боевом браузере:
+    // старый app.js из эвристического кэша поверх нового HTML (Cannot read properties of
+    // null (reading 'dataset')) и видимый #status-filter, потому что .chips{display:flex}
+    // перебивал атрибут hidden. Заголовки проверяются на настоящем Kestrel с боевыми
+    // настройками из DashboardStaticFiles: грепать Program.cs бессмысленно.
+    [Fact]
+    public async Task Static_files_are_served_without_heuristic_cache()
+    {
+        using PhysicalFileProvider files = DashboardStaticFiles.Provider(WebRoot);
+        WebApplicationBuilder builder = WebApplication.CreateBuilder(new WebApplicationOptions
+        {
+            EnvironmentName = "Test",
+        });
+        builder.Logging.ClearProviders();
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
+
+        await using WebApplication app = builder.Build();
+        DashboardStaticFiles.Use(app, files);
+        await app.StartAsync();
+
+        try
+        {
+            IServer server = app.Services.GetRequiredService<IServer>();
+            IServerAddressesFeature addresses = server.Features.Get<IServerAddressesFeature>()
+                ?? throw new InvalidOperationException("Kestrel не сообщил адрес запуска.");
+            using var client = new HttpClient { BaseAddress = new Uri(addresses.Addresses.First()) };
+
+            HttpResponseMessage page = await client.GetAsync("/");
+            Assert.Equal(HttpStatusCode.OK, page.StatusCode);
+            Assert.Equal("no-cache", page.Headers.CacheControl?.ToString());
+            Assert.False(string.IsNullOrEmpty(page.Headers.ETag?.ToString()), "у index.html должен быть ETag");
+
+            HttpResponseMessage script = await client.GetAsync("/app.js?v=2026-11-02.1");
+            Assert.Equal(HttpStatusCode.OK, script.StatusCode);
+            Assert.Equal("no-cache", script.Headers.CacheControl?.ToString());
+            Assert.Equal("text/javascript", script.Content.Headers.ContentType?.MediaType);
+
+            // Повторный запрос с ETag: ответ 304 обязан сохранять no-cache, иначе браузер
+            // снова начнёт применять к нему эвристику.
+            using var revalidate = new HttpRequestMessage(HttpMethod.Get, "/app.js?v=2026-11-02.1");
+            revalidate.Headers.TryAddWithoutValidation("If-None-Match", script.Headers.ETag!.ToString());
+            HttpResponseMessage notModified = await client.SendAsync(revalidate);
+            Assert.Equal(HttpStatusCode.NotModified, notModified.StatusCode);
+            Assert.Equal("no-cache", notModified.Headers.CacheControl?.ToString());
+
+            HttpResponseMessage styles = await client.GetAsync("/styles.css?v=2026-11-02.1");
+            Assert.Equal(HttpStatusCode.OK, styles.StatusCode);
+            Assert.Equal("no-cache", styles.Headers.CacheControl?.ToString());
+        }
+        finally
+        {
+            await app.StopAsync();
+        }
+    }
+
+    // Браузера в тестовом окружении нет, поэтому каскад закодирован структурно: правило
+    // [hidden] обязано лежать на верхнем уровне (не внутри @media) и побеждать !important,
+    // а .chips не должен включать display: flex при наличии атрибута hidden.
+    [Fact]
+    public void Cascade_keeps_hidden_attribute_effective()
+    {
+        string css = File.ReadAllText(Path.Combine(WebRoot, "styles.css"));
+
+        // Правило ровно одно: если оно есть ещё раз ниже, оно перебило бы первое.
+        int rule = css.IndexOf("[hidden] {", StringComparison.Ordinal);
+        Assert.True(rule > 0, "нет правила [hidden]");
+        Assert.Equal(rule, css.LastIndexOf("[hidden] {", StringComparison.Ordinal));
+        Assert.Equal(0, BraceDepthAt(css, rule));
+
+        int end = css.IndexOf('}', rule);
+        Assert.Contains("display: none !important", css[rule..end], StringComparison.Ordinal);
+
+        // Ищем начало правила, а не подстроку: закомментированный или упомянутый в
+        // другом селекторе .chips:not([hidden]) не спасает каскад.
+        Assert.Equal(1, CountOf(css, "\n.chips:not([hidden]) {"));
+        Assert.Equal(0, BraceDepthAt(css, css.IndexOf("\n.chips:not([hidden]) {", StringComparison.Ordinal)));
+    }
+
+    private static int CountOf(string text, string value)
+    {
+        int count = 0;
+        int index = text.IndexOf(value, StringComparison.Ordinal);
+        while (index >= 0)
+        {
+            count++;
+            index = text.IndexOf(value, index + value.Length, StringComparison.Ordinal);
+        }
+
+        return count;
+    }
+
+    private static int BraceDepthAt(string css, int position)
+    {
+        int depth = 0;
+        for (int i = 0; i < position; i++)
+        {
+            if (css[i] == '{')
+            {
+                depth++;
+            }
+            else if (css[i] == '}')
+            {
+                depth--;
+            }
+        }
+
+        return depth;
     }
 
     // Чипы тегов в карточке и фильтр по клику проверяются поведенчески:
