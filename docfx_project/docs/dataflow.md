@@ -220,6 +220,12 @@ ESP32 ────┤→ Kagedama.api /api/intake ──→ TaskIntakeService.In
   она помечает ответ `"created": true`. Задачу сам приём создаёт только для неуверенных фраз
   (статус `needs_review`) — команды для них не существует.
 - MCP-сервер повторяет HTTP-путь без веба: те же сервисы, только транспорт stdio и лог в stderr.
+- Доска Kanban (T78) ходит другим путём: `GET /api/tasks?topLevel=true&limit=500` → команда
+  `list_tasks`, `POST /api/tasks` → `add_task`, `POST /api/tasks/{id}/move` → `move_task`,
+  `DELETE /api/tasks/{id}?mode=cascade|detach` → `delete_task_cascade`/`delete_task_detach`.
+  Опасные команды в API проходят через `ICommandConfirmation` (`ApiCommandConfirmation`):
+  каскад — только с `confirm=true`, detach — без подтверждения, остальные — отказ.
+  Порядок карточек держит `position` в паре (`status`, `parent_id`), дерево — `task_trees`.
 ### 16. Контракты и состояние: что изменилось в типах
 
 ```csharp
