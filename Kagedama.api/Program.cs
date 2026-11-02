@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.Extensions.FileProviders;
 using System.Threading.RateLimiting;
 using Kouki.Kagedama.Api;
 using Kouki.Kagedama.Api.Api;
@@ -287,9 +286,10 @@ string webRoot = new[]
     Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"),
 }.FirstOrDefault(Directory.Exists) ?? Path.Combine(AppContext.BaseDirectory, "wwwroot");
 
-var files = new PhysicalFileProvider(webRoot);
-app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = files });
-app.UseStaticFiles(new StaticFileOptions { FileProvider = files });
+// Дашборд собирается без хешей в именах файлов, поэтому браузер не должен держать
+// app.js/styles.css в эвристическом кэше: иначе после деплоя новый HTML работает со
+// старым скриптом (T78, живой деплой 02.11). Проводка — общая с тестами.
+DashboardStaticFiles.Use(app, DashboardStaticFiles.Provider(webRoot));
 
 // Браузер просит /favicon.ico; отдаём SVG-иконку, чтобы не было 404 в логах.
 app.Use(async (context, next) =>
@@ -297,6 +297,7 @@ app.Use(async (context, next) =>
     if (context.Request.Path.Equals("/favicon.ico", StringComparison.OrdinalIgnoreCase))
     {
         context.Response.ContentType = "image/svg+xml";
+        context.Response.Headers.CacheControl = DashboardStaticFiles.CacheControl;
         await context.Response.SendFileAsync(Path.Combine(webRoot, "favicon.svg"));
         return;
     }
