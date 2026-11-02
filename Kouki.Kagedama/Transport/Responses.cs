@@ -27,6 +27,21 @@ public sealed record TaskDto(
     /// тот же порядок полей, а <c>tags</c> появляется в JSON само.
     /// </remarks>
     public IReadOnlyList<string> Tags { get; init; } = Array.Empty<string>();
+
+    /// <summary>Родительская задача или <c>null</c> у корневой.</summary>
+    public Guid? ParentId { get; init; }
+
+    /// <summary>Дерево задачи: у корня совпадает с <see cref="Id"/>.</summary>
+    public Guid TreeId { get; init; }
+
+    /// <summary>Позиция в колонке, начиная с нуля.</summary>
+    public int Position { get; init; }
+
+    /// <summary>Сколько прямых подзадач.</summary>
+    public int SubtasksCount { get; init; }
+
+    /// <summary>Сколько прямых подзадач в статусе «готово».</summary>
+    public int SubtasksDoneCount { get; init; }
 }
 
 /// <summary>Результат распознавания в ответах хостов.</summary>

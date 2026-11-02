@@ -17,5 +17,16 @@ public sealed record SpeechRequest(string Text);
 /// <summary>Частичное обновление задачи.</summary>
 public sealed record TaskPatchRequest(string? Status = null, string? Title = null, int? Priority = null);
 
+/// <summary>Создание задачи с дашборда.</summary>
+/// <param name="Text">Формулировка задачи.</param>
+/// <param name="ParentId">Родительская задача, если создаётся подзадача.</param>
+/// <param name="Priority">Приоритет: 1, 2 или 3; <c>null</c> — по умолчанию.</param>
+public sealed record TaskCreateRequest(string? Text = null, Guid? ParentId = null, int? Priority = null);
+
+/// <summary>Перенос карточки в колонку и на позицию.</summary>
+/// <param name="Status">Целевой статус; обязателен.</param>
+/// <param name="Position">Позиция в колонке, начиная с нуля.</param>
+public sealed record TaskMoveRequest(string? Status = null, int? Position = null);
+
 /// <summary>Ручная разметка записи журнала.</summary>
 public sealed record LabelRequest(string Label);

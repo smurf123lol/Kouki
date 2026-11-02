@@ -53,6 +53,9 @@ public static class ApiEndpoints
         api.MapGet("/api/classifiers", (IClassifierCatalog catalog) => Results.Ok(new { classifiers = catalog.Names }));
         api.MapGet("/api/tasks", listTasksHandler);
         api.MapGet("/api/tasks/{id:guid}", getTaskHandler);
+        api.MapPost("/api/tasks", createTaskHandler);
+        api.MapPost("/api/tasks/{id:guid}/move", moveTaskHandler);
+        api.MapDelete("/api/tasks/{id:guid}", deleteTaskHandler);
         api.MapPatch("/api/tasks/{id:guid}", patchTaskHandler);
         api.MapGet("/api/actions", listActionsHandler);
         api.MapGet("/api/context", contextHandler);
@@ -438,12 +441,32 @@ public static class ApiEndpoints
         string? status,
         int? limit,
         string? tag,
+        string? parentId,
+        bool? topLevel,
         MuguraRouter router,
         CancellationToken cancellationToken)
     {
         if (status is not null && !TaskStatuses.IsKnown(status))
         {
             return Results.BadRequest(new { error = $"Неизвестный статус '{status}'." });
+        }
+
+        // Пустой parentId — это «отфильтруй по пустому родителю», а не «покажи всё» (E4):
+        // такой фильтр не имеет смысла, поэтому это ошибка клиента.
+        string? parentFilter = null;
+        if (parentId is not null)
+        {
+            if (string.IsNullOrWhiteSpace(parentId))
+            {
+                return Results.BadRequest(new { error = TaskCommands.MissingTaskIdError });
+            }
+
+            if (!Guid.TryParse(parentId, out Guid parsedParent))
+            {
+                return Results.BadRequest(new { error = $"'{parentId}' — не идентификатор задачи." });
+            }
+
+            parentFilter = parsedParent.ToString();
         }
 
         // Тег фильтрует задачи: «#» и скобки снимает нормализация, но пустой тег — ошибка клиента.
@@ -461,10 +484,26 @@ public static class ApiEndpoints
 
         int take = Math.Clamp(limit ?? 50, 1, 500);
 
+        var slots = new JsonObject
+        {
+            ["status"] = status,
+            ["limit"] = take,
+            ["tag"] = tagFilter,
+        };
+        if (parentFilter is not null)
+        {
+            slots["parentId"] = parentFilter;
+        }
+
+        if (topLevel == true)
+        {
+            slots["topLevel"] = true;
+        }
+
         // Чтение идёт через команду, как и запись: одно поведение для api, mcp и бота.
         JsonNode? result = await router.RouteAsync(
             "list_tasks",
-            new JsonObject { ["status"] = status, ["limit"] = take, ["tag"] = tagFilter },
+            slots,
             context: null,
             cancellationToken).ConfigureAwait(false);
 
@@ -474,6 +513,124 @@ public static class ApiEndpoints
         }
 
         return Results.Ok(ApiMapping.ToTaskList(result));
+    }
+
+    private static async Task<IResult> createTaskHandler(
+        TaskCreateRequest? request,
+        MuguraRouter router,
+        IContextRegistry contexts,
+        CancellationToken cancellationToken)
+    {
+        if (request is null)
+        {
+            return Results.BadRequest(new { error = "Тело запроса обязательно." });
+        }
+
+        // Создание — только командой: правила пустого текста, родителя и приоритета живут
+        // в add_task, а не второй копией в эндпоинте.
+        JsonNode? result = await router.RouteAsync(
+            "add_task",
+            new JsonObject
+            {
+                ["text"] = request.Text,
+                ["source"] = TaskSources.Dashboard,
+                ["parentId"] = request.ParentId,
+                ["priority"] = request.Priority,
+            },
+            contexts.GetDefaultContext(),
+            cancellationToken).ConfigureAwait(false);
+
+        if (result is JsonObject payload && payload["error"] is JsonNode error)
+        {
+            return Results.BadRequest(new { error = error.ToString() });
+        }
+
+        TaskDto? created = ApiMapping.FromTaskJson(result);
+        return created is null
+            ? Results.BadRequest(new { error = "Пустая фраза: нечего записывать как задачу." })
+            : Results.Ok(created);
+    }
+
+    private static async Task<IResult> moveTaskHandler(
+        Guid id,
+        TaskMoveRequest? request,
+        MuguraRouter router,
+        IContextRegistry contexts,
+        CancellationToken cancellationToken)
+    {
+        if (request is null)
+        {
+            return Results.BadRequest(new { error = "Тело запроса обязательно." });
+        }
+
+        JsonNode? result = await router.RouteAsync(
+            "move_task",
+            new JsonObject
+            {
+                ["taskId"] = id.ToString(),
+                ["status"] = request.Status,
+                ["position"] = request.Position,
+            },
+            contexts.GetDefaultContext(),
+            cancellationToken).ConfigureAwait(false);
+
+        if (result is JsonObject payload && payload["error"] is JsonNode error)
+        {
+            string text = error.ToString();
+            return text.Contains("не найдена", StringComparison.OrdinalIgnoreCase)
+                ? Results.NotFound(new { error = text })
+                : Results.BadRequest(new { error = text });
+        }
+
+        TaskDto? moved = ApiMapping.FromTaskJson(result);
+        return moved is null
+            ? Results.NotFound(new { error = $"Задача {id} не найдена." })
+            : Results.Ok(moved);
+    }
+
+    private static async Task<IResult> deleteTaskHandler(
+        Guid id,
+        string? mode,
+        bool? confirm,
+        MuguraRouter router,
+        IContextRegistry contexts,
+        CancellationToken cancellationToken)
+    {
+        string? requestedMode = string.IsNullOrWhiteSpace(mode) ? null : mode;
+
+        if (requestedMode is not null && !TaskDeleteModes.IsKnown(requestedMode))
+        {
+            return Results.BadRequest(new { error = $"Неизвестный режим удаления '{mode}'." });
+        }
+
+        TaskDeleteMode deleteMode = TaskDeleteModes.Parse(requestedMode);
+
+        // Каскад задевает чужие карточки, поэтому без явного confirm=true его не запускаем.
+        // Detach трогает только саму задачу — подтверждение ему не нужно (§2.5).
+        if (deleteMode == TaskDeleteMode.Cascade && confirm != true)
+        {
+            return Results.BadRequest(new { error = "Удаление с подзадачами требует подтверждения." });
+        }
+
+        string command = deleteMode == TaskDeleteMode.Detach
+            ? "delete_task_detach"
+            : "delete_task_cascade";
+
+        JsonNode? result = await router.RouteAsync(
+            command,
+            new JsonObject { ["taskId"] = id.ToString() },
+            contexts.GetDefaultContext(),
+            cancellationToken).ConfigureAwait(false);
+
+        if (result is JsonObject payload && payload["error"] is JsonNode error)
+        {
+            string text = error.ToString();
+            return text.Contains("не найдена", StringComparison.OrdinalIgnoreCase)
+                ? Results.NotFound(new { error = text })
+                : Results.BadRequest(new { error = text });
+        }
+
+        return Results.Ok(result);
     }
 
     private static async Task<IResult> getTaskHandler(

@@ -65,7 +65,8 @@
     <section class="panel" id="panel-tasks">
         <div class="panel-head">
             <h2>Задачи</h2>
-            <div class="chips" id="status-filter">
+            <!-- Фильтр статусов заменён колонками доски; блок оставлен скрытым для старых ссылок. -->
+            <div class="chips" id="status-filter" hidden>
                 <button class="chip is-active" data-status="">все</button>
                 <button class="chip" data-status="new">новые</button>
                 <button class="chip" data-status="in_progress">в работе</button>
@@ -74,7 +75,54 @@
             </div>
             <span class="meta" id="tasks-meta"></span>
         </div>
-        <div class="list" id="task-list"></div>
+
+        <!-- Мобильная ширина (<768 px): вкладки показывают одну колонку за раз. -->
+        <div class="board-tabs" id="board-tabs" role="tablist" aria-label="Колонки доски">
+            <button type="button" class="chip is-active" id="board-tab-new" data-board-tab="new">Inbox</button>
+            <button type="button" class="chip" id="board-tab-in_progress" data-board-tab="in_progress">В работе</button>
+            <button type="button" class="chip" id="board-tab-needs_review" data-board-tab="needs_review">Ожидание</button>
+            <button type="button" class="chip" id="board-tab-done" data-board-tab="done">Готово</button>
+            <button type="button" class="chip" id="board-tab-cancelled" data-board-tab="cancelled">Отменено</button>
+        </div>
+
+        <div class="board" id="board">
+            <section class="board-column is-active" id="board-column-new" data-column="new">
+                <header class="board-column-head" id="board-head-new">
+                    <span class="board-column-title">Inbox</span>
+                    <span class="board-column-count" id="board-count-new">0</span>
+                </header>
+                <div class="board-column-body" id="board-body-new" data-column-body="new"></div>
+            </section>
+            <section class="board-column" id="board-column-in_progress" data-column="in_progress">
+                <header class="board-column-head" id="board-head-in_progress">
+                    <span class="board-column-title">В работе</span>
+                    <span class="board-column-count" id="board-count-in_progress">0</span>
+                </header>
+                <div class="board-column-body" id="board-body-in_progress" data-column-body="in_progress"></div>
+            </section>
+            <section class="board-column" id="board-column-needs_review" data-column="needs_review">
+                <header class="board-column-head" id="board-head-needs_review">
+                    <span class="board-column-title">Ожидание</span>
+                    <span class="board-column-count" id="board-count-needs_review">0</span>
+                </header>
+                <div class="board-column-body" id="board-body-needs_review" data-column-body="needs_review"></div>
+            </section>
+            <section class="board-column" id="board-column-done" data-column="done">
+                <header class="board-column-head" id="board-head-done">
+                    <span class="board-column-title">Готово</span>
+                    <span class="board-column-count" id="board-count-done">0</span>
+                </header>
+                <div class="board-column-body" id="board-body-done" data-column-body="done"></div>
+            </section>
+            <section class="board-column board-column-collapsed" id="board-column-cancelled" data-column="cancelled">
+                <header class="board-column-head" id="board-head-cancelled" role="button" tabindex="0">
+                    <span class="board-column-title">Отменено</span>
+                    <span class="board-column-count" id="board-count-cancelled">0</span>
+                    <button type="button" class="btn small" id="board-toggle-cancelled">Показать отменённые</button>
+                </header>
+                <div class="board-column-body" id="board-body-cancelled" data-column-body="cancelled"></div>
+            </section>
+        </div>
     </section>
 
     <section class="panel" id="panel-review" hidden>

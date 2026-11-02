@@ -60,13 +60,15 @@ public sealed class KoukiMcpTools
                 required: "text")),
         new McpToolDescriptor(
             "kouki_list_tasks",
-            "Показывает последние задачи Kouki, при желании — только с указанным тегом.",
+            "Показывает последние задачи Kouki: при желании — только с указанным тегом, только подзадачи указанной задачи или только корневые.",
             Schema(
                 new[]
                 {
                     ("status", "string", "Фильтр: new, in_progress, done, cancelled, needs_review."),
                     ("tag", "string", "Фильтр по тегу, например «работа» или «#работа»."),
-                    ("limit", "integer", "Сколько задач вернуть, по умолчанию 10, максимум 100."),
+                    ("limit", "integer", "Сколько задач вернуть, по умолчанию 50, максимум 500."),
+                    ("parentId", "string", "Идентификатор родительской задачи (GUID): только её прямые подзадачи."),
+                    ("topLevel", "boolean", "true — только корневые задачи (без родителя)."),
                 })),
         new McpToolDescriptor(
             "kouki_complete_task",
@@ -270,6 +272,22 @@ public sealed class KoukiMcpTools
         if (OptionalInt(args, "limit") is { } limit)
         {
             slots["limit"] = limit;
+        }
+
+        if (OptionalString(args, "parentId") is { } rawParentId)
+        {
+            if (!Guid.TryParse(rawParentId, out Guid parentId))
+            {
+                return new JsonObject { ["error"] = $"'{rawParentId}' — не идентификатор задачи." };
+            }
+
+            slots["parentId"] = parentId.ToString();
+        }
+
+        if (args["topLevel"] is JsonNode topLevel
+            && topLevel.GetValueKind() is JsonValueKind.True or JsonValueKind.False)
+        {
+            slots["topLevel"] = topLevel.GetValue<bool>();
         }
 
         return await _router.RouteAsync("list_tasks", slots, _contexts.GetDefaultContext(), cancellationToken)

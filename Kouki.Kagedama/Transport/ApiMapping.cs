@@ -87,7 +87,11 @@ public static class ApiMapping
     /// <summary>Задача → DTO.</summary>
     /// <param name="record">Запись задачи.</param>
     /// <param name="tags">Теги задачи, если хост их прочитал; <c>null</c> — пустой массив.</param>
-    public static TaskDto ToDto(TaskRecord record, IReadOnlyList<string>? tags = null)
+    /// <param name="counts">Счётчики прямых подзадач, если хост их прочитал.</param>
+    public static TaskDto ToDto(
+        TaskRecord record,
+        IReadOnlyList<string>? tags = null,
+        SubtaskCounts counts = default)
     {
         ArgumentNullException.ThrowIfNull(record);
 
@@ -103,6 +107,11 @@ public static class ApiMapping
             ParseMeta(record.MetaJson))
         {
             Tags = tags ?? Array.Empty<string>(),
+            ParentId = record.ParentId,
+            TreeId = record.TreeId,
+            Position = record.Position,
+            SubtasksCount = counts.Total,
+            SubtasksDoneCount = counts.Done,
         };
     }
 

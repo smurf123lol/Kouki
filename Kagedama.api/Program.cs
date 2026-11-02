@@ -9,6 +9,7 @@ using Kouki.Kagedama.Api.Services;
 using Kouki.Kagedama;
 using Kouki.Kagedama.Contracts;
 using Kouki.Kagedama.Hosting;
+using Kouki.Mugura.Dispatcher;
 using Kouki.Shimi.Context;
 using Kouki.Shimi.ServiceAbstractions;
 using Kouki.Un;
@@ -111,6 +112,15 @@ builder.Configuration.GetSection($"{KoukiHostSettings.SectionName}:Answerer").Bi
 // потому что правила быстрее; включённый попадает в сравнение, а UseForIntake — в приём.
 Kouki.Yasabi.LlmIntentOptions intentLlmOptions = new();
 builder.Configuration.GetSection($"{KoukiHostSettings.SectionName}:IntentLlm").Bind(intentLlmOptions);
+
+// API — публичный хост с собственным токеном. Эндпоинт удаления сам проверяет confirm=true
+// (§2.5), но это не отменяет проверку в роутере: любая будущая опасная команда в другом
+// эндпоинте должна отказать, а не выполниться молча. Detach разрешён, cascade — только с
+// confirm=true; остальные опасные команды в API запрещены (fail-closed). MCP и бот это
+// поведение не наследуют: там действует RejectAllConfirmation из библиотеки.
+// Регистрация — до AddKoukiCore: TryAddSingleton библиотеки не должен её перебить.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<ICommandConfirmation, ApiCommandConfirmation>();
 
 // Одна композиция домена на все хосты: хранилище, команды, контексты, классификатор, приём.
 builder.Services.AddKoukiCore(new KoukiHostSettings

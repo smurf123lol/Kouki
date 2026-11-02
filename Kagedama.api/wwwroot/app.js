@@ -17,11 +17,39 @@ const OUTCOME_RU = {
 
 const TAB_IN_RU = { tasks: 'задачи', review: 'разбор', intake: 'приём', compare: 'проверка', actions: 'действия' };
 
+// Доска — пять колонок по статусам. «Отменено» свёрнута при каждой загрузке страницы;
+// состояние сворачивания не запоминается (спека T78, §2.6).
+const BOARD_COLUMNS = [
+    { status: 'new', title: 'Inbox' },
+    { status: 'in_progress', title: 'В работе' },
+    { status: 'needs_review', title: 'Ожидание' },
+    { status: 'done', title: 'Готово' },
+    { status: 'cancelled', title: 'Отменено' },
+];
+
+// На доске только корневые задачи; подзадачи живут в чек-листе внутри карточки.
+const BOARD_LIMIT = 500;
+const AUTO_REFRESH_MS = 5000;
+// Порог мобильной вёрстки; то же число задаёт одна media query в styles.css.
+const MOBILE_BREAKPOINT = 768;
+
+const PRIORITY_RU = { 1: 'низкий', 2: 'обычный', 3: 'высокий' };
+
 const state = {
     token: localStorage.getItem('kouki.token') || '',
     tab: 'tasks',
-    status: '',
     tag: '',
+    boardTab: 'new',
+    boardTasks: [],
+    cancelledCollapsed: true,
+    openSubtasks: new Set(),
+    subtasks: new Map(),
+    drafts: {},
+    subtaskErrors: {},
+    dragging: false,
+    dragId: null,
+    dragAfter: false,
+    editing: false,
     taskId: null,
     detailId: null,
     detailSig: null,
@@ -33,6 +61,23 @@ const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[ch]));
+
+// Делегирование: event.target может быть текстовым узлом или заглушкой теста.
+function closestOf(node, selector) {
+    return node && typeof node.closest === 'function' ? node.closest(selector) : null;
+}
+
+// Мобильная вёрстка — до 768 px: одна колонка, вкладки, без перетаскивания.
+function isBoardDesktop() {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return true;
+    return window.matchMedia(`(min-width: ${MOBILE_BREAKPOINT}px)`).matches;
+}
+
+// Подтверждение спрашиваем только в браузере; в песочнице теста его нет.
+function confirmAction(message) {
+    if (typeof window === 'undefined' || typeof window.confirm !== 'function') return true;
+    return window.confirm(message);
+}
 
 class AuthError extends Error {}
 
@@ -224,36 +269,268 @@ function applyList(container, items, keyOf, signatureOf, render, emptyHtml) {
 
 /* ---------- задачи ---------- */
 
-async function loadTasks() {
+async function loadBoard() {
     const params = new URLSearchParams();
-    if (state.status) params.set('status', state.status);
+    params.set('topLevel', 'true');
+    params.set('limit', String(BOARD_LIMIT));
     if (state.tag) params.set('tag', state.tag);
-    params.set('limit', '200');
 
     const tasks = await api('/api/tasks?' + params.toString());
-    const list = $('task-list');
-    const parts = [tasks.length ? `${tasks.length} записей` : ''];
+    state.boardTasks = tasks.slice().sort((a, b) => (Number(a.position) || 0) - (Number(b.position) || 0)
+        || String(b.createdAt || '').localeCompare(String(a.createdAt || ''))
+        || String(a.id).localeCompare(String(b.id)));
+
+    renderBoard();
+
+    const parts = [tasks.length ? `${tasks.length} карточек` : ''];
     if (state.tag) parts.push('тег #' + state.tag);
     $('tasks-meta').textContent = parts.filter(Boolean).join(' · ');
     setCount('count-tasks', tasks.length);
+}
 
-    applyList(
-        list,
-        tasks,
-        (task) => task.id,
-        (task) => [task.status, task.priority, task.title, task.source, (task.tags || []).join(','), task.updatedAt || task.createdAt].join('|'),
-        (task) => `
-        <div class="card" data-task="${esc(task.id)}">
-            <span class="status status-${esc(task.status)}">${esc(STATUS_RU[task.status] || task.status)}</span>
-            <div class="card-main">
-                <div class="card-title">${esc(task.title)}</div>
-                <div class="card-sub">${esc(task.source)} · ${esc(formatTime(task.createdAt))}${
-                    task.meta && task.meta.intent ? ' · ' + esc(task.meta.intent) : ''
-                }</div>
-                ${tagChips(task.tags)}
+function boardColumnTasks(status) {
+    return state.boardTasks.filter((task) => task.status === status);
+}
+
+function renderBoard() {
+    BOARD_COLUMNS.forEach((column) => {
+        const items = boardColumnTasks(column.status);
+        $('board-count-' + column.status).textContent = String(items.length);
+
+        applyList(
+            $('board-body-' + column.status),
+            items,
+            (task) => task.id,
+            boardSignature,
+            renderBoardCard,
+            '<div class="empty board-empty">Пока пусто.</div>');
+    });
+}
+
+// Ключ перерисовки карточки: без статуса/позиции/подзадач карточка осталась бы
+// на старом месте после move, а счётчик не обновился бы после подзадачи.
+function boardSignature(task) {
+    return [
+        task.status,
+        task.position ?? 0,
+        task.parentId ?? '',
+        task.subtasksCount ?? 0,
+        task.subtasksDoneCount ?? 0,
+        task.priority,
+        task.title,
+        (task.tags || []).join(','),
+        task.updatedAt || task.createdAt,
+        state.openSubtasks.has(task.id) ? 'open' : '',
+        subtaskSignature(task.id),
+        state.drafts[task.id] || '',
+        state.subtaskErrors[task.id] || '',
+    ].join('|');
+}
+
+function subtaskSignature(parentId) {
+    if (!state.openSubtasks.has(parentId)) return '';
+    return (state.subtasks.get(parentId) || [])
+        .map((item) => item.id + ':' + item.status)
+        .join(',');
+}
+
+function priorityBadge(priority) {
+    const value = Number(priority) || 2;
+    const title = PRIORITY_RU[value] || String(value);
+    return `<span class="priority priority-${value}" title="приоритет: ${esc(title)}">${esc(title)}</span>`;
+}
+
+function subtaskRows(parentId) {
+    const items = state.subtasks.get(parentId) || [];
+    if (!items.length) return '<div class="subtask-empty">Подзадач нет</div>';
+
+    return items.map((item) => {
+        const closed = item.status === 'done' || item.status === 'cancelled';
+        return `<label class="subtask${closed ? ' is-closed' : ''}">
+            <input type="checkbox" data-subtask-toggle="${esc(item.id)}"${item.status === 'done' ? ' checked' : ''}>
+            <span class="subtask-title">${esc(item.title)}</span>
+        </label>`;
+    }).join('');
+}
+
+function subtaskBox(task) {
+    const count = Number(task.subtasksCount) || 0;
+    const done = Number(task.subtasksDoneCount) || 0;
+    const open = state.openSubtasks.has(task.id);
+    const label = count > 0 ? `Подзадачи: ${count} · готово ${done}` : 'Подзадачи';
+    const draft = state.drafts[task.id] || '';
+    const error = state.subtaskErrors[task.id]
+        ? `<span class="meta subtask-error" data-subtask-error="${esc(task.id)}">${esc(state.subtaskErrors[task.id])}</span>`
+        : '';
+
+    return `<div class="subtask-box">
+        <button type="button" class="btn small" data-subtasks-open="${esc(task.id)}" aria-expanded="${open}">${esc(label)}</button>
+        ${open ? `<div class="subtask-list">
+            ${subtaskRows(task.id)}
+            <div class="subtask-add">
+                <input class="subtask-input" data-subtask-input="${esc(task.id)}" value="${esc(draft)}" placeholder="Добавить подзадачу">
+                <button type="button" class="btn small" data-subtask-add="${esc(task.id)}">добавить</button>
             </div>
-        </div>`,
-        '<div class="empty">Пока пусто. Добавьте задачу через «Приём» или из Telegram.</div>');
+            ${error}
+        </div>` : ''}
+    </div>`;
+}
+
+function renderBoardCard(task) {
+    // Статусы меняются тем же PATCH, что и в карточке задачи; на доске — прямо из карточки.
+    const statusButtons = ['in_progress', 'done', 'cancelled']
+        .filter((status) => status !== task.status)
+        .map((status) => `<button type="button" class="btn small" data-board-status="${esc(status)}" data-board-status-id="${esc(task.id)}">${esc(STATUS_RU[status])}</button>`)
+        .join('');
+
+    return `<article class="board-card" data-board-card="${esc(task.id)}" data-task="${esc(task.id)}" draggable="true">
+        <div class="board-card-head">
+            <div class="board-card-title">${esc(task.title)}</div>
+            ${priorityBadge(task.priority)}
+        </div>
+        ${tagChips(task.tags)}
+        ${subtaskBox(task)}
+        <div class="board-card-status">${statusButtons}</div>
+        <div class="board-card-actions">
+            <button type="button" class="btn small danger" data-delete-task="${esc(task.id)}" data-delete-mode="cascade">Удалить с подзадачами</button>
+            <button type="button" class="btn small" data-delete-task="${esc(task.id)}" data-delete-mode="detach">Удалить, оставив подзадачи</button>
+        </div>
+    </article>`;
+}
+
+async function loadSubtasks(parentId) {
+    const items = await api(`/api/tasks?parentId=${encodeURIComponent(parentId)}&limit=${BOARD_LIMIT}`);
+    state.subtasks.set(parentId, items);
+}
+
+async function toggleSubtasks(parentId) {
+    if (state.openSubtasks.has(parentId)) {
+        state.openSubtasks.delete(parentId);
+        renderBoard();
+        return;
+    }
+
+    state.openSubtasks.add(parentId);
+    try {
+        await loadSubtasks(parentId);
+    } catch (error) {
+        if (error instanceof AuthError) throw error;
+        state.subtasks.set(parentId, []);
+    }
+    renderBoard();
+}
+
+async function addSubtask(parentId) {
+    const text = (state.drafts[parentId] || '').trim();
+    if (!text) {
+        state.subtaskErrors[parentId] = 'Введите текст подзадачи.';
+        renderBoard();
+        return;
+    }
+
+    delete state.subtaskErrors[parentId];
+    try {
+        await api('/api/tasks', {
+            method: 'POST',
+            body: JSON.stringify({ text, parentId }),
+        });
+        delete state.drafts[parentId];
+        state.openSubtasks.add(parentId);
+        // Поле могло исчезнуть вместе с фокусом: иначе тик автообновления замолчит навсегда.
+        state.editing = false;
+        await Promise.all([loadSubtasks(parentId), loadBoard()]);
+        renderBoard();
+    } catch (error) {
+        if (error instanceof AuthError) throw error;
+        state.subtaskErrors[parentId] = 'Не удалось создать подзадачу.';
+        renderBoard();
+    }
+}
+
+async function toggleSubtask(subtaskId) {
+    const entry = Array.from(state.subtasks.entries())
+        .find(([, items]) => items.some((item) => item.id === subtaskId));
+    if (!entry) return;
+
+    const child = entry[1].find((item) => item.id === subtaskId);
+    const status = child.status === 'done' ? 'new' : 'done';
+    try {
+        await api(`/api/tasks/${subtaskId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status }),
+        });
+        await loadSubtasks(entry[0]);
+        await loadBoard();
+    } catch (error) {
+        if (error instanceof AuthError) throw error;
+        showBanner('Не удалось изменить подзадачу.');
+        await loadBoard();
+    }
+}
+
+async function deleteTask(taskId, mode) {
+    const task = state.boardTasks.find((item) => item.id === taskId);
+    const count = task ? Number(task.subtasksCount) || 0 : 0;
+    const message = mode === 'detach'
+        ? `Удалить задачу? Подзадачи станут самостоятельными. Подзадач: ${count}.`
+        : `Удалить задачу вместе со всеми подзадачами? Подзадач: ${count}.`;
+    if (!confirmAction(message)) return;
+
+    // Каскад задевает подзадачи, поэтому сервер требует явный confirm=true.
+    const query = mode === 'detach' ? 'mode=detach' : 'mode=cascade&confirm=true';
+    try {
+        await api(`/api/tasks/${taskId}?${query}`, { method: 'DELETE' });
+        state.openSubtasks.delete(taskId);
+        state.subtasks.delete(taskId);
+        delete state.drafts[taskId];
+        delete state.subtaskErrors[taskId];
+        await Promise.all([loadBoard(), refreshTally()]);
+    } catch (error) {
+        if (error instanceof AuthError) throw error;
+        showBanner('Не удалось удалить задачу.');
+    }
+}
+
+async function moveTask(taskId, status, position) {
+    if (!isBoardDesktop()) return false;
+
+    state.dragging = true;
+    try {
+        await api(`/api/tasks/${taskId}/move`, {
+            method: 'POST',
+            body: JSON.stringify({ status, position }),
+        });
+        // Ответ move приходит без тегов (ограничение П2), поэтому карточку из него
+        // не рисуем, а перезапрашиваем доску — как это делает автообновление.
+        await Promise.all([loadBoard(), refreshTally()]);
+        return true;
+    } catch (error) {
+        if (error instanceof AuthError) throw error;
+        showBanner('Не удалось переместить задачу.');
+        await loadBoard();
+        return false;
+    } finally {
+        state.dragging = false;
+        state.dragId = null;
+    }
+}
+
+function selectBoardTab(status) {
+    state.boardTab = status;
+    BOARD_COLUMNS.forEach((column) => {
+        const tab = $('board-tab-' + column.status);
+        if (tab) tab.classList.toggle('is-active', column.status === status);
+        const node = $('board-column-' + column.status);
+        if (node) node.classList.toggle('is-active', column.status === status);
+    });
+}
+
+function setCancelledCollapsed(collapsed) {
+    state.cancelledCollapsed = collapsed;
+    const column = $('board-column-cancelled');
+    if (column) column.classList.toggle('board-column-collapsed', collapsed);
+    const button = $('board-toggle-cancelled');
+    if (button) button.textContent = collapsed ? 'Показать отменённые' : 'Свернуть';
 }
 
 // Тег — метка, а не текст: чип кликабелен и ставит фильтр по тегу (повторный клик снимает).
@@ -449,7 +726,21 @@ async function setTaskStatus(status) {
         method: 'PATCH',
         body: JSON.stringify({ status }),
     });
-    await Promise.all([loadTasks(), openTask(state.taskId, { force: true }), refreshTally()]);
+    await Promise.all([loadBoard(), openTask(state.taskId, { force: true }), refreshTally()]);
+}
+
+async function setBoardTaskStatus(taskId, status) {
+    try {
+        await api(`/api/tasks/${taskId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status }),
+        });
+        await Promise.all([loadBoard(), refreshTally()]);
+    } catch (error) {
+        if (error instanceof AuthError) throw error;
+        showBanner('Не удалось изменить статус задачи.');
+        await loadBoard();
+    }
 }
 
 /* ---------- приём ---------- */
@@ -595,11 +886,11 @@ async function reload(options = {}) {
         showBanner('');
         await refreshTally();
 
-        // Пока в поле ввода печатают, списки не трогаем: обновим табло и статус,
-        // а разметку — когда фокус уйдёт (или нажали «обновить»).
-        if (!force && isUserBusy()) return;
+        // Пока в поле ввода печатают или карточку тащат, списки не трогаем: обновим
+        // табло и статус, а разметку — когда фокус уйдёт (или нажали «обновить»).
+        if (!force && (isUserBusy() || state.dragging || state.editing)) return;
 
-        if (state.tab === 'tasks') await loadTasks();
+        if (state.tab === 'tasks') await loadBoard();
         else if (state.tab === 'review') await loadReview();
         else if (state.tab === 'compare') await loadClassifiers();
         else if (state.tab === 'actions') await loadActions();
@@ -630,37 +921,71 @@ async function ping() {
 
 document.addEventListener('click', async (event) => {
     // Чип тега живёт внутри карточки задачи: сначала он, иначе клик по тегу откроет задачу.
-    const tagChip = event.target.closest('[data-tag]');
+    const tagChip = closestOf(event.target, '[data-tag]');
     if (tagChip) {
         event.preventDefault();
         event.stopPropagation();
         state.tag = state.tag === tagChip.dataset.tag ? '' : tagChip.dataset.tag;
-        await loadTasks();
+        await loadBoard();
+        return;
+    }
+
+    // Поле «Добавить подзадачу» не открывает карточку задачи.
+    if (closestOf(event.target, '[data-subtask-input]')) return;
+
+    const subtasksOpen = closestOf(event.target, '[data-subtasks-open]');
+    if (subtasksOpen) {
+        await toggleSubtasks(subtasksOpen.dataset.subtasksOpen);
+        return;
+    }
+
+    const subtaskToggle = closestOf(event.target, '[data-subtask-toggle]');
+    if (subtaskToggle) {
+        await toggleSubtask(subtaskToggle.dataset.subtaskToggle);
+        return;
+    }
+
+    const subtaskAdd = closestOf(event.target, '[data-subtask-add]');
+    if (subtaskAdd) {
+        await addSubtask(subtaskAdd.dataset.subtaskAdd);
+        return;
+    }
+
+    const deleteButton = closestOf(event.target, '[data-delete-task]');
+    if (deleteButton) {
+        await deleteTask(deleteButton.dataset.deleteTask, deleteButton.dataset.deleteMode);
+        return;
+    }
+
+    // Кнопки статусов на карточке доски: тот же PATCH, что и в панели задачи.
+    const boardStatus = closestOf(event.target, '[data-board-status]');
+    if (boardStatus) {
+        await setBoardTaskStatus(boardStatus.dataset.boardStatusId, boardStatus.dataset.boardStatus);
         return;
     }
 
     // Аудио в карточке качается только по нажатию: preload="none" и src не задан.
-    const audioButton = event.target.closest('[data-audio-play]');
+    const audioButton = closestOf(event.target, '[data-audio-play]');
     if (audioButton) {
         event.preventDefault();
         await playPhraseAudio(audioButton.dataset.audioPlay);
         return;
     }
 
-    const target = event.target.closest('[data-task]');
+    const target = closestOf(event.target, '[data-task]');
     if (target) {
         event.preventDefault();
         await openTask(target.dataset.task, { force: true });
         return;
     }
 
-    const labelButton = event.target.closest('[data-label]');
+    const labelButton = closestOf(event.target, '[data-label]');
     if (labelButton) {
         await labelRecord(labelButton.dataset.id, labelButton.dataset.label);
         return;
     }
 
-    const customSave = event.target.closest('[data-custom-save]');
+    const customSave = closestOf(event.target, '[data-custom-save]');
     if (customSave) {
         const id = customSave.dataset.customSave;
         const input = document.querySelector(`[data-custom="${id}"]`);
@@ -668,20 +993,98 @@ document.addEventListener('click', async (event) => {
         return;
     }
 
-    const statusButton = event.target.closest('[data-set-status]');
+    const statusButton = closestOf(event.target, '[data-set-status]');
     if (statusButton) {
         await setTaskStatus(statusButton.dataset.setStatus);
     }
 });
 
-$('status-filter').addEventListener('click', async (event) => {
-    const chip = event.target.closest('[data-status]');
-    if (!chip) return;
-    document.querySelectorAll('#status-filter .chip').forEach((node) => {
-        node.classList.toggle('is-active', node === chip);
-    });
-    state.status = chip.dataset.status;
-    await loadTasks();
+// Вкладки колонок нужны только на мобильной ширине: на десктопе видны все пять.
+$('board-tabs').addEventListener('click', (event) => {
+    const tab = closestOf(event.target, '[data-board-tab]');
+    if (!tab) return;
+    selectBoardTab(tab.dataset.boardTab);
+});
+
+// «Отменено» сворачивается кликом по шапке; состояние не запоминается между загрузками.
+$('board-head-cancelled').addEventListener('click', () => {
+    setCancelledCollapsed(!state.cancelledCollapsed);
+});
+
+// Черновик подзадачи живёт в состоянии, пока поле в фокусе: автообновление его не сбрасывает.
+document.addEventListener('input', (event) => {
+    const input = closestOf(event.target, '[data-subtask-input]');
+    if (!input) return;
+    const id = input.dataset.subtaskInput;
+    state.drafts[id] = input.value;
+    state.editing = true;
+    if (state.subtaskErrors[id]) {
+        delete state.subtaskErrors[id];
+        renderBoard();
+    }
+});
+
+document.addEventListener('focusout', (event) => {
+    if (closestOf(event.target, '[data-subtask-input]')) state.editing = false;
+});
+
+// Перетаскивание: только десктоп. Позиция — индекс в целевой колонке при отрисовке.
+document.addEventListener('dragstart', (event) => {
+    if (!isBoardDesktop()) {
+        event.preventDefault();
+        return;
+    }
+    const card = closestOf(event.target, '[data-board-card]');
+    if (!card) return;
+
+    state.dragging = true;
+    state.dragId = card.dataset.boardCard;
+    if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', state.dragId);
+    }
+});
+
+document.addEventListener('dragover', (event) => {
+    if (!isBoardDesktop() || !state.dragId) return;
+    const column = closestOf(event.target, '[data-column]');
+    if (!column) return;
+    event.preventDefault();
+
+    const card = closestOf(event.target, '[data-board-card]');
+    state.dragAfter = false;
+    if (card && typeof card.getBoundingClientRect === 'function' && typeof event.clientY === 'number') {
+        const rect = card.getBoundingClientRect();
+        state.dragAfter = rect.height > 0 && event.clientY - rect.top > rect.height / 2;
+    }
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+});
+
+document.addEventListener('drop', async (event) => {
+    if (!isBoardDesktop() || !state.dragId) return;
+    const column = closestOf(event.target, '[data-column]');
+    if (!column) return;
+    event.preventDefault();
+
+    const status = column.dataset.column;
+    const draggedId = state.dragId;
+    const card = closestOf(event.target, '[data-board-card]');
+    const columnTasks = boardColumnTasks(status).filter((task) => task.id !== draggedId);
+
+    let position = columnTasks.length;
+    if (card) {
+        const at = columnTasks.findIndex((task) => task.id === card.dataset.boardCard);
+        if (at >= 0) position = at + (state.dragAfter ? 1 : 0);
+    }
+
+    state.dragAfter = false;
+    await moveTask(draggedId, status, position);
+});
+
+document.addEventListener('dragend', () => {
+    state.dragging = false;
+    state.dragId = null;
+    state.dragAfter = false;
 });
 
 document.querySelectorAll('.tile[data-tab]').forEach((node) => {
@@ -732,11 +1135,15 @@ document.addEventListener('keydown', (event) => {
 /* ---------- старт ---------- */
 
 $('token').value = state.token;
+setCancelledCollapsed(true);
+selectBoardTab(state.boardTab);
 switchTab('tasks').then(ping);
 state.timer = setInterval(() => {
     if (document.hidden) return;
     if (state.tab === 'intake') return;
+    // Тик не должен ломать перетаскивание или недописанную подзадачу.
+    if (state.dragging || state.editing) return;
     reload();
-}, 5000);
+}, AUTO_REFRESH_MS);
 
 console.info('Kouki dashboard: вкладка', TAB_IN_RU[state.tab]);

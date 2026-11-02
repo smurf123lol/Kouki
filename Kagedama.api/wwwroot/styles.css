@@ -348,6 +348,117 @@ textarea { resize: vertical; width: 100%; line-height: 1.5; }
     font-size: 12px;
 }
 
+/* ---------- доска ---------- */
+
+/* Вкладки колонок нужны только на мобильной ширине; на десктопе видны все колонки. */
+.board-tabs { display: none; }
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(180px, 1fr));
+    gap: 12px;
+    align-items: start;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.board-column {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: linear-gradient(180deg, var(--paper-2), var(--paper));
+    border: 1px solid var(--line);
+    border-radius: 2px;
+}
+
+.board-column-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    user-select: none;
+}
+.board-column-cancelled .board-column-head { cursor: pointer; }
+.board-column-title {
+    font-size: 9.5px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--sand-dim);
+}
+.board-column-count {
+    margin-left: auto;
+    font-family: var(--serif);
+    font-size: 15px;
+    font-variant-numeric: lining-nums tabular-nums;
+}
+.board-column-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    min-height: 36px;
+}
+/* «Отменено» свёрнута по умолчанию: шапка и счётчик остаются, тело скрыто. */
+.board-column-collapsed .board-column-body { display: none; }
+
+.board-empty { padding: 6px 2px; font-size: 11px; }
+
+.board-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
+    background: rgba(226, 210, 178, .035);
+    border: 1px solid var(--line);
+    border-left: 2px solid var(--sand-faint);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+}
+.board-card:hover { border-color: var(--sand-dim); background: rgba(226, 210, 178, .05); }
+.board-card[draggable="true"] { cursor: grab; }
+.board-card[draggable="true"]:active { cursor: grabbing; }
+
+.board-card-head { display: flex; gap: 8px; align-items: flex-start; justify-content: space-between; }
+.board-card-title {
+    font-family: var(--serif);
+    font-size: 14px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+.priority {
+    flex: 0 0 auto;
+    padding: 0 5px;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    font-size: 8.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.priority-1 { color: var(--sand-faint); }
+.priority-2 { color: var(--indigo); }
+.priority-3 { color: var(--vermilion); }
+.board-card .card-tags { margin-top: 0; }
+.board-card-status { display: flex; gap: 6px; flex-wrap: wrap; }
+.board-card-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.btn.danger { border-color: var(--vermilion-dim); color: var(--bad); }
+.btn.danger:hover { border-color: var(--bad); color: #fff; background: var(--vermilion-dim); }
+
+/* чек-лист подзадач: один уровень, закрытые — зачёркнуты */
+.subtask-box { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.subtask-box > .btn { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.subtask-list { display: flex; flex-direction: column; gap: 5px; width: 100%; }
+.subtask { display: flex; align-items: baseline; gap: 6px; font-size: 11.5px; cursor: pointer; }
+.subtask input { margin: 0; accent-color: var(--vermilion); }
+.subtask.is-closed .subtask-title { text-decoration: line-through; color: var(--sand-faint); }
+.subtask-empty { font-size: 11px; color: var(--sand-faint); }
+.subtask-add { display: flex; gap: 6px; width: 100%; }
+.subtask-add .subtask-input { flex: 1 1 auto; min-width: 0; font-size: 11px; padding: 4px 6px; }
+.subtask-error { color: var(--bad); }
+
 /* разбор */
 .label-row {
     display: flex;
@@ -514,7 +625,9 @@ textarea { resize: vertical; width: 100%; line-height: 1.5; }
     .detail { position: static; max-height: none; }
 }
 
-@media (max-width: 760px) {
+/* Порог мобильной вёрстки — 768 px: уже него доска превращается в одну колонку
+   с вкладками, и перетаскивание отключается (isBoardDesktop в app.js). */
+@media (max-width: 767px) {
     body { padding-left: 0; }
     .spine { display: none; }
     .topbar { padding: 16px; }
@@ -523,6 +636,11 @@ textarea { resize: vertical; width: 100%; line-height: 1.5; }
     .banner { margin: 0 16px 12px; }
     .card { grid-template-columns: 1fr; gap: 6px; }
     .foot { padding: 14px 16px 22px; flex-direction: column; }
+
+    .board-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+    .board { display: block; overflow: visible; }
+    .board-column { display: none; }
+    .board-column.is-active { display: flex; }
 }
 
 @media (prefers-reduced-motion: reduce) {

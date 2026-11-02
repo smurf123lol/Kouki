@@ -141,7 +141,85 @@ public sealed class TaskRecord
 
     /// <summary>Служебные данные: интент, уверенность, команда, ошибка.</summary>
     public string? MetaJson { get; set; }
+
+    /// <summary>Родительская задача или null у корня.</summary>
+    public Guid? ParentId { get; set; }
+
+    /// <summary>Дерево задачи: у корня совпадает с <see cref="Id"/>.</summary>
+    public Guid TreeId { get; set; }
+
+    /// <summary>Порядок внутри пары (статус, родитель), см. <see cref="TaskPositions"/>.</summary>
+    public int Position { get; set; }
 }
+
+/// <summary>
+/// Порядок карточек внутри одной пары (статус, родитель).
+/// </summary>
+public static class TaskPositions
+{
+    /// <summary>Позиция первой задачи в пустой колонке.</summary>
+    public const int First = 0;
+}
+
+/// <summary>
+/// Как удалять задачу: вместе с потомками или оставив их без родителя.
+/// </summary>
+public enum TaskDeleteMode
+{
+    /// <summary>Удалить задачу и всё поддерево по <c>parent_id</c>.</summary>
+    Cascade,
+
+    /// <summary>Удалить только задачу: прямые дети становятся верхнеуровневыми в том же дереве.</summary>
+    Detach,
+}
+
+/// <summary>
+/// Имена режимов удаления для внешнего контракта (HTTP, MCP).
+/// </summary>
+public static class TaskDeleteModes
+{
+    /// <summary>Удаление вместе с поддеревом.</summary>
+    public const string Cascade = "cascade";
+
+    /// <summary>Удаление с отвязыванием прямых детей.</summary>
+    public const string Detach = "detach";
+
+    /// <summary>Режим пришёл в допустимом виде.</summary>
+    public static bool IsKnown(string? mode)
+        => string.Equals(mode, Cascade, StringComparison.OrdinalIgnoreCase)
+           || string.Equals(mode, Detach, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Разбирает имя режима; неизвестное значение даёт <see cref="TaskDeleteMode.Cascade"/>.</summary>
+    public static TaskDeleteMode Parse(string? mode)
+        => string.Equals(mode, Detach, StringComparison.OrdinalIgnoreCase)
+            ? TaskDeleteMode.Detach
+            : TaskDeleteMode.Cascade;
+
+    /// <summary>Имя режима для ответа.</summary>
+    public static string Name(TaskDeleteMode mode)
+        => mode == TaskDeleteMode.Detach ? Detach : Cascade;
+}
+
+/// <summary>
+/// Итог удаления задачи.
+/// </summary>
+/// <param name="Deleted">Задача была и удалена.</param>
+/// <param name="RemovedSubtasks">
+/// Сколько подзадач затронуто: при <see cref="TaskDeleteMode.Cascade"/> — удалено потомков,
+/// при <see cref="TaskDeleteMode.Detach"/> — отвязано прямых детей.
+/// </param>
+public sealed record TaskDeleteResult(bool Deleted, int RemovedSubtasks)
+{
+    /// <summary>Задачи с таким идентификатором нет.</summary>
+    public static TaskDeleteResult NotFound { get; } = new(false, 0);
+}
+
+/// <summary>
+/// Счётчики прямых подзадач одной задачи для карточки доски.
+/// </summary>
+/// <param name="Total">Сколько прямых детей.</param>
+/// <param name="Done">Сколько из них в статусе <see cref="TaskStatuses.Done"/>.</param>
+public readonly record struct SubtaskCounts(int Total, int Done);
 
 /// <summary>
 /// Хранилище задач.
@@ -149,12 +227,23 @@ public sealed class TaskRecord
 public interface ITaskStore
 {
     /// <summary>
-    /// Список задач, новые сверху.
+    /// Список задач: сначала по <see cref="TaskRecord.Position"/>, затем новые сверху.
     /// </summary>
+    /// <remarks>
+    /// Порядок — <c>position ASC, created_at DESC, id ASC</c>: позицию задаёт доска,
+    /// а при её равенстве (старые базы, гонка вставок) сортировка остаётся устойчивой.
+    /// </remarks>
     /// <param name="status">Фильтр по статусу или null.</param>
     /// <param name="limit">Сколько вернуть.</param>
     /// <param name="cancellationToken">Токен отмены.</param>
-    Task<IReadOnlyList<TaskRecord>> ListAsync(string? status, int limit, CancellationToken cancellationToken = default);
+    /// <param name="topLevel">true — только корни (<c>parent_id IS NULL</c>), для доски.</param>
+    /// <param name="parentId">Только прямые дети этой задачи.</param>
+    Task<IReadOnlyList<TaskRecord>> ListAsync(
+        string? status,
+        int limit,
+        CancellationToken cancellationToken = default,
+        bool topLevel = false,
+        Guid? parentId = null);
 
     /// <summary>
     /// Одна задача по идентификатору.
@@ -186,5 +275,53 @@ public interface ITaskStore
         string? title,
         int? priority,
         string? metaJson = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Удаляет задачу и приводит в порядок ссылки на неё.
+    /// </summary>
+    /// <remarks>
+    /// В одной транзакции: напоминания удаляются, ссылки в действиях и классификациях
+    /// обнуляются (это аудит и датасет), теги уходят каскадом, пустое дерево удаляется.
+    /// </remarks>
+    /// <param name="id">Идентификатор задачи.</param>
+    /// <param name="mode">Каскад или отвязывание детей.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    Task<TaskDeleteResult> DeleteAsync(
+        Guid id,
+        TaskDeleteMode mode = TaskDeleteMode.Cascade,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Переносит задачу в другую колонку или на другую позицию.
+    /// </summary>
+    /// <remarks>
+    /// Сдвиг соседей и смена полей — одна транзакция: иначе доска на мгновение увидит
+    /// две задачи с одной позицией. Остальные поля (заголовок, приоритет, родитель,
+    /// дерево) не меняются.
+    /// </remarks>
+    /// <param name="id">Идентификатор перемещаемой задачи.</param>
+    /// <param name="status">Целевой статус.</param>
+    /// <param name="position">Желаемая позиция в колонке (0 — начало).</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <returns>Перемещённая задача или null, если задачи нет.</returns>
+    Task<TaskRecord?> MoveAsync(
+        Guid id,
+        string status,
+        int position,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Счётчики прямых подзадач для набора задач — одним запросом.
+    /// </summary>
+    /// <remarks>
+    /// Нужны доске: без агрегата на каждую карточку пришлось бы делать отдельный запрос
+    /// (N+1), а список задач — самый частый запрос дашборда.
+    /// </remarks>
+    /// <param name="ids">Идентификаторы задач-родителей.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <returns>Счётчики по тем родителям, у которых есть подзадачи.</returns>
+    Task<IReadOnlyDictionary<Guid, SubtaskCounts>> CountSubtasksAsync(
+        IReadOnlyCollection<Guid> ids,
         CancellationToken cancellationToken = default);
 }
