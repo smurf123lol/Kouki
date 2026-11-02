@@ -11,6 +11,7 @@ using Kouki.Kagedama.Api.Auth;
 using Kouki.Kagedama.Commands;
 using Kouki.Kagedama.Contracts;
 using Kouki.Kagedama.Hosting;
+using Kouki.Mugura.Dispatcher;
 using Kouki.Shimi.ServiceAbstractions;
 using Kouki.Un;
 using Kouki.Ubusuna.DependencyInjection;
@@ -89,6 +90,11 @@ public sealed class ApiHostFixture : IAsyncLifetime
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Services.AddSingleton(serverOptions);
         builder.Services.AddSingleton<IOptions<KoukiServerOptions>>(Options.Create(serverOptions));
+
+        // DELETE идёт через команды с RequiresConfirmation: в бою решение принимает
+        // эндпоинт (confirm=true), поэтому роутеру здесь нечего переспрашивать.
+        builder.Services.AddSingleton<ICommandConfirmation, AllowAllConfirmation>();
+
         builder.Services.AddKoukiCore(new KoukiHostSettings
         {
             DatabasePath = DatabasePath,
@@ -418,6 +424,206 @@ public sealed class ApiHostTests : IClassFixture<ApiHostFixture>
         using var response = await anonymous.GetAsync("/api/tasks");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+
+    [Fact]
+    public async Task Post_tasks_creates_subtask_in_parent_tree()
+    {
+        TaskRecord parent = await _host.SeedTaskAsync("родитель для HTTP", "http-подзадача");
+
+        using var response = await _host.Client.PostAsync(
+            "/api/tasks",
+            JsonContent.Create(new { text = "подзадача с доски", parentId = parent.Id }));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        JsonObject child = Assert.IsType<JsonObject>(
+            JsonNode.Parse(await response.Content.ReadAsStringAsync()));
+        string childId = child["id"]!.GetValue<string>();
+        Assert.Equal(parent.Id.ToString(), child["parentId"]!.GetValue<string>());
+        Assert.Equal(parent.TreeId.ToString(), child["treeId"]!.GetValue<string>());
+        Assert.Equal(TaskSources.Dashboard, child["source"]!.GetValue<string>());
+        Assert.Equal(0, child["position"]!.GetValue<int>());
+        Assert.Equal(0, child["subtasksCount"]!.GetValue<int>());
+
+        using var byParent = await _host.Client.GetAsync($"/api/tasks?parentId={parent.Id}");
+        Assert.Equal(HttpStatusCode.OK, byParent.StatusCode);
+        JsonObject only = Assert.IsType<JsonObject>(
+            Assert.Single(await ApiHostFixture.ReadTasksAsync(byParent)));
+        Assert.Equal(childId, only["id"]!.GetValue<string>());
+
+        using var topLevel = await _host.Client.GetAsync("/api/tasks?topLevel=true&limit=500");
+        JsonArray roots = await ApiHostFixture.ReadTasksAsync(topLevel);
+        Assert.Contains(roots, node => node!["id"]!.GetValue<string>() == parent.Id.ToString());
+        Assert.DoesNotContain(roots, node => node!["id"]!.GetValue<string>() == childId);
+
+        using var emptyParent = await _host.Client.GetAsync("/api/tasks?parentId=");
+        Assert.Equal(HttpStatusCode.BadRequest, emptyParent.StatusCode);
+        JsonObject emptyBody = Assert.IsType<JsonObject>(
+            JsonNode.Parse(await emptyParent.Content.ReadAsStringAsync()));
+        Assert.Equal(
+            "Не указан идентификатор задачи.",
+            emptyBody["error"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task Post_tasks_rejects_empty_text_and_missing_parent()
+    {
+        using var empty = await _host.Client.PostAsync(
+            "/api/tasks",
+            JsonContent.Create(new { text = "  " }));
+        Assert.Equal(HttpStatusCode.BadRequest, empty.StatusCode);
+        JsonObject emptyBody = Assert.IsType<JsonObject>(
+            JsonNode.Parse(await empty.Content.ReadAsStringAsync()));
+        Assert.Equal(
+            "Пустая фраза: нечего записывать как задачу.",
+            emptyBody["error"]!.GetValue<string>());
+
+        using var orphan = await _host.Client.PostAsync(
+            "/api/tasks",
+            JsonContent.Create(new { text = "сирота", parentId = Guid.NewGuid() }));
+        Assert.Equal(HttpStatusCode.BadRequest, orphan.StatusCode);
+        JsonObject orphanBody = Assert.IsType<JsonObject>(
+            JsonNode.Parse(await orphan.Content.ReadAsStringAsync()));
+        Assert.Equal("Родительская задача не найдена.", orphanBody["error"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task Move_endpoint_changes_status_and_position()
+    {
+        TaskRecord first = await _host.SeedTaskAsync("первая для move", "http-move");
+        TaskRecord second = await _host.SeedTaskAsync("вторая для move", "http-move");
+
+        using var response = await _host.Client.PostAsync(
+            $"/api/tasks/{second.Id}/move",
+            JsonContent.Create(new { status = TaskStatuses.New, position = 0 }));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        JsonObject moved = Assert.IsType<JsonObject>(
+            JsonNode.Parse(await response.Content.ReadAsStringAsync()));
+        Assert.Equal(second.Id.ToString(), moved["id"]!.GetValue<string>());
+        Assert.Equal(TaskStatuses.New, moved["status"]!.GetValue<string>());
+        Assert.Equal(0, moved["position"]!.GetValue<int>());
+        Assert.Equal(1, (await ReadStoredTask(first.Id))["position"]!.GetValue<int>());
+
+        using var toDone = await _host.Client.PostAsync(
+            $"/api/tasks/{second.Id}/move",
+            JsonContent.Create(new { status = TaskStatuses.Done, position = 0 }));
+        Assert.Equal(HttpStatusCode.OK, toDone.StatusCode);
+        JsonObject done = Assert.IsType<JsonObject>(
+            JsonNode.Parse(await toDone.Content.ReadAsStringAsync()));
+        Assert.Equal(TaskStatuses.Done, done["status"]!.GetValue<string>());
+
+        using var unknownStatus = await _host.Client.PostAsync(
+            $"/api/tasks/{second.Id}/move",
+            JsonContent.Create(new { status = "когда-нибудь", position = 0 }));
+        Assert.Equal(HttpStatusCode.BadRequest, unknownStatus.StatusCode);
+        JsonObject unknownBody = Assert.IsType<JsonObject>(
+            JsonNode.Parse(await unknownStatus.Content.ReadAsStringAsync()));
+        Assert.Equal("Неизвестный статус 'когда-нибудь'.", unknownBody["error"]!.GetValue<string>());
+
+        using var negative = await _host.Client.PostAsync(
+            $"/api/tasks/{second.Id}/move",
+            JsonContent.Create(new { status = TaskStatuses.New, position = -1 }));
+        Assert.Equal(HttpStatusCode.BadRequest, negative.StatusCode);
+        JsonObject negativeBody = Assert.IsType<JsonObject>(
+            JsonNode.Parse(await negative.Content.ReadAsStringAsync()));
+        Assert.Equal("position: целое число от 0.", negativeBody["error"]!.GetValue<string>());
+
+        Guid missing = Guid.NewGuid();
+        using var notFound = await _host.Client.PostAsync(
+            $"/api/tasks/{missing}/move",
+            JsonContent.Create(new { status = TaskStatuses.New, position = 0 }));
+        Assert.Equal(HttpStatusCode.NotFound, notFound.StatusCode);
+        JsonObject notFoundBody = Assert.IsType<JsonObject>(
+            JsonNode.Parse(await notFound.Content.ReadAsStringAsync()));
+        Assert.Equal($"Задача {missing} не найдена.", notFoundBody["error"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task Delete_without_confirm_is_400_and_cascade_removes_subtree()
+    {
+        TaskRecord parent = await _host.SeedTaskAsync("родитель для удаления", "http-delete");
+
+        // Ребёнка создаём через тот же POST, что и дашборд: parent_id ставит команда.
+        using var created = await _host.Client.PostAsync(
+            "/api/tasks",
+            JsonContent.Create(new { text = "ребёнок для удаления", parentId = parent.Id }));
+        Assert.Equal(HttpStatusCode.OK, created.StatusCode);
+        JsonObject childJson = Assert.IsType<JsonObject>(
+            JsonNode.Parse(await created.Content.ReadAsStringAsync()));
+        string childId = childJson["id"]!.GetValue<string>();
+
+        using var noConfirm = await _host.Client.DeleteAsync($"/api/tasks/{parent.Id}");
+        Assert.Equal(HttpStatusCode.BadRequest, noConfirm.StatusCode);
+        JsonObject noConfirmBody = Assert.IsType<JsonObject>(
+            JsonNode.Parse(await noConfirm.Content.ReadAsStringAsync()));
+        Assert.Equal(
+            "Удаление с подзадачами требует подтверждения.",
+            noConfirmBody["error"]!.GetValue<string>());
+
+        using var confirmed = await _host.Client.DeleteAsync($"/api/tasks/{parent.Id}?confirm=true");
+        Assert.Equal(HttpStatusCode.OK, confirmed.StatusCode);
+        JsonObject result = Assert.IsType<JsonObject>(
+            JsonNode.Parse(await confirmed.Content.ReadAsStringAsync()));
+        Assert.True(result["deleted"]!.GetValue<bool>());
+        Assert.Equal("cascade", result["mode"]!.GetValue<string>());
+        Assert.Equal(parent.Id.ToString(), result["taskId"]!.GetValue<string>());
+
+        using var gone = await _host.Client.GetAsync($"/api/tasks/{parent.Id}");
+        Assert.Equal(HttpStatusCode.NotFound, gone.StatusCode);
+        using var childGone = await _host.Client.GetAsync($"/api/tasks/{childId}");
+        Assert.Equal(HttpStatusCode.NotFound, childGone.StatusCode);
+
+        using var again = await _host.Client.DeleteAsync($"/api/tasks/{parent.Id}?confirm=true");
+        Assert.Equal(HttpStatusCode.NotFound, again.StatusCode);
+        JsonObject againBody = Assert.IsType<JsonObject>(
+            JsonNode.Parse(await again.Content.ReadAsStringAsync()));
+        Assert.Equal($"Задача {parent.Id} не найдена.", againBody["error"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task Delete_detach_keeps_child_without_parent()
+    {
+        TaskRecord parent = await _host.SeedTaskAsync("родитель detach", "http-detach");
+
+        using var created = await _host.Client.PostAsync(
+            "/api/tasks",
+            JsonContent.Create(new { text = "ребёнок detach", parentId = parent.Id }));
+        Assert.Equal(HttpStatusCode.OK, created.StatusCode);
+        JsonObject childJson = Assert.IsType<JsonObject>(
+            JsonNode.Parse(await created.Content.ReadAsStringAsync()));
+        string childId = childJson["id"]!.GetValue<string>();
+
+        using var response = await _host.Client.DeleteAsync(
+            $"/api/tasks/{parent.Id}?mode=detach");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        JsonObject result = Assert.IsType<JsonObject>(
+            JsonNode.Parse(await response.Content.ReadAsStringAsync()));
+        Assert.Equal("detach", result["mode"]!.GetValue<string>());
+        Assert.Equal(1, result["removedSubtasks"]!.GetValue<int>());
+
+        JsonObject storedChild = await ReadStoredTask(Guid.Parse(childId));
+        Assert.Null(storedChild["parentId"]);
+        Assert.Equal(parent.TreeId.ToString(), storedChild["treeId"]!.GetValue<string>());
+
+        using var unknownMode = await _host.Client.DeleteAsync(
+            $"/api/tasks/{childId}?mode=unknown&confirm=true");
+        Assert.Equal(HttpStatusCode.BadRequest, unknownMode.StatusCode);
+        JsonObject unknownBody = Assert.IsType<JsonObject>(
+            JsonNode.Parse(await unknownMode.Content.ReadAsStringAsync()));
+        Assert.Equal("Неизвестный режим удаления 'unknown'.", unknownBody["error"]!.GetValue<string>());
+    }
+
+
+    private async Task<JsonObject> ReadStoredTask(Guid id)
+    {
+        using var response = await _host.Client.GetAsync($"/api/tasks/{id}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        return Assert.IsType<JsonObject>(JsonNode.Parse(await response.Content.ReadAsStringAsync()));
     }
 
     /// <summary>Содержимое WAV для проверки «байты совпадают»: формат не важен, байты важны.</summary>
