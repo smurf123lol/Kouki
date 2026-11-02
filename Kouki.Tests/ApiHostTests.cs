@@ -56,6 +56,9 @@ public sealed class ApiHostFixture : IAsyncLifetime
     /// <summary>Путь к временной базе теста.</summary>
     public string DatabasePath { get; private set; } = string.Empty;
 
+    /// <summary>Каталог аудио теста: тот же, что у <see cref="FileAudioStore"/> и <c>/api/audio</c>.</summary>
+    public string AudioDirectory { get; private set; } = string.Empty;
+
     /// <summary>Контейнер хоста: тесты кладут задачи прямо в хранилище.</summary>
     public IServiceProvider Services => _app!.Services;
 
@@ -65,10 +68,13 @@ public sealed class ApiHostFixture : IAsyncLifetime
         _directory = Path.Combine(Path.GetTempPath(), "kouki-api-host-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_directory);
         DatabasePath = Path.Combine(_directory, "kouki.sqlite");
+        AudioDirectory = Path.Combine(_directory, "audio");
+        Directory.CreateDirectory(AudioDirectory);
 
         var serverOptions = new KoukiServerOptions
         {
             DatabasePath = DatabasePath,
+            AudioDirectory = AudioDirectory,
             Token = Token,
             MaxTextLength = 2000,
             TagMode = TagModes.Extract,
@@ -163,6 +169,38 @@ public sealed class ApiHostFixture : IAsyncLifetime
         await store.AddAsync(record);
         await tags.AddAsync(record.Id, new[] { tag }, TagSources.Text);
         return record;
+    }
+
+    /// <summary>Кладёт запись журнала — чтобы тест фильтра и аудио не зависел от приёма фразы.</summary>
+    /// <param name="text">Текст записи.</param>
+    /// <param name="taskId">Задача, к которой привязать запись; <c>null</c> — не привязывать.</param>
+    /// <param name="audioPath">Путь к аудио; <c>null</c> — записи без аудио.</param>
+    /// <returns>Идентификатор записи журнала.</returns>
+    public async Task<Guid> RecordClassificationAsync(string text, Guid? taskId = null, string? audioPath = null)
+    {
+        IClassificationJournal journal = Services.GetRequiredService<IClassificationJournal>();
+
+        Guid id = await journal.RecordAsync(new ClassificationRecord(
+            TaskSources.Api,
+            "text",
+            text,
+            "unclassified",
+            0,
+            "rules-v1",
+            Confident: false,
+            Error: null));
+
+        if (taskId is not null)
+        {
+            await journal.LinkToTaskAsync(id, taskId.Value);
+        }
+
+        if (audioPath is not null)
+        {
+            await journal.AnnotateAudioAsync(id, null, audioPath);
+        }
+
+        return id;
     }
 
     /// <summary>Читает JSON-массив задач из ответа <c>GET /api/tasks</c>.</summary>
@@ -289,6 +327,91 @@ public sealed class ApiHostTests : IClassFixture<ApiHostFixture>
     }
 
     [Fact]
+    public async Task Classifications_are_filtered_by_task_id()
+    {
+        TaskRecord task = await _host.SeedTaskAsync("фраза с задачей", "журнал");
+        Guid linked = await _host.RecordClassificationAsync("купить хлеб", task.Id);
+        await _host.RecordClassificationAsync("чужая фраза");
+
+        using var response = await _host.Client.GetAsync($"/api/classifications?taskId={task.Id}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        JsonArray entries = Assert.IsType<JsonArray>(
+            JsonNode.Parse(await response.Content.ReadAsStringAsync()));
+        JsonObject entry = Assert.IsType<JsonObject>(Assert.Single(entries));
+
+        Assert.Equal(linked.ToString(), entry["id"]!.GetValue<string>());
+        Assert.Equal(task.Id.ToString(), entry["taskId"]!.GetValue<string>());
+        Assert.False(entry["hasAudio"]!.GetValue<bool>());
+
+        // Путь файловой системы наружу не отдаём: только флаг hasAudio.
+        Assert.Null(entry["audioPath"]);
+    }
+
+    [Fact]
+    public async Task Classifications_with_invalid_task_id_are_400()
+    {
+        // Некорректный GUID отбивает ASP.NET Core ещё до роутера: команда его не видит.
+        using var response = await _host.Client.GetAsync("/api/classifications?taskId=not-a-guid");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Audio_is_returned_with_cache_header_and_matching_bytes()
+    {
+        byte[] wav = WavBytes();
+        string path = Path.Combine(_host.AudioDirectory, "voice", "20261102", "record.wav");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await File.WriteAllBytesAsync(path, wav);
+
+        Guid id = await _host.RecordClassificationAsync("голосовая фраза", audioPath: path);
+
+        using var response = await _host.Client.GetAsync($"/api/audio/{id}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("audio/wav", response.Content.Headers.ContentType?.MediaType);
+        Assert.True(response.Headers.CacheControl?.Private);
+        Assert.Equal(TimeSpan.FromHours(1), response.Headers.CacheControl?.MaxAge);
+        Assert.Equal(wav, await response.Content.ReadAsByteArrayAsync());
+    }
+
+    [Fact]
+    public async Task Audio_without_path_or_record_is_404()
+    {
+        Guid withoutAudio = await _host.RecordClassificationAsync("без аудио");
+
+        using var noPath = await _host.Client.GetAsync($"/api/audio/{withoutAudio}");
+        Assert.Equal(HttpStatusCode.NotFound, noPath.StatusCode);
+
+        JsonObject payload = Assert.IsType<JsonObject>(
+            JsonNode.Parse(await noPath.Content.ReadAsStringAsync()));
+        Assert.Equal("Записи нет.", payload["error"]!.GetValue<string>());
+
+        using var missing = await _host.Client.GetAsync($"/api/audio/{Guid.NewGuid()}");
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+    }
+
+    [Fact]
+    public async Task Audio_path_outside_audio_directory_is_not_served()
+    {
+        // В базе может оказаться путь с «..»: файл существует, но лежит вне каталога аудио.
+        string secretPath = Path.GetFullPath(Path.Combine(_host.AudioDirectory, "..", "secret.wav"));
+        byte[] secret = { 7, 7, 7 };
+        await File.WriteAllBytesAsync(secretPath, secret);
+
+        Guid id = await _host.RecordClassificationAsync(
+            "подставной путь",
+            audioPath: Path.Combine(_host.AudioDirectory, "..", "secret.wav"));
+
+        using var response = await _host.Client.GetAsync($"/api/audio/{id}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.NotEqual(secret, await response.Content.ReadAsByteArrayAsync());
+    }
+
+    [Fact]
     public async Task Api_requires_bearer_token()
     {
         using var anonymous = new HttpClient { BaseAddress = _host.BaseAddress };
@@ -296,4 +419,8 @@ public sealed class ApiHostTests : IClassFixture<ApiHostFixture>
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
+    /// <summary>Содержимое WAV для проверки «байты совпадают»: формат не важен, байты важны.</summary>
+    private static byte[] WavBytes()
+        => Enumerable.Range(0, 64).Select(value => (byte)value).ToArray();
 }

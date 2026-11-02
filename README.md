@@ -70,7 +70,11 @@ curl -X POST http://localhost:5000/api/intake \
 ```
 
 Эндпоинты: `GET /api/health` (публичный), `POST /api/intake`, `GET /api/tasks`,
-`GET|PATCH /api/tasks/{id}`, `GET /api/classifications`, `POST /api/classifications/{id}/label`,
+`GET|PATCH /api/tasks/{id}`, `GET /api/classifications?taskId={guid}` (фильтр по задаче;
+ответ — голый массив, поля `taskId`/`hasAudio`, `audioPath` не отдаётся),
+`GET /api/audio/{id:guid}` (200 `audio/wav`, `Cache-Control: private, max-age=3600`;
+404 `{"error":"Записи нет."}`; путь берётся только из журнала и обязан лежать внутри
+`AudioDirectory`), `POST /api/classifications/{id}/label`,
 `GET /api/actions?taskId=&limit=`, `GET /api/context`, `POST /api/voice` (WAV, см. раздел «Голос»),
 `GET /api/classifiers`, `POST /api/classify` (сравнение роутеров), `POST /api/transcribe` (только WAV → текст).
 Авторизация — `Authorization: Bearer <Kouki:Token>`; пустой токен **закрывает** API

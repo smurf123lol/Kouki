@@ -181,8 +181,15 @@ public sealed class YasabiTests
             return Task.FromResult(Guid.NewGuid());
         }
 
-        public Task<IReadOnlyList<ClassificationEntry>> ListAsync(int limit, bool onlyUnresolved, CancellationToken cancellationToken = default)
+        public Task<IReadOnlyList<ClassificationEntry>> ListAsync(
+            int limit,
+            bool onlyUnresolved,
+            Guid? taskId = null,
+            CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<ClassificationEntry>>(Array.Empty<ClassificationEntry>());
+
+        public Task<ClassificationEntry?> GetAsync(Guid id, CancellationToken cancellationToken = default)
+            => Task.FromResult<ClassificationEntry?>(null);
 
         public Task<bool> LabelAsync(Guid id, string label, CancellationToken cancellationToken = default)
             => Task.FromResult(false);

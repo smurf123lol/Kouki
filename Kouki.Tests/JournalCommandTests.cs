@@ -104,6 +104,57 @@ public sealed class JournalCommandTests : IDisposable
     }
 
     [Fact]
+    public async Task List_classifications_filters_by_task_id()
+    {
+        var journal = _provider.GetRequiredService<IClassificationJournal>();
+        Guid taskId = Guid.NewGuid();
+
+        Guid first = await RecordAsync(journal, "купить хлеб");
+        Guid second = await RecordAsync(journal, "позвонить маме");
+        Guid foreign = await RecordAsync(journal, "чужая запись");
+
+        Assert.True(await journal.LinkToTaskAsync(first, taskId));
+        Assert.True(await journal.LinkToTaskAsync(second, taskId));
+        Assert.True(await journal.LinkToTaskAsync(foreign, Guid.NewGuid()));
+
+        JsonNode? result = await _router.RouteAsync(
+            "list_classifications",
+            new JsonObject { ["limit"] = 10, ["taskId"] = taskId.ToString() });
+
+        Assert.Equal(2, result!["count"]!.GetValue<int>());
+
+        JsonArray entries = Assert.IsType<JsonArray>(result["entries"]);
+        foreach (JsonNode? entry in entries)
+        {
+            Assert.Equal(taskId.ToString(), entry!["taskId"]!.GetValue<string>());
+        }
+    }
+
+    [Fact]
+    public async Task List_classifications_reports_invalid_task_id()
+    {
+        // MCP и консоль передают строку: разбор GUID — дело команды, а не сериализатора.
+        JsonNode? result = await _router.RouteAsync(
+            "list_classifications",
+            new JsonObject { ["taskId"] = "не-идентификатор" });
+
+        Assert.Equal(0, result!["count"]!.GetValue<int>());
+        Assert.Equal("invalid", result["reason"]!.GetValue<string>());
+        Assert.NotNull(result["error"]);
+    }
+
+    private static Task<Guid> RecordAsync(IClassificationJournal journal, string text)
+        => journal.RecordAsync(new ClassificationRecord(
+            TaskSources.Api,
+            "text",
+            text,
+            "list_tasks",
+            1,
+            "rules-v1",
+            Confident: true,
+            Error: null));
+
+    [Fact]
     public async Task Label_rejects_blank_and_too_long_labels()
     {
         var journal = _provider.GetRequiredService<IClassificationJournal>();

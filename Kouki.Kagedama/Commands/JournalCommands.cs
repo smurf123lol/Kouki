@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Nodes;
+using System.Text.Json.Nodes;
 using Kouki.Kagedama.Contracts;
 using Kouki.Mugura.Attributes;
 using Kouki.Mugura.Commands;
@@ -90,7 +90,8 @@ public sealed class ListActionsHandler(IActionLog actions) : ICommandHandler<Lis
 /// <summary>Запрос журнала разбора.</summary>
 /// <param name="Limit">Сколько записей вернуть (1…1000).</param>
 /// <param name="Unresolved">Только неразмеченные неуверенные записи.</param>
-public sealed record ListClassificationsCommand(int? Limit = null, bool? Unresolved = null) : ICommand;
+/// <param name="TaskId">Только записи, связанные с задачей (GUID строкой — чтобы ошибку разбора вернула команда, а не сериализатор).</param>
+public sealed record ListClassificationsCommand(int? Limit = null, bool? Unresolved = null, string? TaskId = null) : ICommand;
 
 /// <summary>Отдаёт журнал разбора, новые сверху.</summary>
 [Command("list_classifications", Description = "Показывает журнал разбора фраз", Category = CommandCategory.Navigation, Example = "что не поняли сегодня")]
@@ -111,9 +112,28 @@ public sealed class ListClassificationsHandler(IClassificationJournal journal)
     {
         ArgumentNullException.ThrowIfNull(command);
 
+        // Хост отбивает некорректный GUID ещё до роутера, но MCP и консоль передают строку:
+        // ошибка разбора должна быть штатным ответом команды, а не исключением.
+        Guid? taskId = null;
+        if (!string.IsNullOrWhiteSpace(command.TaskId))
+        {
+            if (!Guid.TryParse(command.TaskId, out Guid parsed))
+            {
+                return new JsonObject
+                {
+                    ["count"] = 0,
+                    ["entries"] = new JsonArray(),
+                    ["reason"] = "invalid",
+                    ["error"] = "Поле 'taskId' должно быть идентификатором задачи (GUID).",
+                };
+            }
+
+            taskId = parsed;
+        }
+
         int take = Math.Clamp(command.Limit ?? DefaultLimit, 1, MaxLimit);
         IReadOnlyList<ClassificationEntry> entries = await journal
-            .ListAsync(take, command.Unresolved ?? false, cancellationToken)
+            .ListAsync(take, command.Unresolved ?? false, taskId, cancellationToken)
             .ConfigureAwait(false);
 
         var array = new JsonArray();
@@ -138,6 +158,7 @@ public sealed class ListClassificationsHandler(IClassificationJournal journal)
         {
             ["id"] = entry.Id.ToString(),
             ["createdAt"] = entry.CreatedAt,
+            ["taskId"] = entry.TaskId?.ToString(),
             ["source"] = entry.Source,
             ["inputKind"] = entry.InputKind,
             ["inputText"] = entry.InputText,
@@ -149,7 +170,7 @@ public sealed class ListClassificationsHandler(IClassificationJournal journal)
             ["label"] = entry.Label,
             ["labeledAt"] = entry.LabeledAt,
             ["asrConfidence"] = entry.AsrConfidence,
-            ["audioPath"] = entry.AudioPath,
+            ["hasAudio"] = !string.IsNullOrWhiteSpace(entry.AudioPath),
             ["hintedIntent"] = entry.HintedIntent,
         };
     }

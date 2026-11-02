@@ -139,8 +139,12 @@ public sealed class AudioRetentionTests : IDisposable
         public Task<IReadOnlyList<ClassificationEntry>> ListAsync(
             int limit,
             bool onlyUnresolved,
+            Guid? taskId = null,
             CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<ClassificationEntry>>(entries);
+
+        public Task<ClassificationEntry?> GetAsync(Guid id, CancellationToken cancellationToken = default)
+            => Task.FromResult(entries.FirstOrDefault(e => e.Id == id));
 
         public Task<bool> AnnotateAudioAsync(
             Guid id,

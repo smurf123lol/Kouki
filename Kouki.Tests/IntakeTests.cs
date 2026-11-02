@@ -47,7 +47,10 @@ public sealed class IntakeTests
         Assert.Equal(task.MetaJson, stored.MetaJson);
 
         // В журнале распознавания должен остаться настоящий источник, а не «api» по умолчанию.
-        IReadOnlyList<ClassificationEntry> journalEntries = await server.Journal.ListAsync(10, false, CancellationToken.None);
+        IReadOnlyList<ClassificationEntry> journalEntries = await server.Journal.ListAsync(
+            10,
+            false,
+            cancellationToken: CancellationToken.None);
         Assert.Equal("telegram", journalEntries[0].Source);
 
         IReadOnlyList<ClassificationEntry> journal = await server.Journal.ListAsync(10, onlyUnresolved: false);
