@@ -44,7 +44,77 @@ public sealed class DashboardAssetsTests
         }
 
         Assert.Contains(".tile", css, StringComparison.Ordinal);
-        Assert.Contains("@media (max-width: 760px)", css, StringComparison.Ordinal);
+        // Один порог мобильной вёрстки на весь дашборд — 768 px.
+        Assert.Contains("768 px", css, StringComparison.Ordinal);
+        Assert.Contains("@media (max-width: 767px)", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Index_has_board_columns_mobile_tabs_and_no_status_filter()
+    {
+        string html = File.ReadAllText(Path.Combine(WebRoot, "index.html"));
+
+        Assert.Contains("id=\"board\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"board-tabs\"", html, StringComparison.Ordinal);
+
+        foreach (string status in new[] { "new", "in_progress", "needs_review", "done", "cancelled" })
+        {
+            Assert.Contains($"data-column=\"{status}\"", html, StringComparison.Ordinal);
+            Assert.Contains($"data-board-tab=\"{status}\"", html, StringComparison.Ordinal);
+        }
+
+        // Фильтр статусов больше не нужен: он скрыт, фильтр тегов остаётся.
+        Assert.Matches("id=\"status-filter\"[^>]*hidden", html);
+        Assert.Contains("Показать отменённые", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Stylesheet_draws_the_board_and_collapsed_cancelled_column()
+    {
+        string css = File.ReadAllText(Path.Combine(WebRoot, "styles.css"));
+
+        foreach (string token in new[]
+                 {
+                     ".board", ".board-column", ".board-column-collapsed", ".board-tabs",
+                     ".board-card", ".board-card-status", ".priority-1", ".priority-2", ".priority-3",
+                     ".subtask", ".subtask-empty", ".btn.danger",
+                 })
+        {
+            Assert.Contains(token, css, StringComparison.Ordinal);
+        }
+
+        // Свёрнутая колонка прячет только тело, шапка и счётчик остаются.
+        Assert.Contains(".board-column-collapsed .board-column-body", css, StringComparison.Ordinal);
+        // На мобильной ширине видна одна колонка, остальные скрыты.
+        Assert.Contains(".board-column.is-active", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Script_keeps_the_board_contract_texts_and_constants()
+    {
+        string app = File.ReadAllText(Path.Combine(WebRoot, "app.js"));
+
+        foreach (string token in new[]
+                 {
+                     "BOARD_LIMIT = 500", "AUTO_REFRESH_MS = 5000", "MOBILE_BREAKPOINT = 768",
+                     "board-column-collapsed", "data-subtask-toggle", "data-board-status",
+                     "data-board-status-id", "task.position", "Подзадач нет",
+                     "Введите текст подзадачи.", "Не удалось создать подзадачу.",
+                     "Не удалось удалить задачу.", "Не удалось переместить задачу.",
+                     "Показать отменённые", "Свернуть",
+                     "Удалить задачу вместе со всеми подзадачами? Подзадач:",
+                     "Удалить задачу? Подзадачи станут самостоятельными. Подзадач:",
+                     "mode=cascade&confirm=true", "mode=detach",
+                     "state.dragging", "state.editing",
+                 })
+        {
+            Assert.Contains(token, app, StringComparison.Ordinal);
+        }
+
+        // move возвращает пустые tags (ограничение П2): карточку из ответа не перерисовывают.
+        Assert.DoesNotContain("moved.tags", app, StringComparison.Ordinal);
+        // Фильтр статусов больше не управляет запросом доски.
+        Assert.DoesNotContain("params.set('status'", app, StringComparison.Ordinal);
     }
 
     [Fact]
