@@ -400,7 +400,13 @@ public sealed class GetTaskHandler : ICommandHandler<GetTaskCommand>
             ? Array.Empty<string>()
             : await _tags.ListAsync(id, cancellationToken).ConfigureAwait(false);
 
-        JsonObject payload = ListTasksHandler.ToJson(task, taskTags);
+        // Счётчики подзадач — отдельным запросом: get_task читает одну задачу, но наружу
+        // отдаёт те же поля, что list_tasks, иначе карточка покажет «0 подзадач».
+        IReadOnlyDictionary<Guid, SubtaskCounts> counts = await _store
+            .CountSubtasksAsync(new[] { id }, cancellationToken).ConfigureAwait(false);
+        SubtaskCounts subtaskCounts = counts.TryGetValue(id, out SubtaskCounts value) ? value : default;
+
+        JsonObject payload = ListTasksHandler.ToJson(task, taskTags, subtaskCounts);
         payload["found"] = true;
         return payload;
     }
@@ -578,7 +584,12 @@ public sealed class PatchTaskHandler : ICommandHandler<PatchTaskCommand>
             return new JsonObject { ["error"] = "Задача не найдена." };
         }
 
-        JsonObject payload = ListTasksHandler.ToJson(task);
+        // Как и get_task: счётчики читаются здесь, чтобы PATCH не отдавал нули.
+        IReadOnlyDictionary<Guid, SubtaskCounts> counts = await _store
+            .CountSubtasksAsync(new[] { task.Id }, cancellationToken).ConfigureAwait(false);
+        SubtaskCounts subtaskCounts = counts.TryGetValue(task.Id, out SubtaskCounts value) ? value : default;
+
+        JsonObject payload = ListTasksHandler.ToJson(task, counts: subtaskCounts);
 
         await CommandAudit.RecordAsync(
             _actions,

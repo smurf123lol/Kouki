@@ -91,9 +91,10 @@ public sealed class ApiHostFixture : IAsyncLifetime
         builder.Services.AddSingleton(serverOptions);
         builder.Services.AddSingleton<IOptions<KoukiServerOptions>>(Options.Create(serverOptions));
 
-        // DELETE идёт через команды с RequiresConfirmation: в бою решение принимает
-        // эндпоинт (confirm=true), поэтому роутеру здесь нечего переспрашивать.
-        builder.Services.AddSingleton<ICommandConfirmation, AllowAllConfirmation>();
+        // Тестовый хост повторяет боевую регистрацию: cascade — только с confirm=true,
+        // detach — без подтверждения, остальные опасные команды запрещены.
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddSingleton<ICommandConfirmation, ApiCommandConfirmation>();
 
         builder.Services.AddKoukiCore(new KoukiHostSettings
         {
@@ -465,6 +466,66 @@ public sealed class ApiHostTests : IClassFixture<ApiHostFixture>
         Assert.Equal(
             "Не указан идентификатор задачи.",
             emptyBody["error"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task Get_and_patch_task_return_subtasks_counts()
+    {
+        TaskRecord parent = await _host.SeedTaskAsync("родитель со счётчиками", "http-counts");
+
+        Guid firstChild;
+        using (var created = await _host.Client.PostAsync(
+            "/api/tasks",
+            JsonContent.Create(new { text = "первый ребёнок", parentId = parent.Id })))
+        {
+            Assert.Equal(HttpStatusCode.OK, created.StatusCode);
+            firstChild = Guid.Parse(Assert.IsType<JsonObject>(
+                JsonNode.Parse(await created.Content.ReadAsStringAsync()))!["id"]!.GetValue<string>());
+        }
+
+        using (var created = await _host.Client.PostAsync(
+            "/api/tasks",
+            JsonContent.Create(new { text = "второй ребёнок", parentId = parent.Id })))
+        {
+            Assert.Equal(HttpStatusCode.OK, created.StatusCode);
+        }
+
+        using (var get = await _host.Client.GetAsync($"/api/tasks/{parent.Id}"))
+        {
+            Assert.Equal(HttpStatusCode.OK, get.StatusCode);
+            JsonObject json = Assert.IsType<JsonObject>(
+                JsonNode.Parse(await get.Content.ReadAsStringAsync()));
+            Assert.Equal(2, json["subtasksCount"]!.GetValue<int>());
+            Assert.Equal(0, json["subtasksDoneCount"]!.GetValue<int>());
+        }
+
+        using (var closed = await _host.Client.PatchAsync(
+            $"/api/tasks/{firstChild}",
+            JsonContent.Create(new { status = TaskStatuses.Done })))
+        {
+            Assert.Equal(HttpStatusCode.OK, closed.StatusCode);
+        }
+
+        using (var get = await _host.Client.GetAsync($"/api/tasks/{parent.Id}"))
+        {
+            Assert.Equal(HttpStatusCode.OK, get.StatusCode);
+            JsonObject json = Assert.IsType<JsonObject>(
+                JsonNode.Parse(await get.Content.ReadAsStringAsync()));
+            Assert.Equal(2, json["subtasksCount"]!.GetValue<int>());
+            Assert.Equal(1, json["subtasksDoneCount"]!.GetValue<int>());
+        }
+
+        // PATCH корня — тот же ответ, что у GET: счётчики не должны обнуляться.
+        using (var patched = await _host.Client.PatchAsync(
+            $"/api/tasks/{parent.Id}",
+            JsonContent.Create(new { title = "родитель со счётчиками (обновлён)" })))
+        {
+            Assert.Equal(HttpStatusCode.OK, patched.StatusCode);
+            JsonObject json = Assert.IsType<JsonObject>(
+                JsonNode.Parse(await patched.Content.ReadAsStringAsync()));
+            Assert.Equal(2, json["subtasksCount"]!.GetValue<int>());
+            Assert.Equal(1, json["subtasksDoneCount"]!.GetValue<int>());
+        }
     }
 
     [Fact]

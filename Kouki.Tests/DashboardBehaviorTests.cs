@@ -303,6 +303,17 @@ public sealed class DashboardBehaviorTests
         Assert.Contains(revoked, (node) => node!.GetValue<string>() == createdUrl);
     }
 
+    [Fact]
+    public void Board_escapes_html_in_title_and_tags()
+    {
+        JsonNode result = RunDashboard();
+        string html = result["escaping"]!["html"]!.GetValue<string>();
+
+        Assert.Contains("&lt;img src=x onerror=alert(1)&gt;", html, StringComparison.Ordinal);
+        Assert.Contains("&lt;img src=x onerror=alert(2)&gt;", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<img src=x", html, StringComparison.Ordinal);
+    }
+
     /// <summary>Исполняет харнесс в node и разбирает его JSON.</summary>
     private static JsonNode RunDashboard()
     {
@@ -1054,6 +1065,15 @@ function tasksUrl() {
     await wait();
     tick.normal = requests.length - beforeNormal;
 
+    // ---- экранирование: заголовок и тег с HTML не попадают в разметку сырыми ----
+    const EVIL_ID = '66666666-6666-6666-6666-666666666666';
+    const EVIL_TITLE = '<img src=x onerror=alert(1)>';
+    const EVIL_TAG = '<img src=x onerror=alert(2)>';
+    rootTasks.push(rootTask(EVIL_ID, EVIL_TITLE, 'new', 3, [EVIL_TAG], 0, 0));
+    refreshTick();
+    await waitFor(() => cardHtml('new', EVIL_ID).length > 0, 'карточка с опасным заголовком');
+    const escaping = { html: cardHtml('new', EVIL_ID) };
+
     process.stdout.write(JSON.stringify({
         board: board,
         firstClick: firstClick,
@@ -1066,6 +1086,7 @@ function tasksUrl() {
         mobile: mobile,
         cancelled: cancelled,
         tick: tick,
+        escaping: escaping,
     }));
 })().catch((error) => {
     process.stderr.write(String((error && error.stack) || error));

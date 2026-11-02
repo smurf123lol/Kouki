@@ -106,6 +106,48 @@ public sealed class TaskPositionTests : IDisposable
     }
 
     [Fact]
+    public async Task Move_inside_same_column_reorders_without_duplicate_positions()
+    {
+        var store = new SqliteTaskStore(_databasePath);
+        TaskRecord a = TaskFactory.Create("A", TaskSources.Api);
+        await store.AddAsync(a);
+        TaskRecord b = TaskFactory.Create("B", TaskSources.Api);
+        await store.AddAsync(b);
+        TaskRecord c = TaskFactory.Create("C", TaskSources.Api);
+        await store.AddAsync(c);
+
+        Assert.Equal(new[] { 0, 1, 2 }, (await store.ListAsync(null, 100)).Select(task => task.Position));
+
+        // C → позиция 1: соседи между старой и новой позицией сдвигаются вверх.
+        Assert.NotNull(await store.MoveAsync(c.Id, TaskStatuses.New, 1));
+        IReadOnlyList<TaskRecord> afterForward = await store.ListAsync(null, 100);
+        Assert.Equal(
+            string.Join(",", a.Id, c.Id, b.Id),
+            string.Join(",", afterForward.Select(task => task.Id)));
+        Assert.Equal(new[] { 0, 1, 2 }, afterForward.Select(task => task.Position));
+    }
+
+    [Fact]
+    public async Task Move_inside_same_column_to_end_reorders_without_gaps()
+    {
+        var store = new SqliteTaskStore(_databasePath);
+        TaskRecord a = TaskFactory.Create("A", TaskSources.Api);
+        await store.AddAsync(a);
+        TaskRecord b = TaskFactory.Create("B", TaskSources.Api);
+        await store.AddAsync(b);
+        TaskRecord c = TaskFactory.Create("C", TaskSources.Api);
+        await store.AddAsync(c);
+
+        // A → позиция 2: обратный сдвиг, порядок [B, C, A], позиции без дублей.
+        Assert.NotNull(await store.MoveAsync(a.Id, TaskStatuses.New, 2));
+        IReadOnlyList<TaskRecord> afterBackward = await store.ListAsync(null, 100);
+        Assert.Equal(
+            string.Join(",", b.Id, c.Id, a.Id),
+            string.Join(",", afterBackward.Select(task => task.Id)));
+        Assert.Equal(new[] { 0, 1, 2 }, afterBackward.Select(task => task.Position));
+    }
+
+    [Fact]
     public async Task Update_does_not_reset_position_parent_or_tree()
     {
         var store = new SqliteTaskStore(_databasePath);
