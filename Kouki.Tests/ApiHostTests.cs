@@ -110,8 +110,9 @@ public sealed class ApiHostFixture : IAsyncLifetime
 
         // Метаданные маршрутов резолвятся целиком при первом запросе, поэтому все типы
         // параметров эндпоинтов обязаны быть в контейнере — даже те, чьи маршруты тест
-        // не зовёт. Речь здесь заглушки из Kouki.Un: /api/speech и /api/voice не вызываются.
+        // не зовёт.
         builder.Services.AddUn();
+        builder.Services.AddSingleton<ISpeechTranscriber, TestTranscriber>();
         builder.Services.AddSingleton<VoiceIntakeService>(sp => new VoiceIntakeService(
             sp.GetRequiredService<ISpeechTranscriber>(),
             sp.GetRequiredService<TaskIntakeService>(),
@@ -156,6 +157,12 @@ public sealed class ApiHostFixture : IAsyncLifetime
         {
             // Временный каталог за собой уберёт система: тест уже не от этого зависит.
         }
+    }
+
+    private sealed class TestTranscriber : ISpeechTranscriber
+    {
+        public Task<TranscriptionResult> TranscribeAsync(Stream audio, AudioFormat format, CancellationToken cancellationToken = default)
+            => Task.FromResult(TranscriptionResult.Empty);
     }
 
     /// <summary>Кладёт задачу с тегом прямо в хранилище — без HTTP, чтобы тест про фильтр
@@ -747,6 +754,71 @@ public sealed class ApiHostTests : IClassFixture<ApiHostFixture>
         Assert.Equal("Неизвестный режим удаления 'unknown'.", unknownBody["error"]!.GetValue<string>());
     }
 
+
+    [Fact]
+    public async Task Telemetry_without_token_returns_401()
+    {
+        using var anon = new HttpClient { BaseAddress = _host.BaseAddress };
+        using var response = await anon.GetAsync("/api/telemetry");
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Telemetry_with_token_returns_200_and_json_structure()
+    {
+        using var response = await _host.Client.GetAsync("/api/telemetry?hours=24");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        JsonObject json = Assert.IsType<JsonObject>(JsonNode.Parse(await response.Content.ReadAsStringAsync()));
+        Assert.Equal(24, json["windowHours"]!.GetValue<int>());
+        Assert.NotNull(json["totals"]);
+        Assert.NotNull(json["byEndpoint"]);
+        Assert.NotNull(json["bySource"]);
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("169")]
+    [InlineData("abc")]
+    public async Task Telemetry_invalid_hours_returns_400(string hours)
+    {
+        using var response = await _host.Client.GetAsync($"/api/telemetry?hours={hours}");
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        JsonObject json = Assert.IsType<JsonObject>(JsonNode.Parse(await response.Content.ReadAsStringAsync()));
+        Assert.Equal("hours: целое число от 1 до 168.", json["error"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task Classify_records_request_action_with_duration()
+    {
+        using var post = await _host.Client.PostAsync(
+            "/api/classify",
+            JsonContent.Create(new { text = "купить молоко" }));
+        Assert.Equal(HttpStatusCode.OK, post.StatusCode);
+
+        using var actionsResp = await _host.Client.GetAsync("/api/actions?limit=10");
+        Assert.Equal(HttpStatusCode.OK, actionsResp.StatusCode);
+        JsonArray actions = Assert.IsType<JsonArray>(JsonNode.Parse(await actionsResp.Content.ReadAsStringAsync()));
+        var requestAction = actions.FirstOrDefault(a => a?["kind"]?.GetValue<string>() == "request" && a?["command"]?.GetValue<string>() == "classify");
+        Assert.NotNull(requestAction);
+        Assert.True(requestAction["durationMs"]!.GetValue<long>() >= 0);
+    }
+
+    [Fact]
+    public async Task Voice_empty_body_records_rejected_action_with_status_400()
+    {
+        using var emptyContent = new ByteArrayContent(Array.Empty<byte>());
+        emptyContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("audio/wav");
+        using var voiceResp = await _host.Client.PostAsync("/api/voice?source=station", emptyContent);
+        Assert.Equal(HttpStatusCode.BadRequest, voiceResp.StatusCode);
+
+        using var actionsResp = await _host.Client.GetAsync("/api/actions?limit=10");
+        Assert.Equal(HttpStatusCode.OK, actionsResp.StatusCode);
+        JsonArray actions = Assert.IsType<JsonArray>(JsonNode.Parse(await actionsResp.Content.ReadAsStringAsync()));
+        var requestAction = actions.FirstOrDefault(a => a?["kind"]?.GetValue<string>() == "request" && a?["command"]?.GetValue<string>() == "voice");
+        Assert.NotNull(requestAction);
+        Assert.Equal("rejected", requestAction["outcome"]!.GetValue<string>());
+        Assert.Equal("Пустое тело запроса: ожидался WAV.", requestAction["error"]!.GetValue<string>());
+    }
 
     private async Task<JsonObject> ReadStoredTask(Guid id)
     {

@@ -197,6 +197,9 @@ public sealed class YasabiTests
         public Task<bool> AnnotateAudioAsync(Guid id, double? asrConfidence, string? audioPath, CancellationToken cancellationToken = default, string? source = null)
             => Task.FromResult(true);
 
+        public Task<bool> AnnotateMetricsAsync(Guid id, long? audioBytes, double? audioDurationSec, long? durationMs, CancellationToken cancellationToken = default)
+            => Task.FromResult(true);
+
         public Task<IReadOnlyList<ClassificationEntry>> ListLabeledAsync(int limit, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<ClassificationEntry>>(Array.Empty<ClassificationEntry>());
 

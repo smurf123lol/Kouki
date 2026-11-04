@@ -684,6 +684,15 @@ async function fakeFetch(url, options) {
     if (href.indexOf('/api/audio/') >= 0) return blobResponse();
     if (href.indexOf('/api/classifications') >= 0) return jsonResponse(classifications);
     if (href.indexOf('/api/actions') >= 0) return jsonResponse([]);
+    if (href.indexOf('/api/telemetry') >= 0) {
+        return jsonResponse({
+            windowHours: 24,
+            since: new Date().toISOString(),
+            totals: { requests: 42, errors: 3, avgDurationMs: 120.5, audioBytes: 64000 },
+            byEndpoint: [{ endpoint: 'voice', requests: 30, errors: 2, avgDurationMs: 150.0, audioBytes: 64000 }],
+            bySource: [{ source: 'station', requests: 30, errors: 2 }],
+        });
+    }
 
     const move = href.match(/\/api\/tasks\/([0-9a-f-]+)\/move$/);
     if (move && method === 'POST') {

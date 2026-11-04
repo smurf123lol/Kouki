@@ -120,6 +120,10 @@ builder.Configuration.GetSection($"{KoukiHostSettings.SectionName}:IntentLlm").B
 // Регистрация — до AddKoukiCore: TryAddSingleton библиотеки не должен её перебить.
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<ICommandConfirmation, ApiCommandConfirmation>();
+if (!serverOptions.RequestLogEnabled)
+{
+    builder.Services.AddSingleton<IRequestLog>(NullRequestLog.Instance);
+}
 
 // Одна композиция домена на все хосты: хранилище, команды, контексты, классификатор, приём.
 builder.Services.AddKoukiCore(new KoukiHostSettings

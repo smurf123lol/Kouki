@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Routing;
@@ -58,6 +60,7 @@ public static class ApiEndpoints
         api.MapDelete("/api/tasks/{id:guid}", deleteTaskHandler);
         api.MapPatch("/api/tasks/{id:guid}", patchTaskHandler);
         api.MapGet("/api/actions", listActionsHandler);
+        api.MapGet("/api/telemetry", telemetryHandler);
         api.MapGet("/api/context", contextHandler);
         api.MapGet("/api/classifications", listClassificationsHandler);
         api.MapGet("/api/audio/{id:guid}", classificationAudioHandler);
@@ -177,41 +180,110 @@ public static class ApiEndpoints
         VoiceIntakeService voice,
         TaskIntakeService intake,
         ISpeechTranscriber transcriber,
+        IRequestLog requestLog,
+        IClassificationJournal journal,
         IOptions<KoukiServerOptions> options,
+        ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
     {
+        var sw = Stopwatch.StartNew();
         KoukiServerOptions settings = options.Value;
+
+        string source = IntakeRequestPolicy.TryResolveSource(request.Query["source"], TaskSources.Station, out string resolvedSrc, out _)
+            ? resolvedSrc
+            : TaskSources.Station;
+
+        async Task RecordTelemetryAsync(
+            int httpStatus,
+            string outcome,
+            string? error,
+            long? audioBytes = null,
+            double? audioDurationSec = null,
+            string? intent = null,
+            Guid? taskId = null,
+            Guid? classificationId = null)
+        {
+            if (!settings.RequestLogEnabled) return;
+            try
+            {
+                var entry = new RequestLogEntry(
+                    Id: Guid.NewGuid(),
+                    CreatedAt: DateTimeOffset.UtcNow,
+                    Endpoint: RequestEndpoints.Voice,
+                    Source: source,
+                    HttpStatus: httpStatus,
+                    Outcome: outcome,
+                    DurationMs: sw.ElapsedMilliseconds,
+                    Intent: intent,
+                    TaskId: taskId,
+                    ClassificationId: classificationId,
+                    AudioBytes: audioBytes,
+                    AudioDurationSec: audioDurationSec,
+                    Error: error);
+
+                await requestLog.RecordAsync(entry, settings.RequestLogMaxRows, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                loggerFactory.CreateLogger("Kouki.Kagedama.Api").LogWarning(ex, "Не удалось записать журнал запросов телеметрии.");
+            }
+        }
 
         if (transcriber is Kouki.Un.UnavailableSpeechTranscriber)
         {
+            string err = Kouki.Un.UnavailableSpeechTranscriber.Reason;
+            await RecordTelemetryAsync(StatusCodes.Status503ServiceUnavailable, RequestOutcomes.Error, err);
             return Results.Json(
-                new { error = Kouki.Un.UnavailableSpeechTranscriber.Reason },
+                new { error = err },
                 statusCode: StatusCodes.Status503ServiceUnavailable);
         }
 
         if (request.ContentLength is long declared && declared > settings.MaxVoiceBytes)
         {
+            string err = $"Запись больше {settings.MaxVoiceBytes} байт.";
+            await RecordTelemetryAsync(StatusCodes.Status413PayloadTooLarge, RequestOutcomes.Rejected, err);
             return Results.Json(
-                new { error = $"Запись больше {settings.MaxVoiceBytes} байт." },
+                new { error = err },
                 statusCode: StatusCodes.Status413PayloadTooLarge);
         }
 
-        (IResult? wavFailure, byte[] bytes, WavAudio? audio) = await ReadWavAsync(request, settings, cancellationToken);
+        ReadWavResult wav = await ReadWavAsync(request, settings, cancellationToken);
 
-        if (wavFailure is not null)
+        if (wav.Error is not null)
         {
-            return wavFailure;
+            await RecordTelemetryAsync(
+                wav.StatusCode ?? StatusCodes.Status400BadRequest,
+                RequestOutcomes.Rejected,
+                wav.ErrorMessage,
+                wav.Bytes.Length,
+                wav.Audio?.Duration.TotalSeconds);
+            return wav.Error;
         }
 
-        if (!IntakeRequestPolicy.TryResolveSource(request.Query["source"], TaskSources.Station, out string source, out IntakeRejection? sourceRejection))
+        byte[] bytes = wav.Bytes;
+        WavAudio audio = wav.Audio!;
+
+        if (!IntakeRequestPolicy.TryResolveSource(request.Query["source"], TaskSources.Station, out source, out IntakeRejection? sourceRejection))
         {
-            return Results.BadRequest(new { code = sourceRejection!.Code, error = sourceRejection.Message });
+            await RecordTelemetryAsync(
+                StatusCodes.Status400BadRequest,
+                RequestOutcomes.Rejected,
+                sourceRejection!.Message,
+                bytes.Length,
+                audio.Duration.TotalSeconds);
+            return Results.BadRequest(new { code = sourceRejection.Code, error = sourceRejection.Message });
         }
 
         // Станция присылает интент сессии: нажатие кнопки — это «запись», а не свободный текст.
         if (!IntakeRequestPolicy.TryResolveIntentHint(request.Query["intent"], out string? intentHint, out IntakeRejection? intentRejection))
         {
-            return Results.BadRequest(new { code = intentRejection!.Code, error = intentRejection.Message });
+            await RecordTelemetryAsync(
+                StatusCodes.Status400BadRequest,
+                RequestOutcomes.Rejected,
+                intentRejection!.Message,
+                bytes.Length,
+                audio.Duration.TotalSeconds);
+            return Results.BadRequest(new { code = intentRejection.Code, error = intentRejection.Message });
         }
 
         VoiceIntakeResult result;
@@ -227,11 +299,23 @@ public static class ApiEndpoints
         catch (IntakeRejectionException ex)
         {
             // Распознанное — это только теги: приём отказал по правилам, а не сломался.
+            await RecordTelemetryAsync(
+                StatusCodes.Status400BadRequest,
+                RequestOutcomes.Rejected,
+                ex.Message,
+                bytes.Length,
+                audio.Duration.TotalSeconds);
             return Results.BadRequest(new { code = ex.Code, error = ex.Message });
         }
 
         if (result.Intake is null)
         {
+            await RecordTelemetryAsync(
+                StatusCodes.Status422UnprocessableEntity,
+                RequestOutcomes.Rejected,
+                result.Error,
+                bytes.Length,
+                audio.Duration.TotalSeconds);
             return Results.Json(
                 new
                 {
@@ -241,6 +325,35 @@ public static class ApiEndpoints
                     durationSec = audio.Duration.TotalSeconds,
                 },
                 statusCode: StatusCodes.Status422UnprocessableEntity);
+        }
+
+        long durationMs = sw.ElapsedMilliseconds;
+        long audioBytes = bytes.Length;
+        double audioDurationSec = audio.Duration.TotalSeconds;
+        Guid? classificationId = result.Intake.Route.Intent.JournalId;
+        Guid? taskId = result.Intake.Task?.Id;
+        string? intent = result.Intake.Route.Intent.Intent;
+
+        await RecordTelemetryAsync(
+            StatusCodes.Status200OK,
+            RequestOutcomes.Ok,
+            null,
+            audioBytes,
+            audioDurationSec,
+            intent,
+            taskId,
+            classificationId);
+
+        if (classificationId is { } classId && classId != Guid.Empty)
+        {
+            try
+            {
+                await journal.AnnotateMetricsAsync(classId, audioBytes, audioDurationSec, durationMs, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                loggerFactory.CreateLogger("Kouki.Kagedama.Api").LogWarning(ex, "Не удалось обновить метрики в classifications.");
+            }
         }
 
         var response = new VoiceResponse(
@@ -263,19 +376,50 @@ public static class ApiEndpoints
     private static async Task<IResult> classifyHandler(
         ClassifyRequest body,
         IClassifierCatalog catalog,
+        IRequestLog requestLog,
         IOptions<KoukiServerOptions> options,
+        ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
     {
-        if (body is null || string.IsNullOrWhiteSpace(body.Text))
+        var sw = Stopwatch.StartNew();
+        KoukiServerOptions settings = options.Value;
+        string source = "api";
+
+        async Task RecordTelemetryAsync(int httpStatus, string outcome, string? error)
         {
-            return Results.BadRequest(new { error = "Пустой текст: нечего классифицировать." });
+            if (!settings.RequestLogEnabled) return;
+            try
+            {
+                var entry = new RequestLogEntry(
+                    Id: Guid.NewGuid(),
+                    CreatedAt: DateTimeOffset.UtcNow,
+                    Endpoint: RequestEndpoints.Classify,
+                    Source: source,
+                    HttpStatus: httpStatus,
+                    Outcome: outcome,
+                    DurationMs: sw.ElapsedMilliseconds,
+                    Error: error);
+
+                await requestLog.RecordAsync(entry, settings.RequestLogMaxRows, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                loggerFactory.CreateLogger("Kouki.Kagedama.Api").LogWarning(ex, "Не удалось записать журнал запросов телеметрии.");
+            }
         }
 
-        KoukiServerOptions settings = options.Value;
+        if (body is null || string.IsNullOrWhiteSpace(body.Text))
+        {
+            string err = "Пустой текст: нечего классифицировать.";
+            await RecordTelemetryAsync(StatusCodes.Status400BadRequest, RequestOutcomes.Rejected, err);
+            return Results.BadRequest(new { error = err });
+        }
 
         if (body.Text.Length > settings.MaxTextLength)
         {
-            return Results.BadRequest(new { error = $"Текст длиннее {settings.MaxTextLength} символов." });
+            string err = $"Текст длиннее {settings.MaxTextLength} символов.";
+            await RecordTelemetryAsync(StatusCodes.Status400BadRequest, RequestOutcomes.Rejected, err);
+            return Results.BadRequest(new { error = err });
         }
 
         IReadOnlyList<ClassifierVerdict> verdicts = await catalog.ClassifyAsync(
@@ -284,6 +428,8 @@ public static class ApiEndpoints
             settings.ConfidenceThreshold,
             cancellationToken);
 
+        await RecordTelemetryAsync(StatusCodes.Status200OK, RequestOutcomes.Ok, null);
+
         return Results.Ok(new
         {
             text = body.Text.Trim(),
@@ -291,6 +437,39 @@ public static class ApiEndpoints
             classifiers = catalog.Names,
             results = verdicts,
         });
+    }
+
+    /// <summary>
+    /// Сводка телеметрии запросов к API за выбранное временное окно.
+    /// </summary>
+    private static async Task<IResult> telemetryHandler(
+        HttpRequest request,
+        MuguraRouter router,
+        IContextRegistry contexts,
+        CancellationToken cancellationToken)
+    {
+        string? rawHours = request.Query["hours"];
+        int hours = ListTelemetryHandler.DefaultHours;
+        if (!string.IsNullOrWhiteSpace(rawHours))
+        {
+            if (!int.TryParse(rawHours, out hours) || hours < ListTelemetryHandler.MinHours || hours > ListTelemetryHandler.MaxHours)
+            {
+                return Results.BadRequest(new { error = "hours: целое число от 1 до 168." });
+            }
+        }
+
+        JsonNode? result = await router.RouteAsync(
+            "list_telemetry",
+            new JsonObject { ["hours"] = hours },
+            contexts.GetDefaultContext(),
+            cancellationToken);
+
+        if (result is JsonObject obj && obj["error"] is JsonNode err && err.GetValueKind() == JsonValueKind.String)
+        {
+            return Results.BadRequest(new { error = err.GetValue<string>() });
+        }
+
+        return Results.Ok(result);
     }
 
     /// <summary>
@@ -354,16 +533,19 @@ public static class ApiEndpoints
                 statusCode: StatusCodes.Status503ServiceUnavailable);
         }
 
-        (IResult? error, byte[] bytes, WavAudio? audio) = await ReadWavAsync(request, settings, cancellationToken);
+        ReadWavResult wav = await ReadWavAsync(request, settings, cancellationToken);
 
-        if (error is not null)
+        if (wav.Error is not null)
         {
-            return error;
+            return wav.Error;
         }
+
+        byte[] bytes = wav.Bytes;
+        WavAudio audio = wav.Audio!;
 
         TranscriptionResult transcription = await transcriber.TranscribeAsync(
             new MemoryStream(bytes, writable: false),
-            new AudioFormat(audio!.SampleRate, audio.Channels, AudioEncoding.Wav),
+            new AudioFormat(audio.SampleRate, audio.Channels, AudioEncoding.Wav),
             cancellationToken);
 
         if (string.IsNullOrWhiteSpace(transcription.Text))
@@ -382,19 +564,25 @@ public static class ApiEndpoints
     }
 
     /// <summary>
+    /// Результат чтения WAV-потока из тела HTTP-запроса.
+    /// </summary>
+    private sealed record ReadWavResult(IResult? Error, string? ErrorMessage, int? StatusCode, byte[] Bytes, WavAudio? Audio);
+
+    /// <summary>
     /// Читает WAV из тела запроса с теми же ограничениями, что и голосовой приём.
     /// Ошибка возвращается готовым результатом, чтобы вызывающий не дублировал проверки.
     /// </summary>
-    private static async Task<(IResult? Error, byte[] Bytes, WavAudio? Audio)> ReadWavAsync(
+    private static async Task<ReadWavResult> ReadWavAsync(
         HttpRequest request,
         KoukiServerOptions settings,
         CancellationToken cancellationToken)
     {
         if (request.ContentLength is long declared && declared > settings.MaxVoiceBytes)
         {
-            return (Results.Json(
-                new { error = $"Запись больше {settings.MaxVoiceBytes} байт." },
-                statusCode: StatusCodes.Status413PayloadTooLarge), [], null);
+            string msg = $"Запись больше {settings.MaxVoiceBytes} байт.";
+            return new ReadWavResult(Results.Json(
+                new { error = msg },
+                statusCode: StatusCodes.Status413PayloadTooLarge), msg, StatusCodes.Status413PayloadTooLarge, [], null);
         }
 
         using var buffer = new MemoryStream();
@@ -405,9 +593,10 @@ public static class ApiEndpoints
         {
             if (buffer.Length + read > settings.MaxVoiceBytes)
             {
-                return (Results.Json(
-                    new { error = $"Запись больше {settings.MaxVoiceBytes} байт." },
-                    statusCode: StatusCodes.Status413PayloadTooLarge), [], null);
+                string msg = $"Запись больше {settings.MaxVoiceBytes} байт.";
+                return new ReadWavResult(Results.Json(
+                    new { error = msg },
+                    statusCode: StatusCodes.Status413PayloadTooLarge), msg, StatusCodes.Status413PayloadTooLarge, [], null);
             }
 
             buffer.Write(chunk, 0, read);
@@ -417,24 +606,27 @@ public static class ApiEndpoints
 
         if (bytes.Length == 0)
         {
-            return (Results.BadRequest(new { error = "Пустое тело запроса: ожидался WAV." }), [], null);
+            string msg = "Пустое тело запроса: ожидался WAV.";
+            return new ReadWavResult(Results.BadRequest(new { error = msg }), msg, StatusCodes.Status400BadRequest, [], null);
         }
 
         if (!WavReader.TryParse(bytes, out WavAudio? audio, out string? wavError) || audio is null)
         {
-            return (Results.Json(
-                new { error = wavError },
-                statusCode: StatusCodes.Status415UnsupportedMediaType), bytes, null);
+            string msg = wavError ?? "Ошибка формата WAV.";
+            return new ReadWavResult(Results.Json(
+                new { error = msg },
+                statusCode: StatusCodes.Status415UnsupportedMediaType), msg, StatusCodes.Status415UnsupportedMediaType, bytes, null);
         }
 
         if (audio.Duration > TimeSpan.FromSeconds(settings.MaxVoiceSeconds))
         {
-            return (Results.Json(
-                new { error = $"Запись длиннее {settings.MaxVoiceSeconds} с." },
-                statusCode: StatusCodes.Status413PayloadTooLarge), bytes, audio);
+            string msg = $"Запись длиннее {settings.MaxVoiceSeconds} с.";
+            return new ReadWavResult(Results.Json(
+                new { error = msg },
+                statusCode: StatusCodes.Status413PayloadTooLarge), msg, StatusCodes.Status413PayloadTooLarge, bytes, audio);
         }
 
-        return (null, bytes, audio);
+        return new ReadWavResult(null, null, null, bytes, audio);
     }
 
     private static async Task<IResult> listTasksHandler(

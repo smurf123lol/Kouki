@@ -614,6 +614,35 @@ textarea { resize: vertical; width: 100%; line-height: 1.5; }
 
 .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
+/* ---------- телеметрия ---------- */
+
+.telemetry-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+}
+.telemetry-card {
+    padding: 14px 18px;
+    background: var(--paper-warm);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+}
+.telemetry-card-label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--sand-faint);
+}
+.telemetry-card-value {
+    display: block;
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-top: 4px;
+}
+
 /* ---------- подвал ---------- */
 
 .foot {

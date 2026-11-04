@@ -10,6 +10,9 @@ public static class ActionKinds
 
     /// <summary>Вызов команды (может быть частью приёма или прямым вызовом).</summary>
     public const string Command = "command";
+
+    /// <summary>Запрос к API (телеметрия voice и classify).</summary>
+    public const string Request = "request";
 }
 
 /// <summary>
