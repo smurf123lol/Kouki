@@ -137,6 +137,24 @@ public sealed class McpSessionTests : IDisposable
         Assert.Equal(7, JsonNode.Parse(lines[1])!["id"]!.GetValue<int>());
     }
 
+    [Fact]
+    public async Task Tools_call_kouki_telemetry_returns_telemetry_summary()
+    {
+        var requestLog = _provider.GetRequiredService<IRequestLog>();
+        await requestLog.RecordAsync(new RequestLogEntry(
+            Guid.NewGuid(), DateTimeOffset.UtcNow, RequestEndpoints.Voice, "station", 200, RequestOutcomes.Ok, 250));
+
+        JsonNode response = await CallAsync(
+            """{"jsonrpc":"2.0","id":42,"method":"tools/call","params":{"name":"kouki_telemetry","arguments":{"hours":24}}}""");
+
+        Assert.Equal("2.0", response["jsonrpc"]!.GetValue<string>());
+        JsonNode content = response["result"]!["content"]![0]!;
+        Assert.Equal("text", content["type"]!.GetValue<string>());
+        JsonNode text = JsonNode.Parse(content["text"]!.GetValue<string>())!;
+        Assert.Equal(24, text["windowHours"]!.GetValue<int>());
+        Assert.Equal(1, text["totals"]!["requests"]!.GetValue<int>());
+    }
+
     private async Task<JsonNode> CallAsync(string json)
     {
         string? response = await _session.HandleAsync(json);

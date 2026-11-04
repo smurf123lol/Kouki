@@ -70,6 +70,9 @@ public static class DatabaseInitializer
         // иначе tree_id у старой базы остался бы в верхнем регистре.
         EnsureTaskTreeSchema(connection);
 
+        // Журнал запросов и телеметрия (T20): метрические колонки в actions и classifications.
+        EnsureRequestLogSchema(connection);
+
         return fullPath;
     }
 
@@ -103,6 +106,24 @@ public static class DatabaseInitializer
             "SELECT id, created_at FROM tasks WHERE tree_id IS NULL; " +
             "UPDATE tasks SET tree_id = id WHERE tree_id IS NULL;";
         backfill.ExecuteNonQuery();
+    }
+
+    /// <summary>
+    /// Догоняет старую базу до схемы журнала запросов телеметрии (T20): метрические колонки и индекс.
+    /// </summary>
+    private static void EnsureRequestLogSchema(SqliteConnection connection)
+    {
+        EnsureColumn(connection, "actions", "http_status", "INTEGER NULL");
+        EnsureColumn(connection, "actions", "audio_bytes", "INTEGER NULL");
+        EnsureColumn(connection, "actions", "audio_duration_sec", "REAL NULL");
+
+        EnsureColumn(connection, "classifications", "audio_bytes", "INTEGER NULL");
+        EnsureColumn(connection, "classifications", "audio_duration_sec", "REAL NULL");
+        EnsureColumn(connection, "classifications", "duration_ms", "INTEGER NULL");
+
+        using var command = connection.CreateCommand();
+        command.CommandText = "CREATE INDEX IF NOT EXISTS ix_actions_kind_created ON actions (kind, created_at DESC);";
+        command.ExecuteNonQuery();
     }
 
     /// <summary>
@@ -167,8 +188,11 @@ public static class DatabaseInitializer
             error          TEXT NULL,
             label          TEXT NULL,
             labeled_at     TEXT NULL,
-            audio_path     TEXT NULL,
-            hinted_intent  TEXT NULL
+            audio_path         TEXT NULL,
+            hinted_intent      TEXT NULL,
+            audio_bytes        INTEGER NULL,
+            audio_duration_sec REAL NULL,
+            duration_ms        INTEGER NULL
         );
 
         CREATE INDEX IF NOT EXISTS ix_classifications_created ON classifications (created_at DESC);
@@ -176,24 +200,28 @@ public static class DatabaseInitializer
         CREATE INDEX IF NOT EXISTS ix_classifications_task ON classifications (task_id);
 
         CREATE TABLE IF NOT EXISTS actions (
-            id                TEXT PRIMARY KEY,
-            created_at        TEXT NOT NULL,
-            task_id           TEXT NULL REFERENCES tasks (id),
-            classification_id TEXT NULL REFERENCES classifications (id),
-            source            TEXT NOT NULL,
-            kind              TEXT NOT NULL,
-            intent            TEXT NULL,
-            command           TEXT NULL,
-            outcome           TEXT NOT NULL,
-            args_json         TEXT NULL,
-            result_json       TEXT NULL,
-            error             TEXT NULL,
-            duration_ms       INTEGER NULL
+            id                 TEXT PRIMARY KEY,
+            created_at         TEXT NOT NULL,
+            task_id            TEXT NULL REFERENCES tasks (id),
+            classification_id  TEXT NULL REFERENCES classifications (id),
+            source             TEXT NOT NULL,
+            kind               TEXT NOT NULL,
+            intent             TEXT NULL,
+            command            TEXT NULL,
+            outcome            TEXT NOT NULL,
+            args_json          TEXT NULL,
+            result_json        TEXT NULL,
+            error              TEXT NULL,
+            duration_ms        INTEGER NULL,
+            http_status        INTEGER NULL,
+            audio_bytes        INTEGER NULL,
+            audio_duration_sec REAL NULL
         );
 
         CREATE INDEX IF NOT EXISTS ix_actions_created ON actions (created_at DESC);
         CREATE INDEX IF NOT EXISTS ix_actions_task ON actions (task_id);
         CREATE INDEX IF NOT EXISTS ix_actions_classification ON actions (classification_id);
+        CREATE INDEX IF NOT EXISTS ix_actions_kind_created ON actions (kind, created_at DESC);
 
         CREATE TABLE IF NOT EXISTS state (
             key        TEXT PRIMARY KEY,

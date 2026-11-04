@@ -231,6 +231,47 @@ public sealed class JournalCommandTests : IDisposable
         Assert.NotNull(missing["error"]);
     }
 
+    [Fact]
+    public async Task List_telemetry_returns_summary_and_breakdowns()
+    {
+        var requestLog = _provider.GetRequiredService<IRequestLog>();
+        var now = DateTimeOffset.UtcNow;
+
+        await requestLog.RecordAsync(new RequestLogEntry(
+            Guid.NewGuid(), now.AddMinutes(-5), RequestEndpoints.Voice, "station", 200, RequestOutcomes.Ok, 800,
+            AudioBytes: 16000, AudioDurationSec: 1.0));
+
+        await requestLog.RecordAsync(new RequestLogEntry(
+            Guid.NewGuid(), now.AddMinutes(-2), RequestEndpoints.Classify, "dashboard", 400, RequestOutcomes.Rejected, 100,
+            Error: "Пустой текст: нечего классифицировать."));
+
+        JsonNode? result = await _router.RouteAsync("list_telemetry", new JsonObject { ["hours"] = 24 });
+
+        Assert.NotNull(result);
+        Assert.Equal(24, result["windowHours"]!.GetValue<int>());
+        Assert.Equal(2, result["totals"]!["requests"]!.GetValue<int>());
+        Assert.Equal(1, result["totals"]!["errors"]!.GetValue<int>());
+        Assert.Equal(450.0, result["totals"]!["avgDurationMs"]!.GetValue<double>());
+        Assert.Equal(16000L, result["totals"]!["audioBytes"]!.GetValue<long>());
+
+        var byEndpoint = result["byEndpoint"]!.AsArray();
+        Assert.Equal(2, byEndpoint.Count);
+
+        var bySource = result["bySource"]!.AsArray();
+        Assert.Equal(2, bySource.Count);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(200)]
+    public async Task List_telemetry_validates_hours_range(int hours)
+    {
+        JsonNode? result = await _router.RouteAsync("list_telemetry", new JsonObject { ["hours"] = hours });
+
+        Assert.NotNull(result);
+        Assert.Equal("hours: целое число от 1 до 168.", result["error"]!.GetValue<string>());
+    }
+
     /// <inheritdoc />
     public void Dispose()
     {

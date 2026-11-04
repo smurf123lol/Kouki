@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.FileProviders;
 
@@ -222,6 +221,34 @@ public sealed class DashboardAssetsTests
     // Браузера в тестовом окружении нет, поэтому каскад закодирован структурно: правило
     // [hidden] обязано лежать на верхнем уровне (не внутри @media) и побеждать !important,
     // а .chips не должен включать display: flex при наличии атрибута hidden.
+    [Fact]
+    public void Index_has_telemetry_tab_and_panel()
+    {
+        string html = File.ReadAllText(Path.Combine(WebRoot, "index.html"));
+
+        Assert.Contains("data-tab=\"telemetry\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"tab-telemetry\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"count-telemetry\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"panel-telemetry\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"telemetry-requests\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"telemetry-errors\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"telemetry-avg-duration\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"telemetry-audio-bytes\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"telemetry-endpoints-table\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"telemetry-sources-table\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Script_implements_telemetry_requests_and_tab_handling()
+    {
+        string app = File.ReadAllText(Path.Combine(WebRoot, "app.js"));
+
+        Assert.Contains("/api/telemetry", app, StringComparison.Ordinal);
+        Assert.Contains("loadTelemetry", app, StringComparison.Ordinal);
+        Assert.Contains("telemetryHours", app, StringComparison.Ordinal);
+        Assert.Contains("data-telemetry-hours", app, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Cascade_keeps_hidden_attribute_effective()
     {

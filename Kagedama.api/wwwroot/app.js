@@ -15,7 +15,7 @@ const OUTCOME_RU = {
     failed: 'ошибка',
 };
 
-const TAB_IN_RU = { tasks: 'задачи', review: 'разбор', intake: 'приём', compare: 'проверка', actions: 'действия' };
+const TAB_IN_RU = { tasks: 'задачи', review: 'разбор', intake: 'приём', compare: 'проверка', actions: 'действия', telemetry: 'телеметрия' };
 
 // Доска — пять колонок по статусам. «Отменено» свёрнута при каждой загрузке страницы;
 // состояние сворачивания не запоминается (спека T78, §2.6).
@@ -38,6 +38,7 @@ const PRIORITY_RU = { 1: 'низкий', 2: 'обычный', 3: 'высокий
 const state = {
     token: localStorage.getItem('kouki.token') || '',
     tab: 'tasks',
+    telemetryHours: 24,
     tag: '',
     boardTab: 'new',
     boardTasks: [],
@@ -195,17 +196,19 @@ async function playPhraseAudio(id) {
 /* ---------- сводка ---------- */
 
 async function refreshTally() {
-    const [tasks, review, actions] = await Promise.allSettled([
+    const [tasks, review, actions, telemetry] = await Promise.allSettled([
         api('/api/tasks?limit=200'),
         api('/api/classifications?unresolved=true&limit=100'),
         api('/api/actions?limit=100'),
+        api('/api/telemetry?hours=24'),
     ]);
 
     setCount('count-tasks', tasks.status === 'fulfilled' ? tasks.value.length : NaN);
     setCount('count-review', review.status === 'fulfilled' ? review.value.length : NaN);
     setCount('count-actions', actions.status === 'fulfilled' ? actions.value.length : NaN);
+    setCount('count-telemetry', telemetry.status === 'fulfilled' && telemetry.value?.totals ? telemetry.value.totals.requests : NaN);
 
-    const auth = [tasks, review, actions].some((result) => result.status === 'rejected' && result.reason instanceof AuthError);
+    const auth = [tasks, review, actions, telemetry].some((result) => result.status === 'rejected' && result.reason instanceof AuthError);
     if (auth) throw new AuthError('нет токена');
 }
 
@@ -611,6 +614,56 @@ async function loadActions() {
         '<tr><td colspan="7" class="empty">Действий ещё не было.</td></tr>');
 }
 
+/* ---------- телеметрия ---------- */
+
+function formatBytes(bytes) {
+    if (!bytes || bytes === 0) return '0 Б';
+    if (bytes < 1024) return bytes + ' Б';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' КБ';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' МБ';
+}
+
+async function loadTelemetry() {
+    const hours = state.telemetryHours || 24;
+    const telemetry = await api(`/api/telemetry?hours=${hours}`);
+
+    setCount('count-telemetry', telemetry.totals.requests);
+    $('telemetry-meta').textContent = `${telemetry.totals.requests} запросов за ${hours} ч · с ${formatTime(telemetry.since)}`;
+
+    $('telemetry-requests').textContent = telemetry.totals.requests;
+    $('telemetry-errors').textContent = telemetry.totals.errors;
+    $('telemetry-avg-duration').textContent = `${telemetry.totals.avgDurationMs} мс`;
+    $('telemetry-audio-bytes').textContent = formatBytes(telemetry.totals.audioBytes);
+
+    const epTable = $('telemetry-endpoints-table');
+    if (epTable) {
+        const epBody = epTable.querySelector('tbody');
+        if (epBody) {
+            epBody.innerHTML = (telemetry.byEndpoint || []).map((ep) => `
+                <tr>
+                    <td class="mono">${esc(ep.endpoint)}</td>
+                    <td class="mono">${ep.requests}</td>
+                    <td class="mono ${ep.errors > 0 ? 'err' : ''}">${ep.errors}</td>
+                    <td class="mono">${ep.avgDurationMs}</td>
+                    <td class="mono">${formatBytes(ep.audioBytes)}</td>
+                </tr>`).join('') || '<tr><td colspan="5" class="empty">Запросов за это окно не было.</td></tr>';
+        }
+    }
+
+    const srcTable = $('telemetry-sources-table');
+    if (srcTable) {
+        const srcBody = srcTable.querySelector('tbody');
+        if (srcBody) {
+            srcBody.innerHTML = (telemetry.bySource || []).map((src) => `
+                <tr>
+                    <td class="mono">${esc(src.source)}</td>
+                    <td class="mono">${src.requests}</td>
+                    <td class="mono ${src.errors > 0 ? 'err' : ''}">${src.errors}</td>
+                </tr>`).join('') || '<tr><td colspan="3" class="empty">Источников за это окно не было.</td></tr>';
+        }
+    }
+}
+
 /* ---------- карточка задачи ---------- */
 
 async function openTask(id, options = {}) {
@@ -876,6 +929,7 @@ async function switchTab(tab) {
     $('panel-intake').hidden = tab !== 'intake';
     $('panel-compare').hidden = tab !== 'compare';
     $('panel-actions').hidden = tab !== 'actions';
+    $('panel-telemetry').hidden = tab !== 'telemetry';
 
     await reload();
 }
@@ -894,6 +948,7 @@ async function reload(options = {}) {
         else if (state.tab === 'review') await loadReview();
         else if (state.tab === 'compare') await loadClassifiers();
         else if (state.tab === 'actions') await loadActions();
+        else if (state.tab === 'telemetry') await loadTelemetry();
         if (state.taskId) await openTask(state.taskId, { force });
     } catch (error) {
         if (error instanceof AuthError) {
@@ -996,6 +1051,20 @@ document.addEventListener('click', async (event) => {
     const statusButton = closestOf(event.target, '[data-set-status]');
     if (statusButton) {
         await setTaskStatus(statusButton.dataset.setStatus);
+        return;
+    }
+
+    const telemetryHoursChip = closestOf(event.target, '[data-telemetry-hours]');
+    if (telemetryHoursChip) {
+        event.preventDefault();
+        const hours = parseInt(telemetryHoursChip.dataset.telemetryHours, 10);
+        if (hours > 0) {
+            state.telemetryHours = hours;
+            document.querySelectorAll('[data-telemetry-hours]').forEach((node) => {
+                node.classList.toggle('is-active', node === telemetryHoursChip);
+            });
+            await loadTelemetry();
+        }
     }
 });
 

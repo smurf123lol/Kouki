@@ -154,6 +154,14 @@ public sealed class AudioRetentionTests : IDisposable
             string? source = null)
             => Task.FromResult(true);
 
+        public Task<bool> AnnotateMetricsAsync(
+            Guid id,
+            long? audioBytes,
+            double? audioDurationSec,
+            long? durationMs,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(true);
+
         public Task<bool> AnnotateHintAsync(Guid id, string? hintedIntent, CancellationToken cancellationToken = default)
             => Task.FromResult(true);
 

@@ -121,6 +121,10 @@ public sealed class KoukiMcpTools
             "kouki_context",
             "Показывает, в каком окружении исполняются команды: имя контекста и объявленные сервисы (файловая система, терминал, хранилище состояния).",
             Schema(Array.Empty<(string, string, string)>())),
+        new McpToolDescriptor(
+            "kouki_telemetry",
+            "Показывает агрегированную телеметрию обращений к API (число запросов, ошибок, среднее время ответа, объём аудио) за окно в часах.",
+            Schema(new[] { ("hours", "integer", "Окно в часах, по умолчанию 24, диапазон 1…168.") })),
     };
 
     /// <summary>
@@ -161,6 +165,7 @@ public sealed class KoukiMcpTools
             "kouki_complete_reminder" => await CompleteReminderAsync(args, cancellationToken).ConfigureAwait(false),
             "kouki_unresolved_classifications" => await UnresolvedAsync(args, cancellationToken).ConfigureAwait(false),
             "kouki_label_classification" => await LabelAsync(args, cancellationToken).ConfigureAwait(false),
+            "kouki_telemetry" or "list_telemetry" => await TelemetryAsync(args, cancellationToken).ConfigureAwait(false),
             "kouki_context" => Context(),
             _ => throw new ArgumentException($"Unknown tool '{name}'.", nameof(name)),
         };
@@ -403,6 +408,17 @@ public sealed class KoukiMcpTools
         return await _router.RouteAsync(
             "label_classification",
             new JsonObject { ["id"] = id.ToString(), ["label"] = label },
+            _contexts.GetDefaultContext(),
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<JsonNode> TelemetryAsync(JsonObject args, CancellationToken cancellationToken)
+    {
+        int? hours = OptionalInt(args, "hours");
+
+        return await _router.RouteAsync(
+            "list_telemetry",
+            new JsonObject { ["hours"] = hours },
             _contexts.GetDefaultContext(),
             cancellationToken).ConfigureAwait(false);
     }

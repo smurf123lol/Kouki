@@ -14,7 +14,8 @@ public sealed class SqliteClassificationJournal : IClassificationJournal
         "id AS Id, created_at AS CreatedAt, source AS Source, input_kind AS InputKind, " +
         "input_text AS InputText, intent AS Intent, score AS Score, confident AS Confident, " +
         "model AS Model, error AS Error, label AS Label, labeled_at AS LabeledAt, " +
-        "asr_confidence AS AsrConfidence, audio_path AS AudioPath, hinted_intent AS HintedIntent, task_id AS TaskId";
+        "asr_confidence AS AsrConfidence, audio_path AS AudioPath, hinted_intent AS HintedIntent, task_id AS TaskId, " +
+        "audio_bytes AS AudioBytes, audio_duration_sec AS AudioDurationSec, duration_ms AS DurationMs";
 
     private readonly SqliteSession _session;
 
@@ -130,6 +131,27 @@ public sealed class SqliteClassificationJournal : IClassificationJournal
             new CommandDefinition(
                 "UPDATE classifications SET asr_confidence = @asrConfidence, audio_path = @audioPath, source = COALESCE(@source, source) WHERE id = @id",
                 new { id = id.ToString(), asrConfidence, audioPath, source },
+                transaction: lease.Transaction,
+                cancellationToken: cancellationToken)).ConfigureAwait(false);
+
+        return affected > 0;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> AnnotateMetricsAsync(
+        Guid id,
+        long? audioBytes,
+        double? audioDurationSec,
+        long? durationMs,
+        CancellationToken cancellationToken = default)
+    {
+        await using SqliteLease lease = await _session.OpenAsync(cancellationToken).ConfigureAwait(false);
+        SqliteConnection connection = lease.Connection;
+
+        int affected = await connection.ExecuteAsync(
+            new CommandDefinition(
+                "UPDATE classifications SET audio_bytes = @audioBytes, audio_duration_sec = @audioDurationSec, duration_ms = @durationMs WHERE id = @id",
+                new { id = id.ToString(), audioBytes, audioDurationSec, durationMs },
                 transaction: lease.Transaction,
                 cancellationToken: cancellationToken)).ConfigureAwait(false);
 

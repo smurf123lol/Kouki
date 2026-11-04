@@ -69,8 +69,20 @@ public interface IClassificationJournal
     /// <param name="asrConfidence">Уверенность распознавания речи.</param>
     /// <param name="audioPath">Путь к сохранённой записи.</param>
     /// <param name="cancellationToken">Токен отмены.</param>
+    /// <param name="source">Источник запроса.</param>
     /// <returns><c>true</c>, если запись нашлась.</returns>
     Task<bool> AnnotateAudioAsync(Guid id, double? asrConfidence, string? audioPath, CancellationToken cancellationToken = default, string? source = null);
+
+    /// <summary>
+    /// Дописывает к записи метрики голосового запроса: размер аудио, длительность аудио и общее время обработки.
+    /// </summary>
+    /// <param name="id">Запись журнала.</param>
+    /// <param name="audioBytes">Размер аудио в байтах.</param>
+    /// <param name="audioDurationSec">Длительность аудио в секундах.</param>
+    /// <param name="durationMs">Длительность обработки запроса в миллисекундах.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <returns><c>true</c>, если запись нашлась.</returns>
+    Task<bool> AnnotateMetricsAsync(Guid id, long? audioBytes, double? audioDurationSec, long? durationMs, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Помечает запись интентом сессии (кнопка «Записать»/«Спросить» на станции),
@@ -172,6 +184,15 @@ public sealed class ClassificationEntry
 
     /// <summary>Задача, созданная из этой фразы, если она была.</summary>
     public Guid? TaskId { get; set; }
+
+    /// <summary>Размер аудио в байтах.</summary>
+    public long? AudioBytes { get; set; }
+
+    /// <summary>Длительность аудио в секундах.</summary>
+    public double? AudioDurationSec { get; set; }
+
+    /// <summary>Длительность обработки запроса в миллисекундах.</summary>
+    public long? DurationMs { get; set; }
 }
 
 /// <summary>
@@ -204,6 +225,10 @@ public sealed class NullClassificationJournal : IClassificationJournal
 
     /// <inheritdoc />
     public Task<bool> AnnotateAudioAsync(Guid id, double? asrConfidence, string? audioPath, CancellationToken cancellationToken = default, string? source = null)
+        => Task.FromResult(false);
+
+    /// <inheritdoc />
+    public Task<bool> AnnotateMetricsAsync(Guid id, long? audioBytes, double? audioDurationSec, long? durationMs, CancellationToken cancellationToken = default)
         => Task.FromResult(false);
 
     /// <inheritdoc />

@@ -30,3 +30,32 @@ public sealed record TaskMoveRequest(string? Status = null, int? Position = null
 
 /// <summary>Ручная разметка записи журнала.</summary>
 public sealed record LabelRequest(string Label);
+
+/// <summary>Сводка телеметрии запросов к API.</summary>
+public sealed record TelemetryResponse(
+    int WindowHours,
+    string Since,
+    TelemetryTotalsResponse Totals,
+    IReadOnlyList<TelemetryEndpointResponse> ByEndpoint,
+    IReadOnlyList<TelemetrySourceResponse> BySource);
+
+/// <summary>Итоговые показатели телеметрии.</summary>
+public sealed record TelemetryTotalsResponse(
+    int Requests,
+    int Errors,
+    double AvgDurationMs,
+    long AudioBytes);
+
+/// <summary>Показатели телеметрии по эндпоинту.</summary>
+public sealed record TelemetryEndpointResponse(
+    string Endpoint,
+    int Requests,
+    int Errors,
+    double AvgDurationMs,
+    long AudioBytes);
+
+/// <summary>Показатели телеметрии по источнику.</summary>
+public sealed record TelemetrySourceResponse(
+    string Source,
+    int Requests,
+    int Errors);

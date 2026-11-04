@@ -121,4 +121,15 @@ public sealed class KoukiServerOptions
     /// пустая строка — озвучивание выключено, <c>/api/speech</c> отвечает 503.
     /// </summary>
     public string SpeechVoiceDirectory { get; set; } = "models/tts";
+
+    /// <summary>
+    /// Включить журнал обращений к API (/api/voice, /api/classify) и сбор телеметрии.
+    /// </summary>
+    public bool RequestLogEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Максимальное число последних записей обращений в таблице actions (кольцевой буфер).
+    /// <c>0</c> — не удалять старые записи.
+    /// </summary>
+    public int RequestLogMaxRows { get; set; } = 10000;
 }

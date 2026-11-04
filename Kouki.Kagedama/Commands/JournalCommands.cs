@@ -275,3 +275,94 @@ public sealed class ExportDatasetHandler(IClassificationJournal journal)
         };
     }
 }
+
+/// <summary>
+/// Запрос сводки телеметрии обращений к API.
+/// </summary>
+/// <param name="Hours">Временное окно в часах (1…168). По умолчанию 24.</param>
+public sealed record ListTelemetryCommand(int? Hours = null) : ICommand;
+
+/// <summary>
+/// Отдаёт агрегированные показатели телеметрии обращений к /api/voice и /api/classify.
+/// </summary>
+[Command("list_telemetry", Description = "Показывает телеметрию запросов к API за окно в часах", Category = CommandCategory.Admin, Example = "телеметрия за 24 часа")]
+public sealed class ListTelemetryHandler(IRequestLog requestLog) : ICommandHandler<ListTelemetryCommand>
+{
+    /// <summary>Окно по умолчанию в часах.</summary>
+    public const int DefaultHours = 24;
+
+    /// <summary>Минимальный размер окна в часах.</summary>
+    public const int MinHours = 1;
+
+    /// <summary>Максимальный размер окна в часах (7 суток).</summary>
+    public const int MaxHours = 168;
+
+    /// <inheritdoc />
+    public async Task<JsonNode> HandleAsync(
+        ListTelemetryCommand command,
+        IExecutionContext? context = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        int hours = command.Hours ?? DefaultHours;
+        if (hours < MinHours || hours > MaxHours)
+        {
+            return new JsonObject
+            {
+                ["error"] = "hours: целое число от 1 до 168.",
+            };
+        }
+
+        RequestLogSummary summary = await requestLog
+            .SummarizeAsync(hours, cancellationToken)
+            .ConfigureAwait(false);
+
+        return ToJson(summary);
+    }
+
+    /// <summary>Преобразует сводку в JSON-объект, идентичный контракту API.</summary>
+    public static JsonObject ToJson(RequestLogSummary summary)
+    {
+        ArgumentNullException.ThrowIfNull(summary);
+
+        var byEndpointArray = new JsonArray();
+        foreach (RequestLogEndpointSummary ep in summary.ByEndpoint)
+        {
+            byEndpointArray.Add(new JsonObject
+            {
+                ["endpoint"] = ep.Endpoint,
+                ["requests"] = ep.Requests,
+                ["errors"] = ep.Errors,
+                ["avgDurationMs"] = ep.AvgDurationMs,
+                ["audioBytes"] = ep.AudioBytes,
+            });
+        }
+
+        var bySourceArray = new JsonArray();
+        foreach (RequestLogSourceSummary src in summary.BySource)
+        {
+            bySourceArray.Add(new JsonObject
+            {
+                ["source"] = src.Source,
+                ["requests"] = src.Requests,
+                ["errors"] = src.Errors,
+            });
+        }
+
+        return new JsonObject
+        {
+            ["windowHours"] = summary.WindowHours,
+            ["since"] = summary.Since.ToString("O"),
+            ["totals"] = new JsonObject
+            {
+                ["requests"] = summary.Totals.Requests,
+                ["errors"] = summary.Totals.Errors,
+                ["avgDurationMs"] = summary.Totals.AvgDurationMs,
+                ["audioBytes"] = summary.Totals.AudioBytes,
+            },
+            ["byEndpoint"] = byEndpointArray,
+            ["bySource"] = bySourceArray,
+        };
+    }
+}
