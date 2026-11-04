@@ -123,6 +123,16 @@ public sealed class KoukiServerOptions
     public string SpeechVoiceDirectory { get; set; } = "models/tts";
 
     /// <summary>
+    /// Голос по умолчанию для озвучивания ответов (подкаталог в <see cref="SpeechVoiceDirectory"/>).
+    /// </summary>
+    public string SpeechVoice { get; set; } = "ru_RU-irina-medium";
+
+    /// <summary>
+    /// Максимальное число загруженных в память моделей голосов (LRU).
+    /// </summary>
+    public int SpeechMaxLoadedVoices { get; set; } = 2;
+
+    /// <summary>
     /// Включить журнал обращений к API (/api/voice, /api/classify) и сбор телеметрии.
     /// </summary>
     public bool RequestLogEnabled { get; set; } = true;

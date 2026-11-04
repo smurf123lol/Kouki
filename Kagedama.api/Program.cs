@@ -158,15 +158,25 @@ if (Kouki.Un.SpeechModelCheck.TryValidate(serverOptions.SpeechModelDirectory, ou
 
     // Голос — та же библиотека: без каталога голоса озвучивание просто выключается,
     // распознавание при этом продолжает работать.
-    if (Kouki.Un.SpeechModelCheck.TryValidateVoice(serverOptions.SpeechVoiceDirectory, out string? voiceProblem))
+    string? defaultVoiceDir = Kouki.Un.SpeechVoiceResolver.ResolveVoiceDirectory(
+        serverOptions.SpeechVoiceDirectory,
+        serverOptions.SpeechVoice,
+        serverOptions.SpeechVoice);
+
+    if (defaultVoiceDir is not null)
     {
         Kouki.Un.Sherpa.ServiceCollectionExtensions.AddUnSherpaVoice(
             builder.Services,
-            voice => voice.VoiceDirectory = serverOptions.SpeechVoiceDirectory);
+            voice =>
+            {
+                voice.VoiceDirectory = serverOptions.SpeechVoiceDirectory;
+                voice.DefaultVoice = serverOptions.SpeechVoice;
+                voice.MaxLoadedVoices = serverOptions.SpeechMaxLoadedVoices;
+            });
     }
     else
     {
-        voiceFallbackReason = voiceProblem;
+        voiceFallbackReason = $"голос по умолчанию '{serverOptions.SpeechVoice}' не найден в '{serverOptions.SpeechVoiceDirectory}'";
     }
 }
 else

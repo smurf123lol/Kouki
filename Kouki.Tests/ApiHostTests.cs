@@ -820,6 +820,50 @@ public sealed class ApiHostTests : IClassFixture<ApiHostFixture>
         Assert.Equal("Пустое тело запроса: ожидался WAV.", requestAction["error"]!.GetValue<string>());
     }
 
+    [Fact]
+    public async Task Speech_without_token_returns_401()
+    {
+        using var client = new HttpClient { BaseAddress = _host.BaseAddress };
+        using var response = await client.PostAsJsonAsync("/api/speech", new SpeechRequest("Привет"));
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Speech_with_empty_text_returns_400()
+    {
+        using var response = await _host.Client.PostAsJsonAsync("/api/speech", new SpeechRequest(""));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        JsonObject json = Assert.IsType<JsonObject>(JsonNode.Parse(await response.Content.ReadAsStringAsync()));
+        Assert.Equal("Поле 'text' обязательно.", json["error"]?.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task Speech_with_empty_voice_returns_400()
+    {
+        using var response = await _host.Client.PostAsJsonAsync("/api/speech", new SpeechRequest("Привет", "   "));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        JsonObject json = Assert.IsType<JsonObject>(JsonNode.Parse(await response.Content.ReadAsStringAsync()));
+        Assert.Equal("Поле 'voice' пустое: нечего выбирать.", json["error"]?.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task Speech_with_invalid_voice_name_returns_400()
+    {
+        using var response = await _host.Client.PostAsJsonAsync("/api/speech", new SpeechRequest("Привет", "../etc/passwd"));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        JsonObject json = Assert.IsType<JsonObject>(JsonNode.Parse(await response.Content.ReadAsStringAsync()));
+        Assert.Equal("Недопустимое имя голоса '../etc/passwd'. Разрешены буквы, цифры, точка, дефис и подчёркивание.", json["error"]?.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task Speech_when_synthesizer_unavailable_returns_503_even_with_voice()
+    {
+        using var response = await _host.Client.PostAsJsonAsync("/api/speech", new SpeechRequest("Привет", "ru_RU-dmitri-medium"));
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        JsonObject json = Assert.IsType<JsonObject>(JsonNode.Parse(await response.Content.ReadAsStringAsync()));
+        Assert.Contains("sherpa-onnx", json["error"]?.GetValue<string>());
+    }
+
     private async Task<JsonObject> ReadStoredTask(Guid id)
     {
         using var response = await _host.Client.GetAsync($"/api/tasks/{id}");

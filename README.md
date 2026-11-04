@@ -278,6 +278,25 @@ Kouki__SpeechModelDirectory=models/asr/sherpa-onnx-whisper-small \
 Без флага собирается заглушка `UnavailableSpeechTranscriber`: сервер стартует и работает,
 `/api/voice` отвечает `503` с текстом причины.
 
+### Синтез речи (`POST /api/speech`)
+
+`POST /api/speech` синтезирует текст в WAV PCM16 моно 16 кГц (формат для воспроизведения на станции):
+
+```bash
+curl -X POST "http://127.0.0.1:5199/api/speech" \
+     -H "Authorization: Bearer $KOUKI_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"text":"Задачи на сегодня выполнены","voice":"ru_RU-dmitri-medium"}' \
+     --output speech.wav
+```
+
+- `text` — обязателен (до 400 символов).
+- `voice` — необязателен. Если отсутствует, используется голос по умолчанию из `Kouki:SpeechVoice` (по умолчанию `ru_RU-irina-medium`).
+- При передаче `voice` имя валидируется (`[A-Za-z0-9._-]`, до 64 символов), сервер ищет подкаталог `vits-piper-<voice>` в `Kouki:SpeechVoiceDirectory`. Неизвестный голос возвращает `400` со списком доступных.
+- Каталоги моделей: `vits-piper-ru_RU-irina-medium`, `vits-piper-ru_RU-dmitri-medium`, `vits-piper-ru_RU-denis-medium`.
+- Модели кэшируются в памяти с LRU-вытеснением по `Kouki:SpeechMaxLoadedVoices` (дефолт `2`), модель по умолчанию не вытесняется.
+
+
 ### Проверки речи без микрофона
 
 `tools/Kouki.SpeechLab` синтезирует русскую фразу, прогоняет её через тот же распознаватель,

@@ -18,11 +18,22 @@ public interface ISpeechSynthesizer
     string? UnavailableReason { get; }
 
     /// <summary>
-    /// Синтезирует фразу в WAV 16 кГц моно.
+    /// Синтезирует фразу в WAV 16 кГц моно голосом по умолчанию.
     /// </summary>
     /// <param name="text">Текст для озвучивания.</param>
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <returns>Звук и его длительность.</returns>
     /// <exception cref="InvalidOperationException">Синтез не подключён.</exception>
-    Task<SpeechSynthesisResult> SynthesizeAsync(string text, CancellationToken cancellationToken = default);
+    Task<SpeechSynthesisResult> SynthesizeAsync(string text, CancellationToken cancellationToken = default)
+        => SynthesizeAsync(text, null, cancellationToken);
+
+    /// <summary>
+    /// Синтезирует фразу в WAV 16 кГц моно выбранным голосом (или по умолчанию, если voice == null).
+    /// </summary>
+    /// <param name="text">Текст для озвучивания.</param>
+    /// <param name="voice">Имя голоса или <c>null</c> для использования голоса по умолчанию.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <returns>Звук и его длительность.</returns>
+    /// <exception cref="InvalidOperationException">Синтез не подключён.</exception>
+    Task<SpeechSynthesisResult> SynthesizeAsync(string text, string? voice, CancellationToken cancellationToken = default);
 }
