@@ -60,3 +60,11 @@ public sealed record TelemetrySourceResponse(
     string Source,
     int Requests,
     int Errors);
+
+/// <summary>Информация об актуальной прошивке станции (OTA).</summary>
+public sealed record FirmwareInfoResponse(
+    string version,
+    string sha256,
+    long size,
+    string url,
+    bool update = true);
