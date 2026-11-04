@@ -783,16 +783,27 @@ public static class ApiEndpoints
 
         // Путь только из базы: сначала нормализуем его (это раскрывает «..») и проверяем,
         // что результат лежит внутри каталога аудио. Относительные пути не принимаем.
-        string fullPath = Path.GetFullPath(entry.AudioPath);
-        if (!Path.IsPathFullyQualified(entry.AudioPath) ||
-            !fullPath.StartsWith(rootPrefix, comparison) ||
-            !File.Exists(fullPath))
+        string fullPath;
+        try
         {
-            // В базе мог остаться путь за пределы каталога аудио, а файл мог удалить
-            // санитайзер: не отдаём ни байта, причину пишем в лог.
+            if (!Path.IsPathFullyQualified(entry.AudioPath))
+            {
+                return Results.NotFound(new { error = AudioNotFoundError });
+            }
+
+            fullPath = Path.GetFullPath(entry.AudioPath);
+        }
+        catch (Exception)
+        {
+            return Results.NotFound(new { error = AudioNotFoundError });
+        }
+
+        if (!fullPath.StartsWith(rootPrefix, comparison))
+        {
+            // В базе мог остаться путь за пределы каталога аудио: не отдаём ни байта.
             ILogger logger = loggers.CreateLogger(typeof(ApiEndpoints).FullName!);
             logger.LogWarning(
-                "Аудио записи {Id} не отдано: путь {AudioPath} вне каталога {AudioRoot} или файла нет.",
+                "Аудио записи {Id} не отдано: путь {AudioPath} вне каталога {AudioRoot}.",
                 id,
                 entry.AudioPath,
                 root);
@@ -800,7 +811,49 @@ public static class ApiEndpoints
             return Results.NotFound(new { error = AudioNotFoundError });
         }
 
-        byte[] wav = await File.ReadAllBytesAsync(fullPath, cancellationToken).ConfigureAwait(false);
+        // Защита от symlink-обхода: проверяем, куда реально указывает файл
+        try
+        {
+            FileInfo fileInfo = new(fullPath);
+            if (!fileInfo.Exists)
+            {
+                return Results.NotFound(new { error = AudioNotFoundError });
+            }
+
+            string finalTarget = fileInfo.ResolveLinkTarget(returnFinalTarget: true)?.FullName ?? fullPath;
+            string normalizedTarget = Path.GetFullPath(finalTarget);
+            if (!normalizedTarget.StartsWith(rootPrefix, comparison))
+            {
+                ILogger logger = loggers.CreateLogger(typeof(ApiEndpoints).FullName!);
+                logger.LogWarning(
+                    "Аудио записи {Id} не отдано: symlink {AudioPath} указывает за пределы каталога аудио ({FinalTarget}).",
+                    id,
+                    entry.AudioPath,
+                    normalizedTarget);
+
+                return Results.NotFound(new { error = AudioNotFoundError });
+            }
+        }
+        catch (Exception ex)
+        {
+            ILogger logger = loggers.CreateLogger(typeof(ApiEndpoints).FullName!);
+            logger.LogWarning(ex, "Ошибка проверки пути аудио для записи {Id}.", id);
+            return Results.NotFound(new { error = AudioNotFoundError });
+        }
+
+        // Защита от TOCTOU: файл мог быть удалён очисткой между проверкой и чтением
+        byte[] wav;
+        try
+        {
+            wav = await File.ReadAllBytesAsync(fullPath, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException or UnauthorizedAccessException or IOException)
+        {
+            ILogger logger = loggers.CreateLogger(typeof(ApiEndpoints).FullName!);
+            logger.LogWarning(ex, "Аудио записи {Id} не удалось прочитать ({AudioPath}).", id, fullPath);
+            return Results.NotFound(new { error = AudioNotFoundError });
+        }
+
         httpContext.Response.Headers.CacheControl = $"private, max-age={AudioCacheSeconds}";
         return Results.File(wav, "audio/wav");
     }

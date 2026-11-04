@@ -729,7 +729,7 @@ public sealed class TaskIntakeService
 
         if (audioPath is not null)
         {
-            meta["audioPath"] = audioPath;
+            meta["hasAudio"] = true;
         }
 
         if (answer is not null)
