@@ -419,6 +419,74 @@ public sealed class ApiHostTests : IClassFixture<ApiHostFixture>
     }
 
     [Fact]
+    public async Task Audio_symlink_pointing_outside_audio_directory_is_404()
+    {
+        string secretPath = Path.GetFullPath(Path.Combine(_host.AudioDirectory, "..", "symlink_secret.wav"));
+        byte[] secret = { 42, 42, 42 };
+        await File.WriteAllBytesAsync(secretPath, secret);
+
+        string symlinkPath = Path.Combine(_host.AudioDirectory, "symlink_leak.wav");
+        try
+        {
+            if (File.Exists(symlinkPath)) File.Delete(symlinkPath);
+            File.CreateSymbolicLink(symlinkPath, secretPath);
+        }
+        catch (Exception)
+        {
+            // На Windows без прав разработчика создание symlink может требовать SeCreateSymbolicLinkPrivilege.
+            // На Linux/сервере выполняется всегда.
+            return;
+        }
+
+        Guid id = await _host.RecordClassificationAsync(
+            "symlink атака",
+            audioPath: symlinkPath);
+
+        using var response = await _host.Client.GetAsync($"/api/audio/{id}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.NotEqual(secret, await response.Content.ReadAsByteArrayAsync());
+
+        JsonObject payload = Assert.IsType<JsonObject>(
+            JsonNode.Parse(await response.Content.ReadAsStringAsync()));
+        Assert.Equal("Записи нет.", payload["error"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task Audio_deleted_file_returns_404_not_500()
+    {
+        string missingPath = Path.Combine(_host.AudioDirectory, "voice", "20261102", "toctou_deleted.wav");
+        // Файла нет на диске (эмулирует удаление retention-сервисом)
+        if (File.Exists(missingPath)) File.Delete(missingPath);
+
+        Guid id = await _host.RecordClassificationAsync(
+            "удалённый файл",
+            audioPath: missingPath);
+
+        using var response = await _host.Client.GetAsync($"/api/audio/{id}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        JsonObject payload = Assert.IsType<JsonObject>(
+            JsonNode.Parse(await response.Content.ReadAsStringAsync()));
+        Assert.Equal("Записи нет.", payload["error"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task Audio_relative_or_invalid_path_in_db_returns_404()
+    {
+        Guid id = await _host.RecordClassificationAsync(
+            "относительный путь",
+            audioPath: "relative/path/record.wav");
+
+        using var response = await _host.Client.GetAsync($"/api/audio/{id}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        JsonObject payload = Assert.IsType<JsonObject>(
+            JsonNode.Parse(await response.Content.ReadAsStringAsync()));
+        Assert.Equal("Записи нет.", payload["error"]!.GetValue<string>());
+    }
+
+    [Fact]
     public async Task Api_requires_bearer_token()
     {
         using var anonymous = new HttpClient { BaseAddress = _host.BaseAddress };

@@ -83,7 +83,8 @@ public sealed class VoiceIntakeTests : IDisposable
         TaskRecord task = Assert.IsType<TaskRecord>(result.Intake.Task);
         Assert.Equal("station", task.Source);
         Assert.Contains("asrConfidence", task.MetaJson);
-        Assert.Contains("audioPath", task.MetaJson);
+        Assert.Contains("hasAudio", task.MetaJson);
+        Assert.DoesNotContain("audioPath", task.MetaJson);
 
         IReadOnlyList<ClassificationEntry> journal = await fixture.Journal.ListAsync(10, false);
         ClassificationEntry record = Assert.Single(journal);
