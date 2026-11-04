@@ -8,6 +8,7 @@ using Kouki.Kagedama.Contracts;
 using Kouki.Kagedama.Commands;
 using Kouki.Kagedama.Data;
 using Kouki.Kagedama.Transport;
+using Kouki.Kagedama.Api.Services;
 using MuguraRouter = Kouki.Mugura.Dispatcher.IRouter;
 using Kouki.Shimi.Context;
 using Kouki.Shimi.ServiceAbstractions;
@@ -70,6 +71,8 @@ public static class ApiEndpoints
         api.MapGet("/api/reminders/due", dueRemindersHandler);
         api.MapPost("/api/reminders/{id:guid}/ack", acknowledgeReminderHandler);
         api.MapPost("/api/reminders/{id:guid}/snooze", snoozeReminderHandler);
+        api.MapGet("/api/firmware", firmwareInfoHandler);
+        api.MapGet("/api/firmware/image", firmwareImageHandler);
 
         return endpoints;
     }
@@ -1203,5 +1206,42 @@ public static class ApiEndpoints
             dueAt = result?["dueAt"]?.GetValue<string>(),
             dueText = result?["dueText"]?.GetValue<string>(),
         });
+    }
+
+    private static IResult firmwareInfoHandler(
+        string? current,
+        IOptions<KoukiServerOptions> options)
+    {
+        // мимо команды Mugura: опрос метаданных бинарных образов прошивок станции (OTA), нет состояния домена
+        var (status, info) = FirmwareService.GetLatestFirmware(current, options.Value);
+        return status switch
+        {
+            FirmwareCheckStatus.NotConfigured => Results.NotFound(new { error = "firmware-not-configured" }),
+            FirmwareCheckStatus.NotFound => Results.NotFound(new { error = "firmware-not-found" }),
+            FirmwareCheckStatus.Success when info is not null => Results.Ok(info),
+            _ => Results.NotFound(new { error = "firmware-not-found" }),
+        };
+    }
+
+    private static IResult firmwareImageHandler(
+        string? version,
+        HttpContext httpContext,
+        IOptions<KoukiServerOptions> options)
+    {
+        // мимо команды Mugura: потоковая отдача бинарного файла прошивки из файловой системы напрямую клиенту, нет логики домена
+        var (status, stream, sha256, _) = FirmwareService.TryOpenFile(version, options.Value);
+        if (status == FirmwareCheckStatus.NotConfigured)
+        {
+            return Results.NotFound(new { error = "firmware-not-configured" });
+        }
+
+        if (status == FirmwareCheckStatus.NotFound || stream is null)
+        {
+            return Results.NotFound(new { error = "firmware-not-found" });
+        }
+
+        httpContext.Response.Headers.ETag = $"\"{sha256}\"";
+        httpContext.Response.Headers.CacheControl = "no-store";
+        return Results.File(stream, "application/octet-stream", enableRangeProcessing: false);
     }
 }

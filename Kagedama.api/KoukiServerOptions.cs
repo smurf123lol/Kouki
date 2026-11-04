@@ -142,4 +142,10 @@ public sealed class KoukiServerOptions
     /// <c>0</c> — не удалять старые записи.
     /// </summary>
     public int RequestLogMaxRows { get; set; } = 10000;
+
+    /// <summary>
+    /// Каталог с образами прошивок станции (kouki-station-*.bin) для OTA.
+    /// Пустая строка — фича выключена, эндпоинты /api/firmware отвечают 404 firmware-not-configured.
+    /// </summary>
+    public string FirmwareDirectory { get; set; } = string.Empty;
 }
