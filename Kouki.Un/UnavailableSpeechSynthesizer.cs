@@ -25,4 +25,8 @@ public sealed class UnavailableSpeechSynthesizer : ISpeechSynthesizer
     /// <inheritdoc />
     public Task<SpeechSynthesisResult> SynthesizeAsync(string text, CancellationToken cancellationToken = default)
         => throw new InvalidOperationException(Reason);
+
+    /// <inheritdoc />
+    public Task<SpeechSynthesisResult> SynthesizeAsync(string text, string? voice, CancellationToken cancellationToken = default)
+        => throw new InvalidOperationException(Reason);
 }

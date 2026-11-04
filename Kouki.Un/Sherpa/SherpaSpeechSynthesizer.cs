@@ -10,8 +10,14 @@ namespace Kouki.Un.Sherpa;
 /// </summary>
 public sealed class SherpaTtsOptions
 {
-    /// <summary>Каталог модели голоса: <c>*.onnx</c>, <c>tokens.txt</c>, <c>espeak-ng-data</c>.</summary>
+    /// <summary>Базовый каталог голосов: содержит <c>vits-piper-*</c> или файлы модели.</summary>
     public string VoiceDirectory { get; set; } = string.Empty;
+
+    /// <summary>Голос по умолчанию.</summary>
+    public string DefaultVoice { get; set; } = "ru_RU-irina-medium";
+
+    /// <summary>Максимальное число загруженных в память моделей голосов (LRU).</summary>
+    public int MaxLoadedVoices { get; set; } = 2;
 
     /// <summary>Скорость речи: 1.0 — как задумал голос.</summary>
     public float Speed { get; set; } = 1.0f;
@@ -22,7 +28,8 @@ public sealed class SherpaTtsOptions
 
 /// <summary>
 /// Голос на sherpa-onnx: тот же набор библиотек, что и у распознавания,
-/// поэтому отдельной зависимости не появляется.
+/// поэтому отдельной зависимости не появляется. Поддерживает несколько тембров
+/// с ленивой загрузкой и LRU-вытеснением.
 /// </summary>
 /// <remarks>
 /// <see cref="OfflineTts"/> не потокобезопасен (внутри один граф), а станция и
@@ -33,15 +40,30 @@ public sealed class SherpaSpeechSynthesizer : ISpeechSynthesizer, IDisposable
     /// <summary>Частота, которую ждут станция и бот (WAV PCM16 моно).</summary>
     public const int OutputSampleRate = 16000;
 
-    private readonly OfflineTts? _tts;
-    private readonly int _sourceRate;
+    private sealed class LoadedVoice : IDisposable
+    {
+        public required string Name { get; init; }
+        public required OfflineTts Tts { get; init; }
+        public required int SourceRate { get; init; }
+        public DateTime LastUsed { get; set; }
+
+        public void Dispose()
+        {
+            (Tts as IDisposable)?.Dispose();
+        }
+    }
+
+    private readonly Dictionary<string, LoadedVoice> _loadedVoices = new(StringComparer.OrdinalIgnoreCase);
+    private readonly string _baseVoiceDirectory;
+    private readonly string _defaultVoice;
+    private readonly int _maxLoadedVoices;
     private readonly float _speed;
     private readonly int _maxTextLength;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private bool _disposed;
 
     /// <summary>
-    /// Создаёт синтез по настройкам; если модель не найдена, объект остаётся
+    /// Создаёт синтез по настройкам; если модель по умолчанию не найдена, объект остаётся
     /// работоспособным и объясняет причину через <see cref="UnavailableReason"/>.
     /// </summary>
     /// <param name="options">Настройки.</param>
@@ -49,58 +71,61 @@ public sealed class SherpaSpeechSynthesizer : ISpeechSynthesizer, IDisposable
     {
         ArgumentNullException.ThrowIfNull(options);
 
+        _baseVoiceDirectory = options.VoiceDirectory ?? string.Empty;
+        _defaultVoice = string.IsNullOrWhiteSpace(options.DefaultVoice) ? "ru_RU-irina-medium" : options.DefaultVoice.Trim();
+        _maxLoadedVoices = Math.Max(1, options.MaxLoadedVoices);
         _speed = options.Speed <= 0 ? 1.0f : options.Speed;
         _maxTextLength = Math.Clamp(options.MaxTextLength, 1, 2000);
 
-        if (!SpeechModelCheck.TryValidateVoice(options.VoiceDirectory, out string? problem))
+        string? defaultDir = SpeechVoiceResolver.ResolveVoiceDirectory(
+            _baseVoiceDirectory,
+            _defaultVoice,
+            _defaultVoice);
+
+        if (defaultDir is null)
         {
-            UnavailableReason = problem;
+            UnavailableReason = $"голос по умолчанию '{_defaultVoice}' не найден в '{_baseVoiceDirectory}'";
             return;
         }
 
-        string model = SpeechModelCheck.FindVoiceModel(options.VoiceDirectory)!;
-        string tokens = Path.Combine(options.VoiceDirectory, "tokens.txt");
-        string dataDirectory = Path.Combine(options.VoiceDirectory, "espeak-ng-data");
-
-        var config = new OfflineTtsConfig();
-        config.Model.Vits.Model = model;
-        config.Model.Vits.Tokens = tokens;
-
-        if (Directory.Exists(dataDirectory))
-        {
-            config.Model.Vits.DataDir = dataDirectory;
-        }
-
-        config.Model.NumThreads = 2;
-        config.Model.Debug = 0;
-        config.Model.Provider = "cpu";
-        config.MaxNumSentences = 1;
-
         try
         {
-            _tts = new OfflineTts(config);
-            _sourceRate = _tts.SampleRate;
+            var (tts, sourceRate) = CreateOfflineTts(defaultDir);
+            _loadedVoices[_defaultVoice] = new LoadedVoice
+            {
+                Name = _defaultVoice,
+                Tts = tts,
+                SourceRate = sourceRate,
+                LastUsed = DateTime.UtcNow
+            };
         }
         catch (Exception ex)
         {
-            UnavailableReason = $"не удалось загрузить голос: {ex.Message}";
+            UnavailableReason = $"не удалось загрузить голос '{_defaultVoice}': {ex.Message}";
         }
     }
 
     /// <inheritdoc />
-    public bool IsConfigured => _tts is not null;
+    public bool IsConfigured => _loadedVoices.ContainsKey(_defaultVoice);
 
     /// <inheritdoc />
     public string? UnavailableReason { get; }
 
     /// <inheritdoc />
+    public Task<SpeechSynthesisResult> SynthesizeAsync(
+        string text,
+        CancellationToken cancellationToken = default)
+        => SynthesizeAsync(text, null, cancellationToken);
+
+    /// <inheritdoc />
     public async Task<SpeechSynthesisResult> SynthesizeAsync(
         string text,
+        string? voice,
         CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        if (_tts is null)
+        if (!IsConfigured)
         {
             throw new InvalidOperationException(UnavailableReason ?? "синтез речи не подключён");
         }
@@ -117,28 +142,111 @@ public sealed class SherpaSpeechSynthesizer : ISpeechSynthesizer, IDisposable
             phrase = phrase[.._maxTextLength];
         }
 
-        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        string targetVoice = string.IsNullOrWhiteSpace(voice) ? _defaultVoice : voice.Trim();
 
+        if (!string.Equals(targetVoice, _defaultVoice, StringComparison.OrdinalIgnoreCase))
+        {
+            if (!SpeechVoiceResolver.TryValidateVoiceName(targetVoice, out string? nameError))
+            {
+                throw new ArgumentException(nameError, nameof(voice));
+            }
+        }
+
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            // Генерация синхронная и на длинной фразе занимает сотни миллисекунд —
-            // уводим её с потока запроса, чтобы станция не ждала ответа впустую.
-            return await Task.Run(() =>
+            if (!_loadedVoices.TryGetValue(targetVoice, out LoadedVoice? loaded))
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                string? voiceDir = SpeechVoiceResolver.ResolveVoiceDirectory(
+                    _baseVoiceDirectory,
+                    targetVoice,
+                    _defaultVoice);
 
-                OfflineTtsGeneratedAudio audio = _tts.Generate(phrase, _speed, speakerId: 0);
+                if (voiceDir is null)
+                {
+                    IReadOnlyList<string> available = SpeechVoiceResolver.EnumerateAvailableVoices(
+                        _baseVoiceDirectory,
+                        _defaultVoice);
+                    throw new ArgumentException(
+                        SpeechVoiceResolver.FormatVoiceNotFoundMessage(targetVoice, available),
+                        nameof(voice));
+                }
 
-                float[] samples = Resample(audio.Samples, _sourceRate, OutputSampleRate);
-                byte[] wav = ToWav(samples, OutputSampleRate);
+                try
+                {
+                    var (tts, sourceRate) = CreateOfflineTts(voiceDir);
+                    loaded = new LoadedVoice
+                    {
+                        Name = targetVoice,
+                        Tts = tts,
+                        SourceRate = sourceRate,
+                        LastUsed = DateTime.UtcNow
+                    };
 
-                return new SpeechSynthesisResult(wav, TimeSpan.FromSeconds((double)samples.Length / OutputSampleRate));
-            }, cancellationToken).ConfigureAwait(false);
+                    if (_loadedVoices.Count >= _maxLoadedVoices)
+                    {
+                        var oldestNonDefault = _loadedVoices
+                            .Where(kv => !string.Equals(kv.Key, _defaultVoice, StringComparison.OrdinalIgnoreCase))
+                            .OrderBy(kv => kv.Value.LastUsed)
+                            .Select(kv => kv.Key)
+                            .FirstOrDefault();
+
+                        if (oldestNonDefault is not null && _loadedVoices.Remove(oldestNonDefault, out LoadedVoice? evicted))
+                        {
+                            evicted.Dispose();
+                        }
+                        else if (_maxLoadedVoices <= 1 && _loadedVoices.Remove(_defaultVoice, out LoadedVoice? evictedDefault))
+                        {
+                            evictedDefault.Dispose();
+                        }
+                    }
+
+                    _loadedVoices[targetVoice] = loaded;
+                }
+                catch (Exception ex) when (ex is not ArgumentException)
+                {
+                    throw new InvalidOperationException($"не удалось загрузить голос '{targetVoice}': {ex.Message}", ex);
+                }
+            }
+
+            loaded.LastUsed = DateTime.UtcNow;
+
+            var audio = loaded.Tts.Generate(phrase, _speed, speakerId: 0);
+            float[] samples = Resample(audio.Samples, loaded.SourceRate, OutputSampleRate);
+            byte[] wav = ToWav(samples, OutputSampleRate);
+            TimeSpan duration = TimeSpan.FromSeconds((double)samples.Length / OutputSampleRate);
+
+            return new SpeechSynthesisResult(wav, duration);
         }
         finally
         {
             _gate.Release();
         }
+    }
+
+    private static (OfflineTts Tts, int SourceRate) CreateOfflineTts(string voiceDirectory)
+    {
+        string model = SpeechModelCheck.FindVoiceModel(voiceDirectory)
+            ?? throw new InvalidOperationException($"В каталоге {voiceDirectory} нет модели *.onnx");
+        string tokens = Path.Combine(voiceDirectory, "tokens.txt");
+        string dataDirectory = Path.Combine(voiceDirectory, "espeak-ng-data");
+
+        var config = new OfflineTtsConfig();
+        config.Model.Vits.Model = model;
+        config.Model.Vits.Tokens = tokens;
+
+        if (Directory.Exists(dataDirectory))
+        {
+            config.Model.Vits.DataDir = dataDirectory;
+        }
+
+        config.Model.NumThreads = 2;
+        config.Model.Debug = 0;
+        config.Model.Provider = "cpu";
+        config.MaxNumSentences = 1;
+
+        var tts = new OfflineTts(config);
+        return (tts, tts.SampleRate);
     }
 
     /// <inheritdoc />
@@ -150,6 +258,11 @@ public sealed class SherpaSpeechSynthesizer : ISpeechSynthesizer, IDisposable
         }
 
         _disposed = true;
+        foreach (LoadedVoice voice in _loadedVoices.Values)
+        {
+            voice.Dispose();
+        }
+        _loadedVoices.Clear();
         _gate.Dispose();
     }
 

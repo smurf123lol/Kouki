@@ -485,11 +485,25 @@ public static class ApiEndpoints
     private static async Task<IResult> speechHandler(
         SpeechRequest? request,
         ISpeechSynthesizer synthesizer,
+        ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
     {
         if (request is null || string.IsNullOrWhiteSpace(request.Text))
         {
             return Results.BadRequest(new { error = "Поле 'text' обязательно." });
+        }
+
+        if (request.Voice is not null)
+        {
+            if (string.IsNullOrWhiteSpace(request.Voice))
+            {
+                return Results.BadRequest(new { error = "Поле 'voice' пустое: нечего выбирать." });
+            }
+
+            if (!Kouki.Un.SpeechVoiceResolver.TryValidateVoiceName(request.Voice, out string? voiceError))
+            {
+                return Results.BadRequest(new { error = voiceError });
+            }
         }
 
         if (!synthesizer.IsConfigured)
@@ -502,13 +516,14 @@ public static class ApiEndpoints
         try
         {
             SpeechSynthesisResult result = await synthesizer
-                .SynthesizeAsync(request.Text, cancellationToken)
+                .SynthesizeAsync(request.Text, request.Voice, cancellationToken)
                 .ConfigureAwait(false);
 
             return Results.File(result.Wav, "audio/wav", "speech.wav");
         }
         catch (ArgumentException ex)
         {
+            loggerFactory.CreateLogger("Kouki.Kagedama.Api").LogWarning("Ошибка выбора голоса для синтеза: {Error}", ex.Message);
             return Results.BadRequest(new { error = ex.Message });
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
