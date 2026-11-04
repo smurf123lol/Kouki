@@ -481,6 +481,7 @@ public static class ApiEndpoints
     /// </summary>
     /// <param name="request">Текст для синтеза.</param>
     /// <param name="synthesizer">Голос (заглушка, если сборка без sherpa).</param>
+    /// <param name="loggerFactory">Фабрика логгеров.</param>
     /// <param name="cancellationToken">Токен отмены.</param>
     private static async Task<IResult> speechHandler(
         SpeechRequest? request,

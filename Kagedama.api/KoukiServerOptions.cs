@@ -125,7 +125,7 @@ public sealed class KoukiServerOptions
     /// <summary>
     /// Голос по умолчанию для озвучивания ответов (подкаталог в <see cref="SpeechVoiceDirectory"/>).
     /// </summary>
-    public string SpeechVoice { get; set; } = "ru_RU-irina-medium";
+    public string SpeechVoice { get; set; } = "ru_RU-dmitri-medium";
 
     /// <summary>
     /// Максимальное число загруженных в память моделей голосов (LRU).

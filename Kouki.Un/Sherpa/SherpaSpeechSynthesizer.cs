@@ -14,7 +14,7 @@ public sealed class SherpaTtsOptions
     public string VoiceDirectory { get; set; } = string.Empty;
 
     /// <summary>Голос по умолчанию.</summary>
-    public string DefaultVoice { get; set; } = "ru_RU-irina-medium";
+    public string DefaultVoice { get; set; } = "ru_RU-dmitri-medium";
 
     /// <summary>Максимальное число загруженных в память моделей голосов (LRU).</summary>
     public int MaxLoadedVoices { get; set; } = 2;
@@ -72,7 +72,7 @@ public sealed class SherpaSpeechSynthesizer : ISpeechSynthesizer, IDisposable
         ArgumentNullException.ThrowIfNull(options);
 
         _baseVoiceDirectory = options.VoiceDirectory ?? string.Empty;
-        _defaultVoice = string.IsNullOrWhiteSpace(options.DefaultVoice) ? "ru_RU-irina-medium" : options.DefaultVoice.Trim();
+        _defaultVoice = string.IsNullOrWhiteSpace(options.DefaultVoice) ? "ru_RU-dmitri-medium" : options.DefaultVoice.Trim();
         _maxLoadedVoices = Math.Max(1, options.MaxLoadedVoices);
         _speed = options.Speed <= 0 ? 1.0f : options.Speed;
         _maxTextLength = Math.Clamp(options.MaxTextLength, 1, 2000);

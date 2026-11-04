@@ -291,7 +291,7 @@ curl -X POST "http://127.0.0.1:5199/api/speech" \
 ```
 
 - `text` — обязателен (до 400 символов).
-- `voice` — необязателен. Если отсутствует, используется голос по умолчанию из `Kouki:SpeechVoice` (по умолчанию `ru_RU-irina-medium`).
+- `voice` — необязателен. Если отсутствует, используется голос по умолчанию из `Kouki:SpeechVoice` (по умолчанию `ru_RU-dmitri-medium`).
 - При передаче `voice` имя валидируется (`[A-Za-z0-9._-]`, до 64 символов), сервер ищет подкаталог `vits-piper-<voice>` в `Kouki:SpeechVoiceDirectory`. Неизвестный голос возвращает `400` со списком доступных.
 - Каталоги моделей: `vits-piper-ru_RU-irina-medium`, `vits-piper-ru_RU-dmitri-medium`, `vits-piper-ru_RU-denis-medium`.
 - Модели кэшируются в памяти с LRU-вытеснением по `Kouki:SpeechMaxLoadedVoices` (дефолт `2`), модель по умолчанию не вытесняется.
