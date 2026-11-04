@@ -72,6 +72,8 @@ KOUKI_SITE="kouki.local"
 # Переездные регрессии (T87): то, что после переустановки молча осталось выключенным.
 WITH_BACKUP=1
 WITH_MONITOR=1
+WITH_SHARA_SNAPSHOTS=1
+DRY_RUN=0
 GIT_TOKEN=""
 GIT_TOKEN_GIVEN=0
 GIT_TOKEN_FILE=""
@@ -82,8 +84,11 @@ SMB_PASSWORD_FILE=""
 SMB_PASSWORD_STDIN=0
 BOT_PROXY=""
 
-SOURCE="${1:-}"
-[ $# -gt 0 ] && shift || true
+SOURCE=""
+if [ $# -gt 0 ] && [[ "$1" != -* ]]; then
+    SOURCE="$1"
+    shift
+fi
 while [ $# -gt 0 ]; do
     case "$1" in
         --urls) URLS="$2"; shift 2 ;;
@@ -98,6 +103,9 @@ while [ $# -gt 0 ]; do
         --site) KOUKI_SITE="$2"; shift 2 ;;
         --no-backup) WITH_BACKUP=0; shift ;;
         --no-monitor) WITH_MONITOR=0; shift ;;
+        --no-shara-snapshots|--no-snapshots) WITH_SHARA_SNAPSHOTS=0; shift ;;
+        --with-shara-snapshots) WITH_SHARA_SNAPSHOTS=1; shift ;;
+        --dry-run) DRY_RUN=1; shift ;;
         --git-token) GIT_TOKEN="$2"; GIT_TOKEN_GIVEN=1; shift 2 ;;
         --git-token-file) GIT_TOKEN_FILE="$2"; shift 2 ;;
         --git-token-stdin) GIT_TOKEN_STDIN=1; shift ;;
@@ -106,7 +114,19 @@ while [ $# -gt 0 ]; do
         --smb-password-file) SMB_PASSWORD_FILE="$2"; shift 2 ;;
         --smb-password-stdin) SMB_PASSWORD_STDIN=1; shift ;;
         --bot-proxy) BOT_PROXY="$2"; shift 2 ;;
-        *) echo "Неизвестный аргумент: $1" >&2; exit 2 ;;
+        -h|--help)
+            echo "Использование: $0 [каталог-публикации] [опции]"
+            exit 0
+            ;;
+        *)
+            if [ -z "$SOURCE" ] && [[ "$1" != -* ]]; then
+                SOURCE="$1"
+                shift
+            else
+                echo "Неизвестный аргумент: $1" >&2
+                exit 2
+            fi
+            ;;
     esac
 done
 
@@ -232,6 +252,21 @@ if [ "$WITH_CADDY" -eq 1 ]; then
             exit 2
         fi
     done
+fi
+
+if [ "$DRY_RUN" -eq 1 ]; then
+    echo "== [dry-run] Проверка шагов установки Kouki =="
+    echo "Каталог публикации: ${SOURCE:-<не указан>}"
+    echo "Каталог приложения: $APP_DIR"
+    echo "Пользователь: $USER_NAME"
+    echo "URL-адреса: $URLS"
+    echo "Ежедневный бэкап: $([ "$WITH_BACKUP" -eq 1 ] && echo "включён (/var/backups/kouki)" || echo "выключен")"
+    echo "Сторож живости: $([ "$WITH_MONITOR" -eq 1 ] && echo "включён" || echo "выключен")"
+    echo "Снимки шары (T100): $([ "$WITH_SHARA_SNAPSHOTS" -eq 1 ] && echo "включены (/srv/files/_backup/snapshots)" || echo "выключены")"
+    echo "Caddy: $([ "$WITH_CADDY" -eq 1 ] && echo "режим $HTTPS_MODE ($KOUKI_SITE)" || echo "выключен")"
+    echo "Бот: $([ "$WITH_BOT" -eq 1 ] && echo "включён" || echo "выключен")"
+    echo "== [dry-run] Все шаги проверены успешно =="
+    exit 0
 fi
 
 if [ -z "$SOURCE" ] || [ ! -f "$SOURCE/Kagedama.api.dll" ]; then
@@ -584,6 +619,52 @@ else
             PROBLEMS=1
         fi
     fi
+fi
+
+if [ "$WITH_SHARA_SNAPSHOTS" -eq 1 ]; then
+    echo "== снимки сетевой шары /srv/files (T100)"
+    SHARA_READY=1
+    for asset in shara-snapshot.sh shara-snapshot.service shara-snapshot.timer shara-snapshot.env.example shara-exclude.txt; do
+        if [ ! -f "$ASSET_DIR/$asset" ]; then
+            echo "ВНИМАНИЕ: в deploy/ нет $asset — снимки шары не настроены" >&2
+            SHARA_READY=0
+            break
+        fi
+    done
+
+    if [ "$SHARA_READY" -eq 1 ]; then
+        SHARA_ENV="$CONF_DIR/shara-snapshot.env"
+        if [ ! -f "$SHARA_ENV" ]; then
+            install -o root -g root -m 640 "$ASSET_DIR/shara-snapshot.env.example" "$SHARA_ENV"
+            echo "   создан $SHARA_ENV"
+        else
+            echo "   $SHARA_ENV уже есть — не трогаю"
+        fi
+
+        SHARA_EXCLUDE="$CONF_DIR/shara-exclude.txt"
+        if [ ! -f "$SHARA_EXCLUDE" ]; then
+            install -o root -g root -m 644 "$ASSET_DIR/shara-exclude.txt" "$SHARA_EXCLUDE"
+            echo "   создан $SHARA_EXCLUDE"
+        else
+            echo "   $SHARA_EXCLUDE уже есть — не трогаю"
+        fi
+
+        install -d -o root -g root -m 755 "$APP_DIR/deploy"
+        install -o root -g root -m 755 "$ASSET_DIR/shara-snapshot.sh" "$APP_DIR/deploy/shara-snapshot.sh"
+
+        install -o root -g root -m 644 "$ASSET_DIR/shara-snapshot.service" /etc/systemd/system/shara-snapshot.service
+        install -o root -g root -m 644 "$ASSET_DIR/shara-snapshot.timer" /etc/systemd/system/shara-snapshot.timer
+        systemctl daemon-reload
+
+        if ! apply_shara_snapshot_timer; then
+            echo "   таймер снимков шары пропущен (шара не смонтирована или нет rsync)"
+        fi
+    else
+        PROBLEMS=1
+    fi
+else
+    echo "== снимки сетевой шары: выключаю (--no-shara-snapshots)"
+    stop_shara_snapshot_timer || true
 fi
 if command -v git >/dev/null 2>&1 && id -u "$USER_NAME" >/dev/null 2>&1; then
     echo "== git для агента ($USER_NAME)"

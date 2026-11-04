@@ -297,6 +297,63 @@ curl -fsS http://127.0.0.1:5300/api/health
 Проверять восстановление стоит раз в квартал — на копии рядом, чтобы не трогать
 живую базу: бэкап, который ни разу не разворачивали, — это не бэкап, а надежда.
 
+## Снимки сетевой шары /srv/files (T100)
+
+Сетевая шара `/srv/files` (7,2 ТБ на `ext4`) защищается от случайного удаления и
+порчи файлов ежедневными версиями на основе **rsync с hardlinks** (`--link-dest`).
+Снимки хранятся в `/srv/files/_backup/snapshots/<YYYY-MM-DD>/` (daily) и
+`weekly-<YYYY-MM-DD>/`. Неизменённые файлы делят те же inode и не дублируют
+место на диске.
+
+### Политика хранения
+
+- **7 ежедневных** версий (`KEEP_DAILY=7`).
+- **4 еженедельных** версии (`KEEP_WEEKLY=4`, создаются по воскресеньям).
+- Автоматическая ротация (`prune`) запускается после каждого снимка.
+- Исключения из копирования (`/etc/kouki/shara-exclude.txt`):
+  `_backup/` (защита от рекурсии), `lost+found/`, `_kouki/tmp/`.
+
+### Команды управления
+
+Скрипт `/opt/kouki/app/deploy/shara-snapshot.sh` (или из каталога репозитория):
+
+```bash
+# Снять снимок прямо сейчас
+sudo /opt/kouki/app/deploy/shara-snapshot.sh snapshot
+
+# Проверить статус: возраст последней версии, число снимков, занятое место
+sudo /opt/kouki/app/deploy/shara-snapshot.sh status
+
+# Восстановить файл из версии (или latest) в _scratch/shara-restore/<версия>/
+sudo /opt/kouki/app/deploy/shara-snapshot.sh restore path/to/file.txt latest
+
+# Восстановить файл в произвольный каталог (с проверкой sha256)
+sudo /opt/kouki/app/deploy/shara-snapshot.sh restore path/to/file.txt 2026-11-04 --to /tmp/restored
+
+# Проверить целостность случайных файлов из свежего снимка
+sudo /opt/kouki/app/deploy/shara-snapshot.sh verify
+
+# Запустить очистку старых версий вручную
+sudo /opt/kouki/app/deploy/shara-snapshot.sh prune
+
+# Автономный тест логики снимков и hardlinks
+bash deploy/shara-snapshot.sh --self-test
+```
+
+### Автоматизация через systemd
+
+Установщик (`install.sh`) автоматически настраивает и включает таймер:
+
+```bash
+sudo systemctl enable --now shara-snapshot.timer
+systemctl list-timers shara-snapshot.timer      # следующий запуск в 03:30 (±10 мин)
+sudo systemctl start shara-snapshot.service     # ручной запуск юнита
+journalctl -u shara-snapshot -n 30 --no-pager
+```
+
+Конфигурация: `/etc/kouki/shara-snapshot.env` (настройки `SRC`, `DEST`, лимиты `MAX_AGE_HOURS=36`, `MAX_USAGE_PERCENT=10`).
+Отключение снимков при установке: `./deploy/install.sh --no-shara-snapshots`.
+
 `deploy/smoke.sh` проверяет то, что ломалось при переезде: сервисы, `/api/health`,
 классификаторы с токеном, очередь напоминаний, синтез (`/api/speech`), шару
 `/srv/files`, страницу токена DSH, включённый таймер бэкапа и отсутствие ошибок

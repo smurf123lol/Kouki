@@ -1,0 +1,21 @@
+[Unit]
+Description=Kouki share snapshots (/srv/files rsync hardlinks)
+Documentation=file:///opt/kouki/app/deploy/README.md
+After=srv-files.mount local-fs.target
+RequiresMountsFor=/srv/files
+
+[Service]
+Type=oneshot
+SyslogIdentifier=shara-snapshot
+EnvironmentFile=-/etc/kouki/shara-snapshot.env
+
+ExecStart=/usr/bin/bash /opt/kouki/app/deploy/shara-snapshot.sh snapshot
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=6h
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectControlGroups=true
+ReadWritePaths=/srv/files
