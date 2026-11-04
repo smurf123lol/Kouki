@@ -236,3 +236,50 @@ resolve_share_ids() {
     fi
 }
 
+# Включён ли таймер снимков шары.
+shara_snapshot_timer_touched() {
+    systemctl is-enabled --quiet shara-snapshot.timer 2>/dev/null ||
+        systemctl is-active --quiet shara-snapshot.timer 2>/dev/null
+}
+
+# Выключает таймер снимков шары.
+stop_shara_snapshot_timer() {
+    if ! shara_snapshot_timer_touched; then
+        return 0
+    fi
+    if systemctl disable --now shara-snapshot.timer; then
+        echo "   таймер снимков шары выключен"
+        return 0
+    fi
+    echo "   ОШИБКА: таймер снимков шары остался включённым — systemctl disable --now shara-snapshot.timer" >&2
+    return 1
+}
+
+# Включает таймер снимков шары и запускает проверку.
+apply_shara_snapshot_timer() {
+    if ! command -v rsync >/dev/null 2>&1; then
+        echo "   снимки шары не включены: нет rsync"
+        stop_shara_snapshot_timer || return 1
+        return 1
+    fi
+    if ! mountpoint -q /srv/files 2>/dev/null; then
+        echo "   /srv/files не смонтирован: таймер снимков не включается"
+        stop_shara_snapshot_timer || return 1
+        return 1
+    fi
+
+    if ! systemctl enable --now shara-snapshot.timer >/dev/null 2>&1; then
+        echo "   ОШИБКА: таймер снимков шары не включился" >&2
+        stop_shara_snapshot_timer || true
+        return 1
+    fi
+    if ! systemctl is-active --quiet shara-snapshot.timer; then
+        echo "   ОШИБКА: таймер снимков шары не активен после enable" >&2
+        stop_shara_snapshot_timer || true
+        return 1
+    fi
+
+    echo "   таймер снимков шары включён (03:30, разброс 10 мин)"
+    return 0
+}
+

@@ -1,0 +1,12 @@
+[Unit]
+Description=Kouki share snapshots: ежедневно
+Documentation=file:///opt/kouki/app/deploy/README.md
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+RandomizedDelaySec=10m
+Persistent=true
+Unit=shara-snapshot.service
+
+[Install]
+WantedBy=timers.target
