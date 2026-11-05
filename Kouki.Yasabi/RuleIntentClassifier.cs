@@ -65,6 +65,7 @@ public sealed class RuleIntentClassifier : IIntentClassifier
     public static IReadOnlyList<IntentRule> DefaultRules { get; } = new[]
     {
         IntentRule.Strong("add_task", @"(запиши|записать|добавь|сохрани|поставь)\s+(мне\s+)?(задач\w*|дел\w*|таск\w*)"),
+        IntentRule.Strong("add_task", @"^\s*(запиши|записать|сохрани)\b"),
         IntentRule.Strong("add_task", @"\b(add|create)\s+(a\s+)?task\b"),
         IntentRule.Weak("add_task", @"задач"),
         IntentRule.Strong("list_tasks", @"(покажи|список|какие|что)\s+(?:у\s+меня\s+|мои\s+|все\s+|все\s+мои\s+)*(задач\w*|дел\w*)"),

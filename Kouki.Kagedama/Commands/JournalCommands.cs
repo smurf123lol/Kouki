@@ -184,7 +184,7 @@ public sealed record LabelClassificationCommand(Guid Id, string? Label = null) :
 
 /// <summary>Ставит метку на запись журнала — единственный путь записи метки.</summary>
 [Command("label_classification", Description = "Размечает запись журнала", Category = CommandCategory.Admin, RequiresConfirmation = false, Example = "разметь запись как add_task")]
-public sealed class LabelClassificationHandler(IClassificationJournal journal)
+public sealed class LabelClassificationHandler(IClassificationJournal journal, ITaskStore? taskStore = null)
     : ICommandHandler<LabelClassificationCommand>
 {
     /// <summary>Предел длины метки.</summary>
@@ -223,6 +223,38 @@ public sealed class LabelClassificationHandler(IClassificationJournal journal)
         bool labeled = await journal
             .LabelAsync(command.Id, label, cancellationToken)
             .ConfigureAwait(false);
+
+        if (labeled && taskStore is not null)
+        {
+            ClassificationEntry? entry = await journal.GetAsync(command.Id, cancellationToken).ConfigureAwait(false);
+            if (entry is not null)
+            {
+                if (string.Equals(label, "add_task", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (entry.TaskId is Guid existingTaskId)
+                    {
+                        TaskRecord? existing = await taskStore.GetAsync(existingTaskId, cancellationToken).ConfigureAwait(false);
+                        if (existing is not null && string.Equals(existing.Status, TaskStatuses.NeedsReview, StringComparison.OrdinalIgnoreCase))
+                        {
+                            await taskStore.UpdateAsync(existingTaskId, TaskStatuses.New, null, null, null, cancellationToken).ConfigureAwait(false);
+                        }
+                    }
+                    else
+                    {
+                        TaskRecord created = TaskFactory.Create(entry.InputText, string.IsNullOrWhiteSpace(entry.Source) ? TaskSources.Dashboard : entry.Source);
+                        await taskStore.AddAsync(created, cancellationToken).ConfigureAwait(false);
+                        await journal.LinkToTaskAsync(command.Id, created.Id, cancellationToken).ConfigureAwait(false);
+                    }
+                }
+                else if (string.Equals(label, "complete_task", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (entry.TaskId is Guid existingTaskId)
+                    {
+                        await taskStore.UpdateAsync(existingTaskId, TaskStatuses.Done, null, null, null, cancellationToken).ConfigureAwait(false);
+                    }
+                }
+            }
+        }
 
         return new JsonObject
         {

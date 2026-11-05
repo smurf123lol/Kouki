@@ -19,6 +19,19 @@ public sealed class YasabiTests
         Assert.Equal(RuleIntentClassifier.ModelName, result.Model);
     }
 
+    [Theory]
+    [InlineData("запиши проверить теги")]
+    [InlineData("Запиши, проверить таген.")]
+    [InlineData("сохрани купить молоко")]
+    public async Task Rules_classify_add_task_without_explicit_word_task(string text)
+    {
+        IntentResult result = await new RuleIntentClassifier().ClassifyAsync(text);
+
+        Assert.Equal("add_task", result.Intent);
+        Assert.True(result.IsConfident(0.75));
+        Assert.Equal(RuleIntentClassifier.ModelName, result.Model);
+    }
+
     [Fact]
     public async Task Rules_classify_list_tasks()
     {

@@ -64,24 +64,22 @@ builder.Services.AddSingleton<IOptions<KoukiServerOptions>>(Options.Create(serve
 builder.Services.AddProblemDetails();
 
 // Ограничение частоты: сервер живёт в локальной сети, но кнопка на станции и автообновление
-// дашборда — это регулярный поток. Лимит на ключ (токен, иначе адрес) защищает от цикла.
+// дашборда — это регулярный поток. Лимит делится по IP клиента, чтобы станция и дашборд
+// не исчерпывали один общий лимит токена.
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     options.AddPolicy("api", httpContext =>
     {
-        string key = httpContext.Request.Headers.Authorization.ToString();
-
-        if (string.IsNullOrWhiteSpace(key))
-        {
-            key = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-        }
+        string ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        string auth = httpContext.Request.Headers.Authorization.ToString();
+        string key = string.IsNullOrWhiteSpace(auth) ? ip : $"{ip}:{auth}";
 
         return RateLimitPartition.GetFixedWindowLimiter(
             key,
             _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 120,
+                PermitLimit = 600,
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0,
             });

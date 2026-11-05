@@ -201,6 +201,31 @@ public sealed class JournalCommandTests : IDisposable
     }
 
     [Fact]
+    public async Task Label_add_task_moves_needs_review_task_to_new()
+    {
+        var journal = _provider.GetRequiredService<IClassificationJournal>();
+        var taskStore = _provider.GetRequiredService<ITaskStore>();
+
+        TaskRecord task = Kouki.Kagedama.TaskFactory.Create("проверить теги", TaskSources.Station);
+        task.Status = TaskStatuses.NeedsReview;
+        await taskStore.AddAsync(task);
+
+        Guid classificationId = await journal.RecordAsync(new ClassificationRecord(
+            TaskSources.Station, "text", "проверить теги", "unclassified", 0, "rules-v1", Confident: false, Error: null));
+        await journal.LinkToTaskAsync(classificationId, task.Id);
+
+        JsonNode? labeled = await _router.RouteAsync(
+            "label_classification",
+            new JsonObject { ["id"] = classificationId.ToString(), ["label"] = "add_task" });
+
+        Assert.True(labeled!["labeled"]!.GetValue<bool>());
+
+        TaskRecord? updated = await taskStore.GetAsync(task.Id);
+        Assert.NotNull(updated);
+        Assert.Equal(TaskStatuses.New, updated.Status);
+    }
+
+    [Fact]
     public async Task Label_unknown_record_is_not_found()
     {
         JsonNode? result = await _router.RouteAsync(
