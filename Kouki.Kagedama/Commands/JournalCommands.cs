@@ -22,7 +22,8 @@ namespace Kouki.Kagedama.Commands;
 /// <summary>Запрос журнала действий.</summary>
 /// <param name="TaskId">Только действия по этой задаче; <c>null</c> — все.</param>
 /// <param name="Limit">Сколько записей вернуть (1…500).</param>
-public sealed record ListActionsCommand(Guid? TaskId = null, int? Limit = null) : ICommand;
+/// <param name="Query">Опциональный поисковый запрос (T105).</param>
+public sealed record ListActionsCommand(Guid? TaskId = null, int? Limit = null, string? Query = null) : ICommand;
 
 /// <summary>Отдаёт журнал действий, новые сверху.</summary>
 [Command("list_actions", Description = "Показывает журнал действий", Category = CommandCategory.Navigation, Example = "что делал Kouki последние полчаса")]
@@ -44,7 +45,7 @@ public sealed class ListActionsHandler(IActionLog actions) : ICommandHandler<Lis
 
         int take = Math.Clamp(command.Limit ?? DefaultLimit, 1, MaxLimit);
         IReadOnlyList<ActionRecord> records = await actions
-            .ListAsync(take, command.TaskId, cancellationToken)
+            .ListAsync(take, command.TaskId, command.Query, cancellationToken)
             .ConfigureAwait(false);
 
         var array = new JsonArray();

@@ -90,11 +90,16 @@ public interface IActionLog
     /// <param name="cancellationToken">Токен отмены.</param>
     Task<Guid> RecordAsync(ActionRecord record, CancellationToken cancellationToken = default);
 
-    /// <summary>Последние действия — все или только по задаче.</summary>
+    /// <summary>Последние действия — все или только по задаче, с опциональным поиском.</summary>
     /// <param name="limit">Сколько записей вернуть (1…500).</param>
     /// <param name="taskId">Задача, историю которой нужно показать, или <c>null</c> для всех.</param>
+    /// <param name="query">Опциональный поисковый запрос.</param>
     /// <param name="cancellationToken">Токен отмены.</param>
-    Task<IReadOnlyList<ActionRecord>> ListAsync(int limit, Guid? taskId = null, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ActionRecord>> ListAsync(
+        int limit,
+        Guid? taskId = null,
+        string? query = null,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -110,6 +115,10 @@ public sealed class NullActionLog : IActionLog
         => Task.FromResult(Guid.Empty);
 
     /// <inheritdoc />
-    public Task<IReadOnlyList<ActionRecord>> ListAsync(int limit, Guid? taskId = null, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<ActionRecord>> ListAsync(
+        int limit,
+        Guid? taskId = null,
+        string? query = null,
+        CancellationToken cancellationToken = default)
         => Task.FromResult<IReadOnlyList<ActionRecord>>(Array.Empty<ActionRecord>());
 }

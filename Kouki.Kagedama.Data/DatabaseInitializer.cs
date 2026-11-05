@@ -254,6 +254,21 @@ public static class DatabaseInitializer
         );
 
         CREATE INDEX IF NOT EXISTS ix_task_tags_tag ON task_tags (tag);
+
+        CREATE TABLE IF NOT EXISTS questions (
+            id              TEXT PRIMARY KEY,
+            created_at      TEXT NOT NULL,
+            source          TEXT NOT NULL,
+            question        TEXT NOT NULL,
+            answer          TEXT NOT NULL,
+            task_id         TEXT NULL REFERENCES tasks (id) ON DELETE SET NULL,
+            model           TEXT NULL,
+            duration_ms     INTEGER NULL,
+            audio_path      TEXT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS ix_questions_created_at ON questions (created_at DESC);
+        CREATE INDEX IF NOT EXISTS ix_questions_task ON questions (task_id);
         """;
 }
 

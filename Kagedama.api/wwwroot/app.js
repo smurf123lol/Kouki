@@ -15,7 +15,7 @@ const OUTCOME_RU = {
     failed: 'ошибка',
 };
 
-const TAB_IN_RU = { tasks: 'задачи', review: 'разбор', intake: 'приём', compare: 'проверка', actions: 'действия', telemetry: 'телеметрия' };
+const TAB_IN_RU = { tasks: 'задачи', questions: 'вопросы', review: 'разбор', intake: 'приём', compare: 'проверка', actions: 'действия', telemetry: 'телеметрия' };
 
 // Доска — пять колонок по статусам. «Отменено» свёрнута при каждой загрузке страницы;
 // состояние сворачивания не запоминается (спека T78, §2.6).
@@ -196,19 +196,21 @@ async function playPhraseAudio(id) {
 /* ---------- сводка ---------- */
 
 async function refreshTally() {
-    const [tasks, review, actions, telemetry] = await Promise.allSettled([
+    const [tasks, questions, review, actions, telemetry] = await Promise.allSettled([
         api('/api/tasks?limit=200'),
+        api('/api/questions?limit=100'),
         api('/api/classifications?unresolved=true&limit=100'),
         api('/api/actions?limit=100'),
         api('/api/telemetry?hours=24'),
     ]);
 
     setCount('count-tasks', tasks.status === 'fulfilled' ? tasks.value.length : NaN);
+    setCount('count-questions', questions.status === 'fulfilled' ? questions.value.length : NaN);
     setCount('count-review', review.status === 'fulfilled' ? review.value.length : NaN);
     setCount('count-actions', actions.status === 'fulfilled' ? actions.value.length : NaN);
     setCount('count-telemetry', telemetry.status === 'fulfilled' && telemetry.value?.totals ? telemetry.value.totals.requests : NaN);
 
-    const auth = [tasks, review, actions, telemetry].some((result) => result.status === 'rejected' && result.reason instanceof AuthError);
+    const auth = [tasks, questions, review, actions, telemetry].some((result) => result.status === 'rejected' && result.reason instanceof AuthError);
     if (auth) throw new AuthError('нет токена');
 }
 
@@ -292,7 +294,14 @@ async function loadBoard() {
 }
 
 function boardColumnTasks(status) {
-    return state.boardTasks.filter((task) => task.status === status);
+    return state.boardTasks.filter((task) => {
+        if (task.status !== status) return false;
+        // На доске Kanban не показываем фразы на разборе (они живут во вкладке "Разбор")
+        if (status === 'needs_review') {
+            return false;
+        }
+        return true;
+    });
 }
 
 function renderBoard() {
@@ -586,13 +595,50 @@ async function labelRecord(id, label) {
     await Promise.all([loadReview(), refreshTally()]);
 }
 
+/* ---------- вопросы ---------- */
+
+async function loadQuestions() {
+    const list = $('questions-list');
+    const questions = await api('/api/questions?limit=100');
+    $('questions-meta').textContent = questions.length ? `${questions.length} вопросов` : '';
+    setCount('count-questions', questions.length);
+
+    applyList(
+        list,
+        questions,
+        (q) => q.id,
+        (q) => [q.taskId || '', q.question, q.answer, q.model || ''].join('|'),
+        (q) => `
+        <article class="card question-card" data-question-id="${esc(q.id)}" style="padding: 16px; margin-bottom: 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px;">
+                <h3 style="margin: 0; font-size: 15px; font-weight: 600;">${esc(q.question)}</h3>
+                <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
+                    ${q.taskId
+                        ? `<a href="#" class="btn small mono" data-task="${esc(q.taskId)}">Задача #${esc(String(q.taskId).slice(0, 8))}</a>`
+                        : `<button class="btn small primary" type="button" data-create-task="${esc(q.id)}">+ В задачу</button>`}
+                </div>
+            </div>
+            <div class="question-answer" style="margin: 8px 0; padding: 10px 14px; background: var(--bg); border-left: 3px solid var(--accent); border-radius: 4px; font-size: 14px; line-height: 1.5; color: var(--text);">
+                ${esc(q.answer || '—')}
+            </div>
+            <div class="meta" style="font-size: 12px; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap;">
+                <span>${esc(formatTime(q.createdAt))}</span>
+                <span>источник: <b>${esc(q.source)}</b></span>
+                ${q.model ? `<span>модель: <b>${esc(q.model)}</b></span>` : ''}
+                ${q.durationMs != null ? `<span>${q.durationMs} мс</span>` : ''}
+            </div>
+        </article>`,
+        '<div class="empty">Вопросов ещё не задавали.</div>');
+}
+
 /* ---------- действия ---------- */
 
-async function loadActions() {
-    const actions = await api('/api/actions?limit=100');
+async function loadActions(query = '') {
+    const url = query ? `/api/actions?limit=100&q=${encodeURIComponent(query)}` : '/api/actions?limit=100';
+    const actions = await api(url);
     const body = $('actions-table').querySelector('tbody');
-    $('actions-meta').textContent = actions.length ? `${actions.length} записей` : '';
-    setCount('count-actions', actions.length);
+    $('actions-meta').textContent = actions.length ? `${actions.length} записей` : (query ? 'Ничего не найдено' : '');
+    if (!query) setCount('count-actions', actions.length);
 
     applyList(
         body,
@@ -611,7 +657,7 @@ async function loadActions() {
                 ? `<a href="#" class="mono" data-task="${esc(action.taskId)}">${esc(String(action.taskId).slice(0, 8))}</a>`
                 : '<span class="muted">—</span>'}</td>
         </tr>`,
-        '<tr><td colspan="7" class="empty">Действий ещё не было.</td></tr>');
+        `<tr><td colspan="7" class="empty">${query ? 'Ничего не найдено по запросу.' : 'Действий ещё не было.'}</td></tr>`);
 }
 
 /* ---------- телеметрия ---------- */
@@ -925,6 +971,7 @@ async function switchTab(tab) {
         node.classList.toggle('is-active', node.dataset.tab === tab);
     });
     $('panel-tasks').hidden = tab !== 'tasks';
+    $('panel-questions').hidden = tab !== 'questions';
     $('panel-review').hidden = tab !== 'review';
     $('panel-intake').hidden = tab !== 'intake';
     $('panel-compare').hidden = tab !== 'compare';
@@ -945,9 +992,10 @@ async function reload(options = {}) {
         if (!force && (isUserBusy() || state.dragging || state.editing)) return;
 
         if (state.tab === 'tasks') await loadBoard();
+        else if (state.tab === 'questions') await loadQuestions();
         else if (state.tab === 'review') await loadReview();
         else if (state.tab === 'compare') await loadClassifiers();
-        else if (state.tab === 'actions') await loadActions();
+        else if (state.tab === 'actions') await loadActions($('actions-search')?.value.trim() || '');
         else if (state.tab === 'telemetry') await loadTelemetry();
         if (state.taskId) await openTask(state.taskId, { force });
     } catch (error) {
@@ -1184,6 +1232,30 @@ $('classifier-list').addEventListener('click', (event) => {
         selectedClassifiers.add(name);
         chip.classList.add('is-active');
     }
+});
+
+$('questions-list')?.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-create-task]');
+    if (!btn) return;
+    const qid = btn.dataset.createTask;
+    btn.disabled = true;
+    try {
+        const created = await api(`/api/questions/${qid}/task`, { method: 'POST' });
+        showBanner(`Задача создана: ${created.title || ''}`, 'ok');
+        await Promise.all([loadQuestions(), loadBoard(), refreshTally()]);
+    } catch (err) {
+        showBanner(`Ошибка: ${err.message}`);
+    } finally {
+        btn.disabled = false;
+    }
+});
+
+let actionsSearchTimer = null;
+$('actions-search')?.addEventListener('input', (e) => {
+    clearTimeout(actionsSearchTimer);
+    actionsSearchTimer = setTimeout(() => {
+        loadActions(e.target.value.trim());
+    }, 300);
 });
 
 $('save-token').addEventListener('click', async () => {
