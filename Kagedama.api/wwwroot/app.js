@@ -294,14 +294,7 @@ async function loadBoard() {
 }
 
 function boardColumnTasks(status) {
-    return state.boardTasks.filter((task) => {
-        if (task.status !== status) return false;
-        // На доске Kanban не показываем фразы на разборе (они живут во вкладке "Разбор")
-        if (status === 'needs_review') {
-            return false;
-        }
-        return true;
-    });
+    return state.boardTasks.filter((task) => task.status === status);
 }
 
 function renderBoard() {
@@ -576,8 +569,9 @@ async function loadReview() {
                     ${item.error ? ' · <span style="color:var(--bad)">' + esc(item.error) + '</span>' : ''}
                 </div>
                 <div class="label-row">
-                    ${['add_task', 'list_tasks', 'complete_task'].map((label) => `
-                        <button class="btn small" data-label="${esc(label)}" data-id="${esc(item.id)}">${esc(label)}</button>`).join('')}
+                    <button class="btn small primary" data-label="add_task" data-id="${esc(item.id)}">В задачи</button>
+                    <button class="btn small" data-label="complete_task" data-id="${esc(item.id)}">Завершить</button>
+                    <button class="btn small" data-label="list_tasks" data-id="${esc(item.id)}">Список</button>
                     <input class="mono" data-custom="${esc(item.id)}" placeholder="своя метка" style="width:120px">
                     <button class="btn small" data-custom-save="${esc(item.id)}">пометить</button>
                 </div>
@@ -592,7 +586,7 @@ async function labelRecord(id, label) {
         method: 'POST',
         body: JSON.stringify({ label }),
     });
-    await Promise.all([loadReview(), refreshTally()]);
+    await Promise.all([loadReview(), loadBoard(), refreshTally()]);
 }
 
 /* ---------- вопросы ---------- */
