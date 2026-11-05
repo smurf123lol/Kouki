@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using Kouki.Kagedama.Contracts;
 
 namespace Kouki.Kotae;
 
@@ -63,6 +64,46 @@ public static partial class KotaePrompt
 
         var cut = text.LastIndexOfAny(['.', '!', '?'], Math.Min(maxChars, text.Length - 1));
         return cut > 40 ? text[..(cut + 1)] : text[..maxChars].TrimEnd() + "…";
+    }
+
+    /// <summary>
+    /// Очищает и форматирует пару «предыдущий вопрос — предыдущий ответ» для истории диалога.
+    /// Возвращает null, если контекст пустой.
+    /// </summary>
+    /// <param name="context">Контекст предыдущего хода.</param>
+    /// <param name="maxChars">Предел длины ответа.</param>
+    public static (string Question, string Answer)? CleanHistory(AnswerContext? context, int maxChars = MaxAnswerChars)
+    {
+        if (context is null || !context.HasContext)
+        {
+            return null;
+        }
+
+        string? q = context.PreviousQuestion?.Trim();
+        string? a = Clean(context.PreviousAnswer, maxChars);
+
+        if (string.IsNullOrWhiteSpace(q) || string.IsNullOrWhiteSpace(a))
+        {
+            return null;
+        }
+
+        return (q, a);
+    }
+
+    /// <summary>
+    /// Собирает текст предыдущего контекста в виде «Предыдущий вопрос: … / Предыдущий ответ: …».
+    /// </summary>
+    /// <param name="context">Контекст предыдущего хода.</param>
+    /// <param name="maxChars">Предел длины ответа.</param>
+    public static string? FormatHistoryText(AnswerContext? context, int maxChars = MaxAnswerChars)
+    {
+        var cleaned = CleanHistory(context, maxChars);
+        if (cleaned is null)
+        {
+            return null;
+        }
+
+        return $"Предыдущий вопрос: {cleaned.Value.Question}\nПредыдущий ответ: {cleaned.Value.Answer}";
     }
 
     [GeneratedRegex(@"\[([^\]]+)\]\([^)]*\)")]

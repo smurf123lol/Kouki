@@ -25,6 +25,30 @@ public interface IAnswerer
     /// </summary>
     /// <exception cref="AnswererException">Провайдер вернул отказ или не ответил вовремя.</exception>
     Task<Answer> AnswerAsync(string question, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Отвечает на вопрос с учётом контекста предыдущего хода диалога.
+    /// </summary>
+    /// <param name="question">Текст вопроса.</param>
+    /// <param name="context">Контекст предыдущего хода.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <exception cref="AnswererException">Провайдер вернул отказ или не ответил вовремя.</exception>
+    Task<Answer> AnswerAsync(string question, AnswerContext context, CancellationToken cancellationToken = default)
+        => AnswerAsync(question, cancellationToken);
+}
+
+/// <summary>
+/// Контекст предыдущего хода диалога.
+/// </summary>
+/// <param name="PreviousQuestion">Предыдущий вопрос пользователя или <c>null</c>.</param>
+/// <param name="PreviousAnswer">Предыдущий ответ ассистента или <c>null</c>.</param>
+public sealed record AnswerContext(string? PreviousQuestion, string? PreviousAnswer)
+{
+    /// <summary>Пустой контекст без истории.</summary>
+    public static readonly AnswerContext Empty = new(null, null);
+
+    /// <summary>Имеется ли непустая пара вопроса и ответа.</summary>
+    public bool HasContext => !string.IsNullOrWhiteSpace(PreviousQuestion) && !string.IsNullOrWhiteSpace(PreviousAnswer);
 }
 
 /// <summary>Ответ модели.</summary>

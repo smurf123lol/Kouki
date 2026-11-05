@@ -856,6 +856,27 @@ public sealed class ApiHostTests : IClassFixture<ApiHostFixture>
     }
 
     [Fact]
+    public async Task Voice_with_unknown_dialogue_returns_400()
+    {
+        using var wavContent = new ByteArrayContent(TestWav.Create());
+        wavContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("audio/wav");
+        using var response = await _host.Client.PostAsync("/api/voice?source=station&dialogue=invalid", wavContent);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        JsonObject json = Assert.IsType<JsonObject>(JsonNode.Parse(await response.Content.ReadAsStringAsync()));
+        Assert.Equal(IntakeRequestPolicy.UnknownDialogue, json["code"]?.GetValue<string>());
+        Assert.Contains("invalid", json["error"]?.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task Intake_with_unknown_dialogue_returns_400()
+    {
+        using var response = await _host.Client.PostAsJsonAsync("/api/intake", new IntakeRequest("Привет", Source: "api", Dialogue: "foo"));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        JsonObject json = Assert.IsType<JsonObject>(JsonNode.Parse(await response.Content.ReadAsStringAsync()));
+        Assert.Equal(IntakeRequestPolicy.UnknownDialogue, json["code"]?.GetValue<string>());
+    }
+
+    [Fact]
     public async Task Speech_when_synthesizer_unavailable_returns_503_even_with_voice()
     {
         using var response = await _host.Client.PostAsJsonAsync("/api/speech", new SpeechRequest("Привет", "ru_RU-dmitri-medium"));

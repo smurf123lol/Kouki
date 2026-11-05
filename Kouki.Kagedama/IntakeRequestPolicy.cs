@@ -14,6 +14,11 @@ public sealed record IntakeSpec(string Text, string Source, string? IntentHint)
     /// Теги, вырезанные из фразы в режиме <see cref="TagModes.Extract"/> (в режиме keep — пусто).
     /// </summary>
     public IReadOnlyList<string> Tags { get; init; } = Array.Empty<string>();
+
+    /// <summary>
+    /// Запрос продолжения предыдущего хода диалога.
+    /// </summary>
+    public bool ContinueDialogue { get; init; } = false;
 }
 
 /// <summary>
@@ -48,6 +53,12 @@ public static class IntakeRequestPolicy
     /// <summary>Текст длиннее лимита.</summary>
     public const string TextTooLong = "text-too-long";
 
+    /// <summary>Параметр продолжения диалога содержит неизвестное значение.</summary>
+    public const string UnknownDialogue = "unknown-dialogue";
+
+    /// <summary>Единственное допустимое значение параметра продолжения диалога.</summary>
+    public const string DialogueContinueValue = "continue";
+
     /// <summary>После вырезания тегов во фразе не осталось самой формулировки.</summary>
     public const string TagsOnlyText = "tags-only";
 
@@ -65,6 +76,7 @@ public static class IntakeRequestPolicy
     /// <param name="spec">Готовый запрос, если проверка прошла.</param>
     /// <param name="rejection">Причина отказа, если проверка не прошла.</param>
     /// <param name="tagMode">Режим тегов для источника, см. <see cref="IntakeOptions.ResolveTagMode"/>.</param>
+    /// <param name="dialogue">Параметр продолжения диалога из запроса.</param>
     /// <returns><c>true</c>, если запрос можно передавать в приём.</returns>
     /// <exception cref="ArgumentException">Режим тегов неизвестен.</exception>
     public static bool TryPrepare(
@@ -75,7 +87,8 @@ public static class IntakeRequestPolicy
         int maxTextLength,
         out IntakeSpec? spec,
         out IntakeRejection? rejection,
-        string tagMode = TagModes.Extract)
+        string tagMode = TagModes.Extract,
+        string? dialogue = null)
     {
         spec = null;
         rejection = null;
@@ -104,12 +117,21 @@ public static class IntakeRequestPolicy
             return false;
         }
 
+        if (!TryResolveDialogueContinue(dialogue, out bool continueDialogue, out rejection))
+        {
+            return false;
+        }
+
         if (!TryResolveTags(trimmed, tagMode, out IReadOnlyList<string> tags, out rejection))
         {
             return false;
         }
 
-        spec = new IntakeSpec(trimmed, source, hint) { Tags = tags };
+        spec = new IntakeSpec(trimmed, source, hint)
+        {
+            Tags = tags,
+            ContinueDialogue = continueDialogue,
+        };
         return true;
     }
 
@@ -212,6 +234,39 @@ public static class IntakeRequestPolicy
         rejection = new IntakeRejection(
             UnknownIntent,
             $"Неизвестный intent '{intentHint}'. Допустимые: {string.Join(", ", SessionIntents.All)}.");
+        return false;
+    }
+
+    /// <summary>
+    /// Разрешает признак продолжения предыдущего хода диалога.
+    /// </summary>
+    /// <param name="requested">Значение параметра dialogue из запроса.</param>
+    /// <param name="continueDialogue">Установлен ли признак продолжения.</param>
+    /// <param name="rejection">Причина отказа, если значение неизвестно.</param>
+    /// <returns><c>true</c>, если параметр допустим.</returns>
+    public static bool TryResolveDialogueContinue(
+        string? requested,
+        out bool continueDialogue,
+        out IntakeRejection? rejection)
+    {
+        rejection = null;
+        continueDialogue = false;
+
+        if (string.IsNullOrWhiteSpace(requested))
+        {
+            return true;
+        }
+
+        string trimmed = requested.Trim();
+        if (string.Equals(trimmed, DialogueContinueValue, StringComparison.OrdinalIgnoreCase))
+        {
+            continueDialogue = true;
+            return true;
+        }
+
+        rejection = new IntakeRejection(
+            UnknownDialogue,
+            $"Неизвестный dialogue '{trimmed}'. Допустимое значение: {DialogueContinueValue}.");
         return false;
     }
 }

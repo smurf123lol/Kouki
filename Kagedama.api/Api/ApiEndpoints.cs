@@ -147,7 +147,8 @@ public static class ApiEndpoints
                 options.Value.MaxTextLength,
                 out IntakeSpec? spec,
                 out IntakeRejection? rejection,
-                intake.ResolveTagMode(source)))
+                intake.ResolveTagMode(source),
+                request?.Dialogue))
         {
             return Results.BadRequest(new { code = rejection!.Code, error = rejection.Message });
         }
@@ -160,7 +161,8 @@ public static class ApiEndpoints
                 spec.Source,
                 cancellationToken,
                 intentHint: spec.IntentHint,
-                tags: spec.Tags);
+                tags: spec.Tags,
+                continueDialogue: spec.ContinueDialogue);
         }
         catch (IntakeRejectionException ex)
         {
@@ -289,6 +291,17 @@ public static class ApiEndpoints
             return Results.BadRequest(new { code = intentRejection.Code, error = intentRejection.Message });
         }
 
+        if (!IntakeRequestPolicy.TryResolveDialogueContinue(request.Query["dialogue"], out bool continueDialogue, out IntakeRejection? dialogueRejection))
+        {
+            await RecordTelemetryAsync(
+                StatusCodes.Status400BadRequest,
+                RequestOutcomes.Rejected,
+                dialogueRejection!.Message,
+                bytes.Length,
+                audio.Duration.TotalSeconds);
+            return Results.BadRequest(new { code = dialogueRejection.Code, error = dialogueRejection.Message });
+        }
+
         VoiceIntakeResult result;
         try
         {
@@ -297,7 +310,8 @@ public static class ApiEndpoints
                 source,
                 new AudioFormat(audio.SampleRate, audio.Channels, AudioEncoding.Wav),
                 cancellationToken,
-                intentHint);
+                intentHint,
+                continueDialogue);
         }
         catch (IntakeRejectionException ex)
         {

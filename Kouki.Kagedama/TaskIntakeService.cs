@@ -186,7 +186,8 @@ public sealed class TaskIntakeService
         double? asrConfidence = null,
         string? audioPath = null,
         string? intentHint = null,
-        IReadOnlyList<string>? tags = null)
+        IReadOnlyList<string>? tags = null,
+        bool continueDialogue = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
         ArgumentException.ThrowIfNullOrWhiteSpace(source);
@@ -313,7 +314,7 @@ public sealed class TaskIntakeService
         }
 
         // Уверенная фраза: всё уходит в роутер, он найдёт команду и вызовет диспатчер.
-        IntentResult enriched = await EnrichSlotsAsync(intent, trimmed, source, recorded?.Id, cancellationToken).ConfigureAwait(false);
+        IntentResult enriched = await EnrichSlotsAsync(intent, trimmed, source, recorded?.Id, continueDialogue, cancellationToken).ConfigureAwait(false);
         IntentRoute route = await _router.RouteAsync(enriched, context, cancellationToken).ConfigureAwait(false);
 
         string? errorText = route.Error ?? PayloadError(route.Result);
@@ -566,6 +567,7 @@ public sealed class TaskIntakeService
         string text,
         string source,
         Guid? recordId,
+        bool continueDialogue,
         CancellationToken cancellationToken)
     {
         // Запись под вопросом: команде нужен и текст, и идентификатор задачи, чтобы ответ
@@ -578,6 +580,8 @@ public sealed class TaskIntakeService
                 {
                     ["text"] = text,
                     ["taskId"] = recordedId.ToString(),
+                    ["source"] = source,
+                    ["continueDialogue"] = continueDialogue,
                 },
             };
         }
