@@ -8,6 +8,14 @@ const STATUS_RU = {
     needs_review: 'на разборе',
 };
 
+const STATUS_ACTION_RU = {
+    new: 'В inbox',
+    in_progress: 'В работу',
+    needs_review: 'В ожидание',
+    done: 'Завершить',
+    cancelled: 'Отменить',
+};
+
 const OUTCOME_RU = {
     created: 'задача создана',
     executed: 'команда исполнена',
@@ -383,9 +391,9 @@ function subtaskBox(task) {
 
 function renderBoardCard(task) {
     // Статусы меняются тем же PATCH, что и в карточке задачи; на доске — прямо из карточки.
-    const statusButtons = ['in_progress', 'done', 'cancelled']
+    const statusButtons = ['new', 'in_progress', 'needs_review', 'done', 'cancelled']
         .filter((status) => status !== task.status)
-        .map((status) => `<button type="button" class="btn small" data-board-status="${esc(status)}" data-board-status-id="${esc(task.id)}">${esc(STATUS_RU[status])}</button>`)
+        .map((status) => `<button type="button" class="btn small" data-board-status="${esc(status)}" data-board-status-id="${esc(task.id)}">${esc(STATUS_ACTION_RU[status] || STATUS_RU[status] || status)}</button>`)
         .join('');
 
     return `<article class="board-card" data-board-card="${esc(task.id)}" data-task="${esc(task.id)}" draggable="true">
@@ -742,9 +750,9 @@ async function openTask(id, options = {}) {
 
     $('detail-title').textContent = task.title;
 
-    const buttons = ['in_progress', 'done', 'cancelled']
+    const buttons = ['new', 'in_progress', 'needs_review', 'done', 'cancelled']
         .filter((status) => status !== task.status)
-        .map((status) => `<button class="btn small" data-set-status="${esc(status)}">${esc(STATUS_RU[status])}</button>`)
+        .map((status) => `<button class="btn small" data-set-status="${esc(status)}">${esc(STATUS_ACTION_RU[status] || STATUS_RU[status] || status)}</button>`)
         .join('');
 
     const timeline = actions.length
