@@ -43,9 +43,14 @@ public sealed class GeminiAnswerer : IAnswerer
     public string Signature => $"gemini:{_options.ResolveModel()}";
 
     /// <inheritdoc />
-    public async Task<Answer> AnswerAsync(string question, CancellationToken cancellationToken = default)
+    public Task<Answer> AnswerAsync(string question, CancellationToken cancellationToken = default)
+        => AnswerAsync(question, AnswerContext.Empty, cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<Answer> AnswerAsync(string question, AnswerContext context, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(question);
+        ArgumentNullException.ThrowIfNull(context);
 
         if (!IsConfigured)
         {
@@ -60,7 +65,7 @@ public sealed class GeminiAnswerer : IAnswerer
 
         using var request = new HttpRequestMessage(HttpMethod.Post, url)
         {
-            Content = new StringContent(BuildBody(question), Encoding.UTF8, "application/json"),
+            Content = new StringContent(BuildBody(question, context), Encoding.UTF8, "application/json"),
         };
         request.Headers.Add("x-goog-api-key", _options.ApiKey);
 
@@ -94,27 +99,50 @@ public sealed class GeminiAnswerer : IAnswerer
         }
     }
 
-    private string BuildBody(string question)
+    private string BuildBody(string question, AnswerContext? context = null) => BuildPayload(_options, question, context).ToJsonString();
+
+    /// <summary>Собирает тело запроса Gemini API (отдельно — чтобы покрыть тестом).</summary>
+    public static JsonObject BuildPayload(KotaeOptions options, string question, AnswerContext? context = null)
     {
-        var payload = new JsonObject
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentException.ThrowIfNullOrWhiteSpace(question);
+
+        var contents = new JsonArray();
+
+        var history = KotaePrompt.CleanHistory(context);
+        if (history is not null)
+        {
+            contents.Add(new JsonObject
+            {
+                ["role"] = "user",
+                ["parts"] = new JsonArray(new JsonObject { ["text"] = history.Value.Question }),
+            });
+            contents.Add(new JsonObject
+            {
+                ["role"] = "model",
+                ["parts"] = new JsonArray(new JsonObject { ["text"] = history.Value.Answer }),
+            });
+        }
+
+        contents.Add(new JsonObject
+        {
+            ["role"] = "user",
+            ["parts"] = new JsonArray(new JsonObject { ["text"] = question }),
+        });
+
+        return new JsonObject
         {
             ["system_instruction"] = new JsonObject
             {
-                ["parts"] = new JsonArray(new JsonObject { ["text"] = KotaePrompt.BuildSystem(_options.SystemPrompt, DateTimeOffset.Now, TimeZoneInfo.Local) }),
+                ["parts"] = new JsonArray(new JsonObject { ["text"] = KotaePrompt.BuildSystem(options.SystemPrompt, DateTimeOffset.Now, TimeZoneInfo.Local) }),
             },
-            ["contents"] = new JsonArray(new JsonObject
-            {
-                ["role"] = "user",
-                ["parts"] = new JsonArray(new JsonObject { ["text"] = question }),
-            }),
+            ["contents"] = contents,
             ["generationConfig"] = new JsonObject
             {
-                ["maxOutputTokens"] = _options.MaxOutputTokens,
+                ["maxOutputTokens"] = options.MaxOutputTokens,
                 ["temperature"] = 0.4,
             },
         };
-
-        return payload.ToJsonString();
     }
 
     private static string ExtractText(string body)

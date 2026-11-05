@@ -120,4 +120,55 @@ public sealed class IntakeRequestPolicyTests
         Assert.True(IntakeRequestPolicy.TryResolveIntentHint("   ", out string? hint, out _));
         Assert.Null(hint);
     }
+
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData("", false)]
+    [InlineData("   ", false)]
+    [InlineData("continue", true)]
+    [InlineData("Continue", true)]
+    [InlineData("CONTINUE", true)]
+    public void Dialogue_parameter_resolves_correctly(string? requested, bool expected)
+    {
+        bool ok = IntakeRequestPolicy.TryResolveDialogueContinue(requested, out bool continueDialogue, out IntakeRejection? rejection);
+
+        Assert.True(ok);
+        Assert.Null(rejection);
+        Assert.Equal(expected, continueDialogue);
+    }
+
+    [Theory]
+    [InlineData("foo")]
+    [InlineData("yes")]
+    [InlineData("true")]
+    [InlineData("1")]
+    public void Unknown_dialogue_is_rejected_with_known_code(string? requested)
+    {
+        bool ok = IntakeRequestPolicy.TryResolveDialogueContinue(requested, out bool continueDialogue, out IntakeRejection? rejection);
+
+        Assert.False(ok);
+        Assert.False(continueDialogue);
+        Assert.NotNull(rejection);
+        Assert.Equal(IntakeRequestPolicy.UnknownDialogue, rejection!.Code);
+        Assert.Contains("continue", rejection.Message, StringComparison.Ordinal);
+        Assert.Contains(requested!, rejection.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Dialogue_continue_is_carried_in_spec()
+    {
+        bool ok = IntakeRequestPolicy.TryPrepare(
+            "А яйцо?",
+            TaskSources.Station,
+            SessionIntents.Ask,
+            TaskSources.Station,
+            2000,
+            out IntakeSpec? spec,
+            out _,
+            dialogue: "continue");
+
+        Assert.True(ok);
+        Assert.NotNull(spec);
+        Assert.True(spec!.ContinueDialogue);
+    }
 }

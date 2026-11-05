@@ -46,9 +46,14 @@ public sealed class OpenAiChatAnswerer : IAnswerer
     public string Signature => $"openai:{_options.ResolveModel()}";
 
     /// <inheritdoc />
-    public async Task<Answer> AnswerAsync(string question, CancellationToken cancellationToken = default)
+    public Task<Answer> AnswerAsync(string question, CancellationToken cancellationToken = default)
+        => AnswerAsync(question, AnswerContext.Empty, cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<Answer> AnswerAsync(string question, AnswerContext context, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(question);
+        ArgumentNullException.ThrowIfNull(context);
 
         if (!IsConfigured)
         {
@@ -63,7 +68,7 @@ public sealed class OpenAiChatAnswerer : IAnswerer
 
         using var request = new HttpRequestMessage(HttpMethod.Post, url)
         {
-            Content = new StringContent(BuildBody(question), Encoding.UTF8, "application/json"),
+            Content = new StringContent(BuildBody(question, context), Encoding.UTF8, "application/json"),
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
 
@@ -97,20 +102,32 @@ public sealed class OpenAiChatAnswerer : IAnswerer
         }
     }
 
-    private string BuildBody(string question) => BuildPayload(_options, question).ToJsonString();
+    private string BuildBody(string question, AnswerContext? context = null) => BuildPayload(_options, question, context).ToJsonString();
 
     /// <summary>Собирает тело запроса <c>/chat/completions</c> (отдельно — чтобы покрыть тестом).</summary>
-    public static JsonObject BuildPayload(KotaeOptions options, string question)
+    public static JsonObject BuildPayload(KotaeOptions options, string question, AnswerContext? context = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentException.ThrowIfNullOrWhiteSpace(question);
 
+        var messages = new JsonArray
+        {
+            new JsonObject { ["role"] = "system", ["content"] = KotaePrompt.BuildSystem(options.SystemPrompt, DateTimeOffset.Now, TimeZoneInfo.Local) },
+        };
+
+        var history = KotaePrompt.CleanHistory(context);
+        if (history is not null)
+        {
+            messages.Add(new JsonObject { ["role"] = "user", ["content"] = history.Value.Question });
+            messages.Add(new JsonObject { ["role"] = "assistant", ["content"] = history.Value.Answer });
+        }
+
+        messages.Add(new JsonObject { ["role"] = "user", ["content"] = question });
+
         var payload = new JsonObject
         {
             ["model"] = options.ResolveModel(),
-            ["messages"] = new JsonArray(
-                new JsonObject { ["role"] = "system", ["content"] = KotaePrompt.BuildSystem(options.SystemPrompt, DateTimeOffset.Now, TimeZoneInfo.Local) },
-                new JsonObject { ["role"] = "user", ["content"] = question }),
+            ["messages"] = messages,
             ["max_tokens"] = options.MaxOutputTokens,
             ["temperature"] = 0.4,
             ["stream"] = false,

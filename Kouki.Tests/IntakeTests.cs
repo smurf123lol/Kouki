@@ -339,6 +339,25 @@ public sealed class IntakeTests
         Assert.NotNull(entry.LabeledAt);
     }
 
+    [Fact]
+    public async Task Intake_with_continue_dialogue_passes_slots_to_ask_command()
+    {
+        using var server = new ServerFixture();
+
+        IntakeResult result = await server.Intake.IntakeAsync(
+            "Сколько варить яйцо?",
+            "station",
+            intentHint: "ask",
+            continueDialogue: true);
+
+        Assert.True(result.AutoExecuted);
+        Assert.Equal("ask", result.Route.CommandName);
+        Assert.True(result.Route.Intent.Slots?["continueDialogue"]?.GetValue<bool>());
+        Assert.Equal("station", result.Route.Intent.Slots?["source"]?.GetValue<string>());
+        Assert.NotNull(result.Route.Result?["dialogueContinue"]);
+        Assert.True(result.Route.Result?["dialogueContinue"]?.GetValue<bool>());
+    }
+
     private sealed class ServerFixture : IDisposable
     {
         public ServerFixture()

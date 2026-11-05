@@ -1,3 +1,4 @@
+using Kouki.Kagedama.Contracts;
 using Kouki.Kotae;
 using Xunit;
 
@@ -45,5 +46,37 @@ public sealed class KotaePromptTests
     {
         Assert.Equal(string.Empty, KotaePrompt.Clean(null));
         Assert.Equal(string.Empty, KotaePrompt.Clean("   \n "));
+    }
+
+    [Fact]
+    public void CleanHistory_returns_null_when_no_context()
+    {
+        Assert.Null(KotaePrompt.CleanHistory(null));
+        Assert.Null(KotaePrompt.CleanHistory(AnswerContext.Empty));
+        Assert.Null(KotaePrompt.CleanHistory(new AnswerContext("  ", "ответ")));
+        Assert.Null(KotaePrompt.CleanHistory(new AnswerContext("вопрос", "  ")));
+    }
+
+    [Fact]
+    public void CleanHistory_cleans_and_trims_turn()
+    {
+        var context = new AnswerContext(
+            "  Сколько варить пельмени?  ",
+            "**Варить** 7 минут. Подробнее: [ссылка](http://example.com)");
+
+        var history = KotaePrompt.CleanHistory(context);
+
+        Assert.NotNull(history);
+        Assert.Equal("Сколько варить пельмени?", history.Value.Question);
+        Assert.Equal("Варить 7 минут. Подробнее: ссылка", history.Value.Answer);
+    }
+
+    [Fact]
+    public void FormatHistoryText_formats_both_turns()
+    {
+        var context = new AnswerContext("Сколько варить пельмени?", "Варить 7 минут.");
+        var text = KotaePrompt.FormatHistoryText(context);
+
+        Assert.Equal("Предыдущий вопрос: Сколько варить пельмени?\nПредыдущий ответ: Варить 7 минут.", text);
     }
 }

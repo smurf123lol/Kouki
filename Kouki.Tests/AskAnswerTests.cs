@@ -20,10 +20,18 @@ public sealed class AskAnswerTests
 
         public string Signature => "fake:test";
 
+        public AnswerContext? LastContext { get; private set; }
+
         public Task<Answer> AnswerAsync(string question, CancellationToken cancellationToken = default)
-            => failure is null
+            => AnswerAsync(question, AnswerContext.Empty, cancellationToken);
+
+        public Task<Answer> AnswerAsync(string question, AnswerContext context, CancellationToken cancellationToken = default)
+        {
+            LastContext = context;
+            return failure is null
                 ? Task.FromResult(new Answer(text ?? "ответ", Signature, 12))
                 : Task.FromException<Answer>(failure);
+        }
     }
 
     [Fact]
@@ -233,5 +241,140 @@ public sealed class AskAnswerTests
         Assert.False(quietBody["chat_template_kwargs"]!["enable_thinking"]!.GetValue<bool>());
         Assert.True(quietBody["chat_template_kwargs"]!["conversational_mode"]!.GetValue<bool>());
         Assert.Null(loudBody["chat_template_kwargs"]);
+    }
+
+    [Fact]
+    public void OpenAi_payload_embeds_previous_dialogue_turns()
+    {
+        var options = new KotaeOptions { Provider = KotaeProvider.OpenAi, ApiKey = "local" };
+        var context = new AnswerContext("Сколько варить пельмени?", "Варить 7 минут.");
+
+        var payload = OpenAiChatAnswerer.BuildPayload(options, "А яйцо?", context);
+        var messages = payload["messages"]!.AsArray();
+
+        Assert.Equal(4, messages.Count);
+        Assert.Equal("system", messages[0]!["role"]!.GetValue<string>());
+        Assert.Equal("user", messages[1]!["role"]!.GetValue<string>());
+        Assert.Equal("Сколько варить пельмени?", messages[1]!["content"]!.GetValue<string>());
+        Assert.Equal("assistant", messages[2]!["role"]!.GetValue<string>());
+        Assert.Equal("Варить 7 минут.", messages[2]!["content"]!.GetValue<string>());
+        Assert.Equal("user", messages[3]!["role"]!.GetValue<string>());
+        Assert.Equal("А яйцо?", messages[3]!["content"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void Gemini_payload_embeds_previous_dialogue_turns()
+    {
+        var options = new KotaeOptions { Provider = KotaeProvider.Gemini, ApiKey = "key" };
+        var context = new AnswerContext("Сколько варить пельмени?", "Варить 7 минут.");
+
+        var payload = GeminiAnswerer.BuildPayload(options, "А яйцо?", context);
+        var contents = payload["contents"]!.AsArray();
+
+        Assert.Equal(3, contents.Count);
+        Assert.Equal("user", contents[0]!["role"]!.GetValue<string>());
+        Assert.Equal("Сколько варить пельмени?", contents[0]!["parts"]![0]!["text"]!.GetValue<string>());
+        Assert.Equal("model", contents[1]!["role"]!.GetValue<string>());
+        Assert.Equal("Варить 7 минут.", contents[1]!["parts"]![0]!["text"]!.GetValue<string>());
+        Assert.Equal("user", contents[2]!["role"]!.GetValue<string>());
+        Assert.Equal("А яйцо?", contents[2]!["parts"]![0]!["text"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task Dialogue_memory_persists_in_state_store_and_passes_to_subsequent_turn()
+    {
+        var fake = new FakeAnswerer("Куриное яйцо варится 9 минут.");
+        var handler = new AskHandler(fake);
+        var context = TestHost.Context();
+
+        // 1. Первый вопрос без continue
+        var firstCommand = new AskCommand("Сколько варить яйцо?", TaskId: "t1", ContinueDialogue: false, Source: "station");
+        var firstResult = await handler.HandleAsync(firstCommand, context);
+
+        Assert.False(firstResult["dialogueContinue"]!.GetValue<bool>());
+        Assert.False(firstResult["dialogueFound"]!.GetValue<bool>());
+        Assert.NotNull(fake.LastContext);
+        Assert.False(fake.LastContext!.HasContext);
+
+        // Проверяем запись в StateStore
+        var saved = await context.StateStore.GetAsync<LastDialogueTurn>("dialogue:last:station");
+        Assert.NotNull(saved);
+        Assert.Equal("Сколько варить яйцо?", saved!.Question);
+        Assert.Equal("Куриное яйцо варится 9 минут.", saved.Answer);
+
+        // 2. Второй вопрос с continue от того же источника
+        var secondCommand = new AskCommand("А перепелиное?", TaskId: "t2", ContinueDialogue: true, Source: "station");
+        var secondResult = await handler.HandleAsync(secondCommand, context);
+
+        Assert.True(secondResult["dialogueContinue"]!.GetValue<bool>());
+        Assert.True(secondResult["dialogueFound"]!.GetValue<bool>());
+        Assert.NotNull(fake.LastContext);
+        Assert.True(fake.LastContext!.HasContext);
+        Assert.Equal("Сколько варить яйцо?", fake.LastContext.PreviousQuestion);
+        Assert.Equal("Куриное яйцо варится 9 минут.", fake.LastContext.PreviousAnswer);
+    }
+
+    [Fact]
+    public async Task Dialogue_continue_without_saved_turn_reports_dialogueFound_false()
+    {
+        var fake = new FakeAnswerer("ответ");
+        var handler = new AskHandler(fake);
+        var context = TestHost.Context();
+
+        var cmd = new AskCommand("А яйцо?", ContinueDialogue: true, Source: "station");
+        var result = await handler.HandleAsync(cmd, context);
+
+        Assert.True(result["dialogueContinue"]!.GetValue<bool>());
+        Assert.False(result["dialogueFound"]!.GetValue<bool>());
+        Assert.NotNull(fake.LastContext);
+        Assert.False(fake.LastContext!.HasContext);
+    }
+
+    [Fact]
+    public async Task Expired_dialogue_turn_is_ignored()
+    {
+        var fake = new FakeAnswerer("новый ответ");
+        var handler = new AskHandler(fake);
+        var context = TestHost.Context();
+
+        // Записываем ход старше 10 минут
+        var oldTurn = new LastDialogueTurn("старый вопрос", "старый ответ", DateTimeOffset.UtcNow.AddMinutes(-15));
+        await context.StateStore.SetAsync("dialogue:last:station", oldTurn);
+
+        var cmd = new AskCommand("А яйцо?", ContinueDialogue: true, Source: "station");
+        var result = await handler.HandleAsync(cmd, context);
+
+        Assert.True(result["dialogueContinue"]!.GetValue<bool>());
+        Assert.False(result["dialogueFound"]!.GetValue<bool>());
+        Assert.NotNull(fake.LastContext);
+        Assert.False(fake.LastContext!.HasContext);
+    }
+
+    [Fact]
+    public async Task Stub_answer_does_not_save_dialogue_turn()
+    {
+        var handler = new AskHandler(answerer: null);
+        var context = TestHost.Context();
+
+        var cmd = new AskCommand("Вопрос?", Source: "station");
+        var result = await handler.HandleAsync(cmd, context);
+
+        Assert.True(result["stub"]!.GetValue<bool>());
+        var saved = await context.StateStore.GetAsync<LastDialogueTurn>("dialogue:last:station");
+        Assert.Null(saved);
+    }
+
+    [Fact]
+    public async Task Null_context_works_safely_without_crashing()
+    {
+        var fake = new FakeAnswerer("ответ");
+        var handler = new AskHandler(fake);
+
+        var cmd = new AskCommand("Вопрос?", ContinueDialogue: true, Source: "station");
+        var result = await handler.HandleAsync(cmd, context: null);
+
+        Assert.True(result["dialogueContinue"]!.GetValue<bool>());
+        Assert.False(result["dialogueFound"]!.GetValue<bool>());
+        Assert.Equal("ответ", result["answer"]!.GetValue<string>());
     }
 }

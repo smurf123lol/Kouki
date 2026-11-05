@@ -4,7 +4,8 @@ namespace Kouki.Kagedama.Api.Api;
 /// <param name="Text">Текст от человека.</param>
 /// <param name="Source">Источник: telegram, voice, dashboard, mcp, api. По умолчанию api.</param>
 /// <param name="Intent">Подсказка сессии: add_task или ask (станция сообщает, что это запись).</param>
-public sealed record IntakeRequest(string Text, string? Source = null, string? Intent = null);
+/// <param name="Dialogue">Параметр диалога: continue — продолжение предыдущего вопроса.</param>
+public sealed record IntakeRequest(string Text, string? Source = null, string? Intent = null, string? Dialogue = null);
 
 /// <summary>Запрос на сравнение классификаторов: одна фраза, все «роутеры».</summary>
 /// <param name="Text">Фраза.</param>

@@ -63,12 +63,15 @@ public sealed class VoiceIntakeService
     /// <param name="source">Источник: station, dashboard, telegram.</param>
     /// <param name="format">Формат записи.</param>
     /// <param name="cancellationToken">Токен отмены.</param>
+    /// <param name="intentHint">Подсказка интента от сессии.</param>
+    /// <param name="continueDialogue">Признак продолжения предыдущего хода диалога.</param>
     public async Task<VoiceIntakeResult> AcceptAsync(
         byte[] wav,
         string source,
         AudioFormat format,
         CancellationToken cancellationToken = default,
-        string? intentHint = null)
+        string? intentHint = null,
+        bool continueDialogue = false)
     {
         ArgumentNullException.ThrowIfNull(wav);
         ArgumentNullException.ThrowIfNull(format);
@@ -119,7 +122,9 @@ public sealed class VoiceIntakeService
             cancellationToken,
             transcription.Confidence,
             audioPath,
-            intentHint).ConfigureAwait(false);
+            intentHint,
+            tags: null,
+            continueDialogue: continueDialogue).ConfigureAwait(false);
 
         return new VoiceIntakeResult(transcription, intake, audioPath, null);
     }
