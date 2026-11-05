@@ -136,6 +136,7 @@ public class RouterTests
         Assert.True(payload["requiresConfirmation"]!.GetValue<bool>());
         Assert.Equal("danger", payload["command"]!.GetValue<string>());
         Assert.Contains("требует подтверждения", payload["error"]!.GetValue<string>(), StringComparison.Ordinal);
+        Assert.Contains("требует подтверждения. Подтвердить? Скажите да или нет.", payload["answer"]!.GetValue<string>());
         Assert.Equal(0, DangerHandler.Calls);
     }
 

@@ -52,7 +52,7 @@ public sealed class AddTaskHandler : ICommandHandler<AddTaskCommand>
 
         if (string.IsNullOrWhiteSpace(command.Text))
         {
-            return new JsonObject { ["error"] = "Пустая фраза: нечего записывать как задачу." };
+            return new JsonObject { ["error"] = "Пустая фраза: нечего записывать как задачу.", ["answer"] = "Пустая фраза: нечего записывать как задачу." };
         }
 
         if (command.Priority is { } priority && !TaskPriorities.IsValid(priority))
@@ -60,6 +60,7 @@ public sealed class AddTaskHandler : ICommandHandler<AddTaskCommand>
             return new JsonObject
             {
                 ["error"] = $"Приоритет: {TaskPriorities.Min}, {TaskPriorities.Default} или {TaskPriorities.Max}.",
+                ["answer"] = $"Приоритет: {TaskPriorities.Min}, {TaskPriorities.Default} или {TaskPriorities.Max}.",
             };
         }
 
@@ -70,7 +71,7 @@ public sealed class AddTaskHandler : ICommandHandler<AddTaskCommand>
             TaskRecord? parent = await _store.GetAsync(parentId, cancellationToken).ConfigureAwait(false);
             if (parent is null)
             {
-                return new JsonObject { ["error"] = "Родительская задача не найдена." };
+                return new JsonObject { ["error"] = "Родительская задача не найдена.", ["answer"] = "Родительская задача не найдена." };
             }
         }
 
@@ -91,7 +92,7 @@ public sealed class AddTaskHandler : ICommandHandler<AddTaskCommand>
         catch (InvalidOperationException)
         {
             // Родителя могли удалить между проверкой и вставкой: ответ тот же, что и выше.
-            return new JsonObject { ["error"] = "Родительская задача не найдена." };
+            return new JsonObject { ["error"] = "Родительская задача не найдена.", ["answer"] = "Родительская задача не найдена." };
         }
 
         JsonObject payload = ListTasksHandler.ToJson(record);
@@ -99,6 +100,7 @@ public sealed class AddTaskHandler : ICommandHandler<AddTaskCommand>
         // Приём фразы узнаёт по этим двум полям, что задача действительно создана.
         payload["taskId"] = record.Id.ToString();
         payload["created"] = true;
+        payload["answer"] = $"Записала: {record.Title}";
         return payload;
     }
 }
@@ -219,12 +221,20 @@ public sealed class ListTasksHandler : ICommandHandler<ListTasksCommand>
                 counts.TryGetValue(task.Id, out SubtaskCounts taskCounts) ? taskCounts : default));
         }
 
+        string answerText = array.Count switch
+        {
+            0 => "У вас нет открытых задач.",
+            1 => $"У вас одна задача: {tasks[0].Title}.",
+            _ => $"У вас {FormatTaskCount(array.Count)}."
+        };
+
         return new JsonObject
         {
             ["count"] = array.Count,
             ["status"] = status,
             ["tag"] = tag,
             ["tasks"] = array,
+            ["answer"] = answerText,
         };
     }
 
@@ -232,6 +242,19 @@ public sealed class ListTasksHandler : ICommandHandler<ListTasksCommand>
     /// Задачи с тегом: идентификаторы даёт <see cref="ITagStore.FindTasksAsync"/>,
     /// который фильтрует тег и статус одним запросом — предел считается уже по ним.
     /// </summary>
+    private static string FormatTaskCount(int count)
+    {
+        int mod100 = count % 100;
+        int mod10 = count % 10;
+        if (mod100 is >= 11 and <= 19) return $"{count} задач";
+        return mod10 switch
+        {
+            1 => $"{count} задача",
+            2 or 3 or 4 => $"{count} задачи",
+            _ => $"{count} задач"
+        };
+    }
+
     private async Task<IReadOnlyList<TaskRecord>> FindByTagAsync(
         string tag,
         string? status,
@@ -461,7 +484,7 @@ public sealed class CompleteTaskHandler : ICommandHandler<CompleteTaskCommand>
             string message = requested is Guid missing
                 ? $"Задача {missing} не найдена."
                 : "Открытых задач нет: нечего закрывать.";
-            return new JsonObject { ["error"] = message };
+            return new JsonObject { ["error"] = message, ["answer"] = message };
         }
 
         if (existing.Status is TaskStatuses.Done or TaskStatuses.Cancelled)
@@ -471,6 +494,7 @@ public sealed class CompleteTaskHandler : ICommandHandler<CompleteTaskCommand>
                 ["taskId"] = existing.Id.ToString(),
                 ["status"] = existing.Status,
                 ["alreadyClosed"] = true,
+                ["answer"] = "Эта задача уже была закрыта.",
             };
         }
 
@@ -481,6 +505,7 @@ public sealed class CompleteTaskHandler : ICommandHandler<CompleteTaskCommand>
             ["taskId"] = existing.Id.ToString(),
             ["title"] = existing.Title,
             ["status"] = TaskStatuses.Done,
+            ["answer"] = $"Задача завершена: {existing.Title}",
         };
 
         await CommandAudit.RecordAsync(
@@ -556,17 +581,17 @@ public sealed class PatchTaskHandler : ICommandHandler<PatchTaskCommand>
 
         if (!Guid.TryParse(command.TaskId, out Guid id))
         {
-            return new JsonObject { ["error"] = "Не указан идентификатор задачи." };
+            return new JsonObject { ["error"] = "Не указан идентификатор задачи.", ["answer"] = "Не указан идентификатор задачи." };
         }
 
         if (command.Status is not null && !TaskStatuses.IsKnown(command.Status))
         {
-            return new JsonObject { ["error"] = $"Неизвестный статус '{command.Status}'." };
+            return new JsonObject { ["error"] = $"Неизвестный статус '{command.Status}'.", ["answer"] = $"Неизвестный статус {command.Status}." };
         }
 
         if (command.Priority is int priority && !TaskPriorities.IsValid(priority))
         {
-            return new JsonObject { ["error"] = $"Приоритет: {TaskPriorities.Min}, {TaskPriorities.Default} или {TaskPriorities.Max}." };
+            return new JsonObject { ["error"] = $"Приоритет: {TaskPriorities.Min}, {TaskPriorities.Default} или {TaskPriorities.Max}.", ["answer"] = $"Приоритет: {TaskPriorities.Min}, {TaskPriorities.Default} или {TaskPriorities.Max}." };
         }
 
         bool updated = await _store
@@ -575,13 +600,13 @@ public sealed class PatchTaskHandler : ICommandHandler<PatchTaskCommand>
 
         if (!updated)
         {
-            return new JsonObject { ["error"] = "Задача не найдена." };
+            return new JsonObject { ["error"] = "Задача не найдена.", ["answer"] = "Задача не найдена." };
         }
 
         TaskRecord? task = await _store.GetAsync(id, cancellationToken).ConfigureAwait(false);
         if (task is null)
         {
-            return new JsonObject { ["error"] = "Задача не найдена." };
+            return new JsonObject { ["error"] = "Задача не найдена.", ["answer"] = "Задача не найдена." };
         }
 
         // Как и get_task: счётчики читаются здесь, чтобы PATCH не отдавал нули.
@@ -590,6 +615,11 @@ public sealed class PatchTaskHandler : ICommandHandler<PatchTaskCommand>
         SubtaskCounts subtaskCounts = counts.TryGetValue(task.Id, out SubtaskCounts value) ? value : default;
 
         JsonObject payload = ListTasksHandler.ToJson(task, counts: subtaskCounts);
+
+        string answerText = command.Status is not null
+            ? $"Статус задачи изменен на {command.Status}: {task.Title}"
+            : (command.Title is not null ? $"Задача переименована: {task.Title}" : $"Задача обновлена: {task.Title}");
+        payload["answer"] = answerText;
 
         await CommandAudit.RecordAsync(
             _actions,

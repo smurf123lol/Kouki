@@ -212,5 +212,6 @@ public class StaticRouter : IRouter
             ["requiresConfirmation"] = true,
             ["command"] = entry.Name,
             ["description"] = entry.Description,
+            ["answer"] = $"Действие «{entry.Description}» требует подтверждения. Подтвердить? Скажите да или нет.",
         };
 }
