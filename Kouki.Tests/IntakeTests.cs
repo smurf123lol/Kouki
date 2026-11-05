@@ -6,6 +6,7 @@ using Kouki.Mugura.DependencyInjection;
 using Kouki.Mugura.Registry;
 using Kouki.Shimi.Context;
 using Kouki.Shimi.DependencyInjection;
+using Kouki.Shimi.ServiceAbstractions;
 using Kouki.Yasabi;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
@@ -147,11 +148,11 @@ public sealed class IntakeTests
     }
 
     [Fact]
-    public async Task Ask_creates_a_task_record_with_the_answer()
+    public async Task Ask_stores_question_without_creating_task()
     {
         using var server = new ServerFixture();
 
-        // «Спросить» на станции: ответ команды ask ложится в мету задачи-записи.
+        // «Спросить» на станции: вопрос сохраняется в IQuestionStore, задача в tasks не создаётся.
         IntakeResult result = await server.Intake.IntakeAsync(
             "Сколько минут варить пельмени?",
             "station",
@@ -159,13 +160,15 @@ public sealed class IntakeTests
 
         Assert.Equal(ActionOutcomes.Executed, result.Outcome);
         Assert.Equal("ask", result.Route.CommandName);
+        Assert.Null(result.Task);
 
-        TaskRecord task = Assert.IsType<TaskRecord>(result.Task);
-        Assert.Equal(TaskStatuses.New, task.Status);
+        IReadOnlyList<TaskRecord> tasks = await server.Store.ListAsync(null, 10);
+        Assert.Empty(tasks);
 
-        JsonNode meta = JsonNode.Parse(task.MetaJson)!;
-        Assert.Equal("ask", meta["intent"]!.GetValue<string>());
-        Assert.Contains("не умею", meta["answer"]!.GetValue<string>(), StringComparison.Ordinal);
+        IReadOnlyList<QuestionRecord> questions = await server.Questions.ListAsync(10);
+        Assert.Single(questions);
+        Assert.Equal("Сколько минут варить пельмени?", questions[0].Question);
+        Assert.Contains("не умею", questions[0].Answer, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -358,7 +361,7 @@ public sealed class IntakeTests
         Assert.True(result.Route.Result?["dialogueContinue"]?.GetValue<bool>());
     }
 
-    private sealed class ServerFixture : IDisposable
+    public sealed class ServerFixture : IDisposable
     {
         public ServerFixture()
         {
@@ -385,10 +388,16 @@ public sealed class IntakeTests
                     ConfidenceThreshold = 0.75,
                     DefaultSource = "test",
                 },
-                sp.GetRequiredService<IClassificationJournal>()));
+                sp.GetRequiredService<IClassificationJournal>(),
+                questions: sp.GetRequiredService<IQuestionStore>()));
 
             Provider = services.BuildServiceProvider();
-            Provider.GetRequiredService<IContextRegistry>().SetDefaultContext(TestHost.Context("server"));
+            Provider.GetRequiredService<IContextRegistry>().SetDefaultContext(new BaseExecutionContext(
+                "server",
+                new StubFileSystem(),
+                new StubTerminal(),
+                Provider.GetRequiredService<IStateStore>(),
+                Provider));
         }
 
         public string DirectoryPath { get; }
@@ -404,6 +413,8 @@ public sealed class IntakeTests
         public IClassificationJournal Journal => Provider.GetRequiredService<IClassificationJournal>();
 
         public IActionLog Actions => Provider.GetRequiredService<IActionLog>();
+
+        public IQuestionStore Questions => Provider.GetRequiredService<IQuestionStore>();
 
         public void Dispose()
         {

@@ -225,17 +225,15 @@ public sealed class TagIntakeTests
     }
 
     [Fact]
-    public async Task Ask_branch_gets_tags()
+    public async Task Ask_branch_returns_tags_without_creating_task()
     {
         using var fixture = new TagIntakeFixture();
 
         IntakeResult result = await fixture.Intake.IntakeAsync("что такое энтропия #наука", "test", intentHint: "ask");
 
-        TaskRecord task = Assert.IsType<TaskRecord>(result.Task);
-        IReadOnlyList<(string Tag, string Source)> rows = await fixture.TagRowsAsync(task.Id);
-
-        Assert.Equal(new[] { "наука" }, rows.Select(row => row.Tag));
-        Assert.Equal(TagSources.Text, rows[0].Source);
+        Assert.Null(result.Task);
+        Assert.Equal(new[] { "наука" }, result.Tags);
+        Assert.Equal(0, await fixture.CountAsync("tasks"));
     }
 
     [Fact]
@@ -250,18 +248,5 @@ public sealed class TagIntakeTests
         // Теги не записались — значит, и задачи, и действия быть не должно.
         Assert.Equal(0, await fixture.CountAsync("tasks"));
         Assert.Equal(0, await fixture.CountAsync("actions"));
-    }
-
-    [Fact]
-    public async Task Failing_tag_store_rolls_back_ask_branch()
-    {
-        using var fixture = new TagIntakeFixture(tags: new FailingTagStore());
-
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => fixture.Intake.IntakeAsync("вопрос про энтропию #наука", "test", intentHint: "ask"));
-
-        Assert.Equal(0, await fixture.CountAsync("tasks"));
-        Assert.Equal(0, await fixture.CountAsync("actions"));
-        Assert.Null(await fixture.LastLinkedTaskIdAsync());
     }
 }

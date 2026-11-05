@@ -73,6 +73,8 @@ public static class ApiEndpoints
         api.MapPost("/api/reminders/{id:guid}/snooze", snoozeReminderHandler);
         api.MapGet("/api/firmware", firmwareInfoHandler);
         api.MapGet("/api/firmware/image", firmwareImageHandler);
+        api.MapGet("/api/questions", listQuestionsHandler);
+        api.MapPost("/api/questions/{id:guid}/task", createQuestionTaskHandler);
 
         return endpoints;
     }
@@ -929,15 +931,26 @@ public static class ApiEndpoints
     private static async Task<IResult> listActionsHandler(
         Guid? taskId,
         int? limit,
+        string? q,
         MuguraRouter router,
         CancellationToken cancellationToken)
     {
         // Журнал действий читается командой: у HTTP и MCP одна выдача и одна проверка.
         int take = Math.Clamp(limit ?? ListActionsHandler.DefaultLimit, 1, ListActionsHandler.MaxLimit);
 
+        var args = new JsonObject
+        {
+            ["taskId"] = taskId?.ToString(),
+            ["limit"] = take,
+        };
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            args["query"] = q.Trim();
+        }
+
         JsonNode? result = await router.RouteAsync(
             "list_actions",
-            new JsonObject { ["taskId"] = taskId?.ToString(), ["limit"] = take },
+            args,
             context: null,
             cancellationToken).ConfigureAwait(false);
 
@@ -1257,5 +1270,77 @@ public static class ApiEndpoints
         httpContext.Response.Headers.ETag = $"\"{sha256}\"";
         httpContext.Response.Headers.CacheControl = "no-store";
         return Results.File(stream, "application/octet-stream", enableRangeProcessing: false);
+    }
+
+    private static async Task<IResult> listQuestionsHandler(
+        int? limit,
+        int? offset,
+        string? q,
+        IQuestionStore questionStore,
+        CancellationToken cancellationToken)
+    {
+        int take = Math.Clamp(limit ?? 50, 1, 500);
+        int skip = Math.Max(0, offset ?? 0);
+        IReadOnlyList<QuestionRecord> questions = await questionStore
+            .ListAsync(take, skip, q, cancellationToken)
+            .ConfigureAwait(false);
+
+        return Results.Ok(questions);
+    }
+
+    private static async Task<IResult> createQuestionTaskHandler(
+        Guid id,
+        IQuestionStore questionStore,
+        MuguraRouter router,
+        IContextRegistry contexts,
+        CancellationToken cancellationToken)
+    {
+        QuestionRecord? question = await questionStore.GetAsync(id, cancellationToken).ConfigureAwait(false);
+        if (question is null)
+        {
+            return Results.NotFound(new { error = "Вопрос не найден." });
+        }
+
+        if (question.TaskId is Guid existingTaskId)
+        {
+            JsonNode getResult = await router.RouteAsync(
+                "get_task",
+                new JsonObject { ["taskId"] = existingTaskId.ToString() },
+                contexts.GetDefaultContext(),
+                cancellationToken).ConfigureAwait(false);
+
+            if (getResult is JsonObject getPayload && getPayload["found"]?.GetValue<bool>() == true)
+            {
+                TaskDto? existingTask = ApiMapping.FromTaskJson(getPayload);
+                if (existingTask is not null)
+                {
+                    return Results.Ok(existingTask);
+                }
+            }
+        }
+
+        JsonNode? result = await router.RouteAsync(
+            "add_task",
+            new JsonObject
+            {
+                ["text"] = question.Question,
+                ["source"] = "question",
+            },
+            contexts.GetDefaultContext(),
+            cancellationToken).ConfigureAwait(false);
+
+        if (result is JsonObject payload
+            && payload["taskId"] is JsonValue value
+            && value.TryGetValue(out string? textGuid)
+            && Guid.TryParse(textGuid, out Guid createdId))
+        {
+            await questionStore.LinkTaskAsync(id, createdId, cancellationToken).ConfigureAwait(false);
+            TaskDto? created = ApiMapping.FromTaskJson(payload);
+            return created is null
+                ? Results.Created($"/api/tasks/{createdId}", payload)
+                : Results.Created($"/api/tasks/{createdId}", created);
+        }
+
+        return Results.BadRequest(new { error = "Не удалось создать задачу из вопроса." });
     }
 }

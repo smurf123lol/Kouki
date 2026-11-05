@@ -88,9 +88,14 @@ public sealed class SqliteActionLog : IActionLog
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<ActionRecord>> ListAsync(int limit, Guid? taskId = null, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ActionRecord>> ListAsync(
+        int limit,
+        Guid? taskId = null,
+        string? query = null,
+        CancellationToken cancellationToken = default)
     {
         int take = Math.Clamp(limit, 1, 500);
+        string? pattern = string.IsNullOrWhiteSpace(query) ? null : $"%{query.Trim()}%";
 
         await using SqliteLease lease = await _session.OpenAsync(cancellationToken).ConfigureAwait(false);
 
@@ -100,10 +105,19 @@ public sealed class SqliteActionLog : IActionLog
                 SELECT {SelectColumns}
                 FROM actions
                 WHERE (@taskId IS NULL OR task_id = @taskId)
+                  AND (@pattern IS NULL OR (
+                       intent LIKE @pattern
+                    OR command LIKE @pattern
+                    OR source LIKE @pattern
+                    OR outcome LIKE @pattern
+                    OR error LIKE @pattern
+                    OR args_json LIKE @pattern
+                    OR result_json LIKE @pattern
+                  ))
                 ORDER BY created_at DESC
                 LIMIT @limit;
                 """,
-                new { taskId = taskId?.ToString(), limit = take },
+                new { taskId = taskId?.ToString(), pattern, limit = take },
                 transaction: lease.Transaction,
                 cancellationToken: cancellationToken)).ConfigureAwait(false);
 

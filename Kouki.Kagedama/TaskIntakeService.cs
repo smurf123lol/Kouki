@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.Json.Nodes;
+using Kouki.Kagedama.Commands;
 using Kouki.Kagedama.Data;
 using Kouki.Shimi.Context;
 using Kouki.Yasabi;
@@ -49,6 +51,7 @@ public sealed class TaskIntakeService
     private readonly IClassificationJournal? _journal;
     private readonly IUnitOfWork? _work;
     private readonly ITagStore? _tags;
+    private readonly IQuestionStore _questions;
 
     /// <summary>
     /// Создаёт сервис приёма.
@@ -61,6 +64,8 @@ public sealed class TaskIntakeService
     /// <param name="options">Настройки приёма.</param>
     /// <param name="journal">Журнал распознавания: сюда дописываются источник фразы и данные ASR.</param>
     /// <param name="work">Граница транзакции; без неё каждая запись идёт своим соединением.</param>
+    /// <param name="tags">Хранилище тегов.</param>
+    /// <param name="questions">Хранилище вопросов (T105).</param>
     public TaskIntakeService(
         IIntentClassifier classifier,
         IIntentRouter router,
@@ -70,7 +75,8 @@ public sealed class TaskIntakeService
         IntakeOptions options,
         IClassificationJournal journal,
         IUnitOfWork? work = null,
-        ITagStore? tags = null)
+        ITagStore? tags = null,
+        IQuestionStore? questions = null)
     {
         ArgumentNullException.ThrowIfNull(classifier);
         ArgumentNullException.ThrowIfNull(router);
@@ -88,6 +94,7 @@ public sealed class TaskIntakeService
         _journal = journal ?? throw new ArgumentNullException(nameof(journal));
         _work = work;
         _tags = tags;
+        _questions = questions ?? NullQuestionStore.Instance;
     }
 
     /// <summary>
@@ -261,6 +268,31 @@ public sealed class TaskIntakeService
         IReadOnlyList<string> modelTags = NormalizeModelTags(intent.Tags, textTags);
         IReadOnlyList<string> persistedTags = textTags.Concat(modelTags).ToArray();
 
+        // Проверяем диалоговый follow-up: продолжение диалога с фразой «запиши это / сохрани в задачи».
+        string? dialogueQuestion = null;
+        string? dialogueAnswer = null;
+        if (continueDialogue && !string.IsNullOrWhiteSpace(source) && context?.StateStore is not null)
+        {
+            string stateKey = $"dialogue:last:{source.Trim()}";
+            var lastTurn = await context.StateStore.GetAsync<LastDialogueTurn>(stateKey, cancellationToken).ConfigureAwait(false);
+            if (lastTurn is not null && DateTimeOffset.UtcNow - lastTurn.At <= AskHandler.DialogueTtl)
+            {
+                dialogueQuestion = lastTurn.Question;
+                dialogueAnswer = lastTurn.Answer;
+            }
+        }
+
+        bool isDialogueSave = dialogueQuestion is not null && IsSaveDialoguePhrase(trimmed);
+        if (isDialogueSave)
+        {
+            intent = intent with
+            {
+                Intent = "add_task",
+                Score = 1.0,
+                Model = intent.Model + "+dialogue_save",
+            };
+        }
+
         // Отдельного порога для распознавания речи нет: sherpa-onnx не отдаёт вероятность,
         // а смысл фразы оценивает классификатор интента — он и решает, отправлять ли на разбор.
         if (!intent.IsConfident(_options.ConfidenceThreshold))
@@ -294,31 +326,34 @@ public sealed class TaskIntakeService
             };
         }
 
-        // Вопрос — не задача, но и не мусор: ему нужна запись, чтобы ответ было где искать.
-        // Задачу создаёт приём (а не команда), поэтому идентификатор сразу попадает в слоты.
-        TaskRecord? recorded = null;
-        if (IsRecorded(intent.Intent))
-        {
-            recorded = await InTransactionAsync(async () =>
-            {
-                TaskRecord question = await AddTaskAsync(
-                    trimmed, source, new IntentRoute(intent, null, null, false, null), TaskStatuses.New,
-                    ActionOutcomes.Executed, asrConfidence, audioPath, cancellationToken, classifierVerdict).ConfigureAwait(false);
-
-                await LinkJournalAsync(classificationId, question.Id, cancellationToken).ConfigureAwait(false);
-
-                await AttachTagsAsync(question.Id, textTags, TagSources.Text, cancellationToken).ConfigureAwait(false);
-                await AttachTagsAsync(question.Id, modelTags, TagSources.Model, cancellationToken).ConfigureAwait(false);
-                return question;
-            }, cancellationToken).ConfigureAwait(false);
-        }
-
         // Уверенная фраза: всё уходит в роутер, он найдёт команду и вызовет диспатчер.
-        IntentResult enriched = await EnrichSlotsAsync(intent, trimmed, source, recorded?.Id, continueDialogue, cancellationToken).ConfigureAwait(false);
+        string effectiveText = isDialogueSave && !string.IsNullOrWhiteSpace(dialogueQuestion) ? dialogueQuestion : trimmed;
+        IntentResult enriched = await EnrichSlotsAsync(intent, effectiveText, source, null, continueDialogue, cancellationToken).ConfigureAwait(false);
         IntentRoute route = await _router.RouteAsync(enriched, context, cancellationToken).ConfigureAwait(false);
 
         string? errorText = route.Error ?? PayloadError(route.Result);
         bool failed = errorText is not null;
+
+        // Вопрос пишется в журнал вопросов, не создавая задач на доске.
+        if (string.Equals(intent.Intent, "ask", StringComparison.OrdinalIgnoreCase))
+        {
+            string answer = ExtractAnswer(route.Result) ?? string.Empty;
+            string? model = ExtractString(route.Result, "answerer");
+            long? duration = route.Result?["answerMs"]?.GetValue<long?>();
+
+            var questionRecord = new QuestionRecord(
+                Guid.NewGuid(),
+                DateTimeOffset.UtcNow.ToString("o", CultureInfo.InvariantCulture),
+                source,
+                trimmed,
+                answer,
+                TaskId: null,
+                Model: model,
+                DurationMs: duration,
+                AudioPath: audioPath);
+
+            await _questions.AddAsync(questionRecord, cancellationToken).ConfigureAwait(false);
+        }
 
         // Задачу могла создать команда (add_task): она явно помечает ответ флагом "created".
         Guid? taskId = ParseTaskId(route.Result);
@@ -341,7 +376,7 @@ public sealed class TaskIntakeService
             // иначе в tasks не останется следа, почему задача вообще появилась.
             if (created is not null)
             {
-                string metaJson = BuildMeta(route, route.Executed, outcome, asrConfidence, audioPath, text: text, classifierVerdict: classifierVerdict);
+                string metaJson = BuildMeta(route, route.Executed, outcome, asrConfidence, audioPath, isDialogueSave ? dialogueAnswer : null, text: effectiveText, classifierVerdict: classifierVerdict);
                 await _store.UpdateAsync(created.Id, null, null, null, metaJson, cancellationToken).ConfigureAwait(false);
 
                 // Команда создала задачу — но не знает про журнал распознавания: ссылка
@@ -350,26 +385,26 @@ public sealed class TaskIntakeService
                 await AttachTagsAsync(created.Id, textTags, TagSources.Text, cancellationToken).ConfigureAwait(false);
                 await AttachTagsAsync(created.Id, modelTags, TagSources.Model, cancellationToken).ConfigureAwait(false);
                 created.MetaJson = metaJson;
-            }
 
-            // Запись под вопрос: ответ команды кладём в мету задачи — это и есть «result таска».
-            if (recorded is not null)
-            {
-                string metaJson = BuildMeta(route, route.Executed, outcome, asrConfidence, audioPath, ExtractAnswer(route.Result), text, classifierVerdict, ExtractString(route.Result, "answerer"));
-                await _store.UpdateAsync(recorded.Id, null, null, null, metaJson, cancellationToken).ConfigureAwait(false);
-                recorded.MetaJson = metaJson;
+                if (isDialogueSave && dialogueQuestion is not null)
+                {
+                    IReadOnlyList<QuestionRecord> recent = await _questions.ListAsync(5, 0, dialogueQuestion, cancellationToken).ConfigureAwait(false);
+                    if (recent.Count > 0)
+                    {
+                        await _questions.LinkTaskAsync(recent[0].Id, created.Id, cancellationToken).ConfigureAwait(false);
+                    }
+                }
             }
 
             return await RecordActionAsync(
-                taskId ?? recorded?.Id, classificationId, source, intent.Intent, route.CommandName, outcome,
+                taskId, classificationId, source, intent.Intent, route.CommandName, outcome,
                 enriched.Slots?.ToJsonString(), route.Result?.ToJsonString(), errorText,
                 started, cancellationToken).ConfigureAwait(false);
         }, cancellationToken).ConfigureAwait(false);
 
-        TaskRecord? result = recorded ?? created;
-        return new IntakeResult(result, route, route.Executed && !failed, outcome, action)
+        return new IntakeResult(created, route, route.Executed && !failed, outcome, action)
         {
-            Tags = result is null ? Array.Empty<string>() : persistedTags,
+            Tags = persistedTags,
         };
     }
 
@@ -558,6 +593,14 @@ public sealed class TaskIntakeService
         return false;
     }
 
+    private static bool IsSaveDialoguePhrase(string text)
+    {
+        string lower = text.Trim().ToLowerInvariant();
+        return lower is "запиши это" or "сохрани это" or "запиши в задачи" or "сохрани в задачи"
+            or "сделай задачей" or "в задачи" or "запиши" or "сохрани"
+            || ((lower.StartsWith("запиши") || lower.StartsWith("сохрани")) && lower.Length <= 30);
+    }
+
     /// <summary>
     /// Подставляет слоты, которые знает только хост: текст фразы, источник и
     /// последнюю открытую задачу для <c>complete_task</c> без явного идентификатора.
@@ -570,16 +613,13 @@ public sealed class TaskIntakeService
         bool continueDialogue,
         CancellationToken cancellationToken)
     {
-        // Запись под вопросом: команде нужен и текст, и идентификатор задачи, чтобы ответ
-        // лёг в ту же строку.
-        if (recordId is Guid recordedId)
+        if (string.Equals(intent.Intent, "ask", StringComparison.OrdinalIgnoreCase))
         {
             return intent with
             {
                 Slots = new JsonObject
                 {
                     ["text"] = text,
-                    ["taskId"] = recordedId.ToString(),
                     ["source"] = source,
                     ["continueDialogue"] = continueDialogue,
                 },
@@ -594,7 +634,6 @@ public sealed class TaskIntakeService
                 {
                     ["text"] = text,
                     ["source"] = source,
-
                 },
             };
         }

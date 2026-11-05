@@ -65,12 +65,7 @@ public sealed class IntakeOptions
     public bool ActionFailuresAreFatal { get; set; }
 
     /// <summary>
-    /// Интенты, для которых приём сам создаёт задачу-запись, даже если её создаёт не команда:
-    /// вопрос (<c>ask</c>) сохраняется вместе с ответом, чтобы его было где искать.
+    /// Интенты, для которых приём сам создаёт задачу-запись (в T105 вопросы вынесены в IQuestionStore, список по умолчанию пуст).
     /// </summary>
-    /// <remarks>
-    /// Список намеренно короткий: всё остальное либо создаёт задачу командой (<c>add_task</c>),
-    /// либо не создаёт её вовсе (<c>list_tasks</c>, <c>complete_task</c>).
-    /// </remarks>
-    public IReadOnlyCollection<string> RecordedIntents { get; set; } = new[] { "ask" };
+    public IReadOnlyCollection<string> RecordedIntents { get; set; } = Array.Empty<string>();
 }

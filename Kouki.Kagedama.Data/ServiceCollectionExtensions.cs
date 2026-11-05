@@ -40,6 +40,7 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IReminderStore>(sp => new SqliteReminderStore(sp.GetRequiredService<SqliteSession>()));
         services.TryAddSingleton<ITagStore>(sp => new SqliteTagStore(sp.GetRequiredService<SqliteSession>()));
         services.TryAddSingleton<IRequestLog>(sp => new SqliteRequestLog(sp.GetRequiredService<SqliteSession>()));
+        services.TryAddSingleton<IQuestionStore>(sp => new SqliteQuestionStore(sp.GetRequiredService<SqliteSession>()));
 
         return services;
     }

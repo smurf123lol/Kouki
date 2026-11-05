@@ -40,6 +40,11 @@
         <span class="tile-value" id="count-tasks">—</span>
         <span class="tile-hint">список и статусы</span>
     </button>
+    <button class="tile" data-tab="questions">
+        <span class="tile-label">вопросы</span>
+        <span class="tile-value" id="count-questions">—</span>
+        <span class="tile-hint">история и ответы</span>
+    </button>
     <button class="tile" data-tab="review">
         <span class="tile-label">на разборе</span>
         <span class="tile-value" id="count-review">—</span>
@@ -131,6 +136,15 @@
         </div>
     </section>
 
+    <section class="panel" id="panel-questions" hidden>
+        <div class="panel-head">
+            <h2>Вопросы</h2>
+            <span class="meta">история диалогов и ответы модели</span>
+            <span class="meta" id="questions-meta"></span>
+        </div>
+        <div class="list" id="questions-list"></div>
+    </section>
+
     <section class="panel" id="panel-review" hidden>
         <div class="panel-head">
             <h2>Разбор</h2>
@@ -208,6 +222,9 @@
             <h2>Действия</h2>
             <span class="meta">одна строка на каждое действие</span>
             <span class="meta" id="actions-meta"></span>
+        </div>
+        <div class="actions-search-bar" style="margin-bottom: 12px;">
+            <input type="search" id="actions-search" placeholder="Поиск по действиям (команда, интент, текст, ошибка)..." style="width: 100%; max-width: 480px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card); color: inherit; font-size: 13px;">
         </div>
         <div class="table-wrap">
             <table class="grid" id="actions-table">
