@@ -282,6 +282,7 @@ rsync -a --delete \
     "$FROM_REAL"/ "$APP_DIR_REAL"/ || fail_after_change "rsync API завершился с ошибкой"
 rsync -a --delete "$FROM_REAL/bot/" "$APP_DIR_REAL/bot/" || fail_after_change "rsync бота завершился с ошибкой"
 rsync -a --delete "$FROM_REAL/mcp/" "$MCP_DIR_REAL"/ || fail_after_change "rsync MCP завершился с ошибкой"
+chmod -R u=rwX,go=rX "$APP_DIR_REAL" "$MCP_DIR_REAL" 2>/dev/null || true
 echo "Файлы обновлены"
 
 if [ "$NO_RESTART" -eq 1 ]; then

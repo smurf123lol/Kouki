@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
 Публикует сервер Kouki для Linux (framework-dependent, с нативными библиотеками).
 
@@ -105,6 +105,14 @@ foreach ($name in $required) {
     if (-not (Test-Path (Join-Path $Output $name))) { $missing += $name }
 }
 if (-not $NoSpeech) {
+    # При наличии и sherpa-onnx, и Microsoft.ML.OnnxRuntime гарантируем sherpa-версию libonnxruntime.so
+    $sherpaOrt = Get-ChildItem (Join-Path $env:USERPROFILE ".nuget\packages\org.k2fsa.sherpa.onnx.runtime.$Runtime") -Recurse -Filter 'libonnxruntime.so' -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($sherpaOrt) {
+        Copy-Item -Force $sherpaOrt.FullName (Join-Path $Output 'libonnxruntime.so')
+        $mcpDir = Join-Path $Output 'mcp'
+        if (Test-Path $mcpDir) { Copy-Item -Force $sherpaOrt.FullName (Join-Path $mcpDir 'libonnxruntime.so') }
+    }
+
     $natives = @(Get-ChildItem $Output -Recurse -File -Filter '*.so' | ForEach-Object { $_.Name })
     foreach ($name in 'libonnxruntime.so', 'libsherpa-onnx-c-api.so') {
         if ($natives -notcontains $name) { $missing += $name }

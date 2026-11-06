@@ -193,6 +193,15 @@ for name in Kagedama.api.dll appsettings.json wwwroot/app.js \
 done
 
 if [ "$SPEECH" = true ]; then
+    # Если подключены и sherpa-onnx, и Microsoft.ML.OnnxRuntime, publish может положить
+    # libonnxruntime.so от Microsoft (без VERS_1.28.2, нужного libsherpa-onnx-c-api.so).
+    # Версия sherpa-onnx содержит и VERS_1.28.2, и OrtGetApiBase, совместима с обоими.
+    sherpa_ort=$(find ~/.nuget/packages/org.k2fsa.sherpa.onnx.runtime."$RUNTIME" -name libonnxruntime.so -print -quit 2>/dev/null || true)
+    if [ -n "$sherpa_ort" ] && [ -f "$sherpa_ort" ]; then
+        cp -f "$sherpa_ort" "$STAGE/libonnxruntime.so"
+        [ -d "$STAGE/mcp" ] && cp -f "$sherpa_ort" "$STAGE/mcp/libonnxruntime.so" || true
+    fi
+
     for name in libonnxruntime.so libsherpa-onnx-c-api.so; do
         # Нативки могут лежать в подкаталоге рантайма, поэтому ищем по всему артефакту.
         if ! find "$STAGE" -type f -name "$name" -print -quit | grep -q .; then
