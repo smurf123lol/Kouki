@@ -1,3 +1,7 @@
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+
 using Kouki.Kagedama.Commands;
 using Kouki.Kagedama.Contracts;
 using Kouki.Kotae;
@@ -376,5 +380,70 @@ public sealed class AskAnswerTests
         Assert.True(result["dialogueContinue"]!.GetValue<bool>());
         Assert.False(result["dialogueFound"]!.GetValue<bool>());
         Assert.Equal("ответ", result["answer"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task A_reasoning_only_answer_is_retried_with_thinking_off()
+    {
+        using var listener = new HttpListener();
+        var port = FreePort();
+        listener.Prefixes.Add($"http://127.0.0.1:{port}/");
+        listener.Start();
+
+        var bodies = new List<string>();
+        var server = Task.Run(async () =>
+        {
+            for (var i = 0; i < 2; i++)
+            {
+                var context = await listener.GetContextAsync();
+                using var reader = new StreamReader(context.Request.InputStream, Encoding.UTF8);
+                var body = await reader.ReadToEndAsync();
+                lock (bodies)
+                {
+                    bodies.Add(body);
+                }
+
+                var json = i == 0
+                    ? """{"choices":[{"message":{"role":"assistant","content":"","reasoning_content":"долго думаю"},"finish_reason":"length"}]}"""
+                    : """{"choices":[{"message":{"role":"assistant","content":"9 минут"},"finish_reason":"stop"}]}""";
+                var bytes = Encoding.UTF8.GetBytes(json);
+                context.Response.ContentType = "application/json";
+                context.Response.ContentLength64 = bytes.Length;
+                await context.Response.OutputStream.WriteAsync(bytes);
+                context.Response.Close();
+            }
+        });
+
+        var options = new KotaeOptions
+        {
+            Provider = KotaeProvider.OpenAi,
+            ApiKey = "local",
+            Endpoint = $"http://127.0.0.1:{port}/v1",
+            TimeoutSeconds = 10,
+        };
+
+        try
+        {
+            var answer = await new OpenAiChatAnswerer(options).AnswerAsync("Сколько варить яйцо?");
+
+            Assert.Equal("9 минут", answer.Text);
+            Assert.Equal(2, bodies.Count);
+            Assert.DoesNotContain("chat_template_kwargs", bodies[0]);
+            Assert.Contains("\"enable_thinking\":false", bodies[1]);
+        }
+        finally
+        {
+            listener.Stop();
+            await server;
+        }
+    }
+
+    private static int FreePort()
+    {
+        using var probe = new TcpListener(IPAddress.Loopback, 0);
+        probe.Start();
+        var port = ((IPEndPoint)probe.LocalEndpoint).Port;
+        probe.Stop();
+        return port;
     }
 }

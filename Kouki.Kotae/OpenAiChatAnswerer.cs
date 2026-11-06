@@ -95,17 +95,57 @@ public sealed class OpenAiChatAnswerer : IAnswerer
                 throw new AnswererException(DescribeFailure(response.StatusCode, body));
             }
 
-            var text = KotaePrompt.Clean(ExtractText(body));
+            var text = TryExtractText(body, out var problem);
+
+            // Локальная «думающая» модель (Qwen3.5) может истратить весь max_tokens
+            // на reasoning и вернуть пустой content. Один раз повторяем запрос с
+            // принудительно выключенным размышлением — без правки env.
+            if (text is null && problem == ReasoningOnlyProblem && !_options.DisableThinking)
+            {
+                text = await RetryQuietAsync(question, context, timeout.Token).ConfigureAwait(false);
+                problem = text is null ? ReasoningProblemText : null;
+            }
+
+            if (text is null)
+            {
+                throw new AnswererException(problem!);
+            }
 
             stopwatch.Stop();
-            return new Answer(text, Signature, stopwatch.ElapsedMilliseconds);
+            return new Answer(KotaePrompt.Clean(text), Signature, stopwatch.ElapsedMilliseconds);
         }
     }
 
-    private string BuildBody(string question, AnswerContext? context = null) => BuildPayload(_options, question, context).ToJsonString();
+    private const string ReasoningOnlyProblem = "только рассуждала";
+
+    private const string ReasoningProblemText =
+        "модель только рассуждала и не дала ответа — включите Kouki:Answerer:DisableThinking";
+
+    /// <summary>Повторный запрос с принудительно выключенным размышлением.</summary>
+    private async Task<string?> RetryQuietAsync(string question, AnswerContext context, CancellationToken token)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"{_options.ResolveEndpoint()}/chat/completions")
+        {
+            Content = new StringContent(BuildBody(question, context, disableThinking: true), Encoding.UTF8, "application/json"),
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
+
+        using var response = await Client.SendAsync(request, token).ConfigureAwait(false);
+        var body = await response.Content.ReadAsStringAsync(token).ConfigureAwait(false);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new AnswererException(DescribeFailure(response.StatusCode, body));
+        }
+
+        return TryExtractText(body, out _);
+    }
+
+    private string BuildBody(string question, AnswerContext? context = null, bool? disableThinking = null)
+        => BuildPayload(_options, question, context, disableThinking).ToJsonString();
 
     /// <summary>Собирает тело запроса <c>/chat/completions</c> (отдельно — чтобы покрыть тестом).</summary>
-    public static JsonObject BuildPayload(KotaeOptions options, string question, AnswerContext? context = null)
+    public static JsonObject BuildPayload(KotaeOptions options, string question, AnswerContext? context = null, bool? disableThinking = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentException.ThrowIfNullOrWhiteSpace(question);
@@ -133,7 +173,7 @@ public sealed class OpenAiChatAnswerer : IAnswerer
             ["stream"] = false,
         };
 
-        if (options.DisableThinking)
+        if (disableThinking ?? options.DisableThinking)
         {
             // llama.cpp отдаёт эти ключи шаблону чата модели: выключает размышление
             // и включает «разговорный» режим — ответ сразу короткой фразой.
@@ -147,8 +187,10 @@ public sealed class OpenAiChatAnswerer : IAnswerer
         return payload;
     }
 
-    private static string ExtractText(string body)
+    /// <summary>Достаёт текст ответа; при пустом content возвращает причину в <paramref name="problem"/>.</summary>
+    private static string? TryExtractText(string body, out string? problem)
     {
+        problem = null;
         JsonNode? root;
         try
         {
@@ -168,12 +210,13 @@ public sealed class OpenAiChatAnswerer : IAnswerer
         var reasoning = root?["choices"]?[0]?["message"]?["reasoning_content"]?.GetValue<string>();
         if (!string.IsNullOrWhiteSpace(reasoning))
         {
-            throw new AnswererException(
-                "модель только рассуждала и не дала ответа — включите Kouki:Answerer:DisableThinking");
+            problem = ReasoningOnlyProblem;
+            return null;
         }
 
         var finish = root?["choices"]?[0]?["finish_reason"]?.GetValue<string>();
-        throw new AnswererException($"модель вернула пустой ответ (finish_reason: {finish ?? "нет"})");
+        problem = $"модель вернула пустой ответ (finish_reason: {finish ?? "нет"})";
+        return null;
     }
 
     private static string DescribeFailure(HttpStatusCode status, string body)
