@@ -31,7 +31,8 @@ public sealed record AddTaskCommand(
     "add_task",
     Description = "Создаёт задачу из фразы",
     Category = CommandCategory.Navigation,
-    Example = "запиши задачу купить хлеб")]
+    Example = "запиши задачу купить хлеб",
+    PhrasesFile = "Phrases/add_task.txt")]
 public sealed class AddTaskHandler : ICommandHandler<AddTaskCommand>
 {
     private readonly ITaskStore _store;
@@ -144,7 +145,8 @@ public sealed record ListTasksCommand(
     "list_tasks",
     Description = "Показывает последние задачи",
     Category = CommandCategory.Navigation,
-    Example = "покажи мои задачи")]
+    Example = "покажи мои задачи",
+    PhrasesFile = "Phrases/list_tasks.txt")]
 public sealed class ListTasksHandler : ICommandHandler<ListTasksCommand>
 {
     /// <summary>
@@ -464,7 +466,8 @@ public sealed record CompleteTaskCommand(string? TaskId = null) : ICommand;
     "complete_task",
     Description = "Закрывает задачу по идентификатору",
     Category = CommandCategory.Navigation,
-    Example = "готово, закрывай задачу")]
+    Example = "готово, закрывай задачу",
+    PhrasesFile = "Phrases/complete_task.txt")]
 public sealed class CompleteTaskHandler : ICommandHandler<CompleteTaskCommand>
 {
     private readonly ITaskStore _store;

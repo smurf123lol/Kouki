@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Kouki.IntentDataset</AssemblyName>
+    <RootNamespace>Kouki.IntentDataset</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Kouki.Kagedama\Kouki.Kagedama.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Фразы классов, которые не принадлежат командам, и единый список классов живут
+      в datasets/intents/ репозитория. Сборщик ищет их от каталога приложения,
+      поэтому копируем рядом с исполняемым файлом (Link сохраняет путь datasets/intents).
+    -->
+    <Content Include="..\..\datasets\intents\classes.json" Link="datasets\intents\classes.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\datasets\intents\chat.txt" Link="datasets\intents\chat.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

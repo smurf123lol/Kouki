@@ -87,6 +87,55 @@ public class CommandRegistryTests
     }
 
     [Fact]
+    public void Phrases_file_is_copied_from_attribute_to_registry_entry()
+    {
+        using var provider = TestHost.Build();
+        var registry = provider.GetRequiredService<CommandRegistry>();
+
+        var entry = registry.GetEntry("fixture-phrases");
+
+        Assert.NotNull(entry);
+        Assert.Equal("Phrases/fixture-phrases.txt", entry!.PhrasesFile);
+    }
+
+    [Fact]
+    public void Commands_without_phrases_file_have_null()
+    {
+        using var provider = TestHost.Build();
+        var registry = provider.GetRequiredService<CommandRegistry>();
+
+        Assert.Null(registry.GetEntry("ping")!.PhrasesFile);
+    }
+
+    [Fact]
+    public void Voice_commands_declare_phrase_files_journal_commands_do_not()
+    {
+        // Контракт датасета (спека T80 §2): фразы есть у семи голосовых команд,
+        // у patch_task и журнальных/админских их нет.
+        var registry = new CommandRegistry(new[] { typeof(Kouki.Kagedama.Commands.AddTaskHandler).Assembly });
+
+        string[] voice =
+        [
+            "add_task", "list_tasks", "complete_task",
+            "add_reminder", "list_reminders", "complete_reminder", "ask",
+        ];
+        foreach (string name in voice)
+        {
+            Assert.False(string.IsNullOrWhiteSpace(registry.GetEntry(name)!.PhrasesFile), name);
+        }
+
+        string[] withoutPhrases =
+        [
+            "patch_task", "list_actions", "list_classifications",
+            "label_classification", "export_dataset", "list_telemetry",
+        ];
+        foreach (string name in withoutPhrases)
+        {
+            Assert.Null(registry.GetEntry(name)!.PhrasesFile);
+        }
+    }
+
+    [Fact]
     public void Command_attribute_rejects_empty_name()
     {
         Assert.Throws<ArgumentException>(() => new CommandAttribute(" "));

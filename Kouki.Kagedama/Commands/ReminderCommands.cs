@@ -24,7 +24,8 @@ public sealed record AddReminderCommand(string? Text = null, Guid? TaskId = null
     "add_reminder",
     Description = "Напоминает о деле в нужное время",
     Category = CommandCategory.Integration,
-    Example = "напомни через 20 минут позвонить маме")]
+    Example = "напомни через 20 минут позвонить маме",
+    PhrasesFile = "Phrases/add_reminder.txt")]
 public sealed class AddReminderHandler : ICommandHandler<AddReminderCommand>
 {
     private readonly IReminderStore _reminders;
@@ -105,7 +106,8 @@ public sealed record ListRemindersCommand(int? Limit = null, bool? OpenOnly = nu
     "list_reminders",
     Description = "Показывает ближайшие напоминания",
     Category = CommandCategory.Navigation,
-    Example = "какие у меня напоминания")]
+    Example = "какие у меня напоминания",
+    PhrasesFile = "Phrases/list_reminders.txt")]
 public sealed class ListRemindersHandler : ICommandHandler<ListRemindersCommand>
 {
     private readonly IReminderStore _reminders;
@@ -225,7 +227,8 @@ public sealed record CompleteReminderCommand(Guid Id) : ICommand;
     "complete_reminder",
     Description = "Отмечает напоминание выполненным",
     Category = CommandCategory.Integration,
-    Example = "готово с напоминанием")]
+    Example = "готово с напоминанием",
+    PhrasesFile = "Phrases/complete_reminder.txt")]
 public sealed class CompleteReminderHandler : ICommandHandler<CompleteReminderCommand>
 {
     private readonly IReminderStore _reminders;

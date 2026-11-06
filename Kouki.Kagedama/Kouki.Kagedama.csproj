@@ -20,6 +20,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      Фразы команд — данные, а не код: их читает сборщик датасета (tools/Kouki.IntentDataset)
+      и обучение RuBERT. Путь в [Command] задан относительно каталога приложения,
+      поэтому файлы обязаны оказаться в выводе сборки. Содержимое — перенос 1:1 из
+      прежнего SEED_DATA (T80), править тексты можно только осознанно: это эталонный корпус.
+    -->
+    <None Remove="Commands/Phrases/*.txt" />
+    <Content Include="Commands/Phrases/*.txt" Link="Phrases/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Kouki.Mugura\Kouki.Mugura.csproj" />
     <ProjectReference Include="..\Kouki.Yasabi\Kouki.Yasabi.csproj" />
     <ProjectReference Include="..\Kouki.Kagedama.Data\Kouki.Kagedama.Data.csproj" />
