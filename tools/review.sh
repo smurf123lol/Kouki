@@ -91,25 +91,34 @@ resolve_dir() {
 }
 
 # Путь из -r: сначала от текущего каталога, затем от корня воркспейса (найденного
-# вверх от cwd) и от каталога репозитория, в котором лежит скрипт. Так «-r Kouki»
-# работает и из корня воркспейса, и изнутри репозитория, и из дерева задачи —
-# раньше относительный путь, не разрешимый от cwd, ошибался или давал пустой пакет.
+# вверх от cwd) и от корня репозитория, в котором лежит скрипт (определён выше как
+# REPO по пути скрипта). Так «-r Kouki» работает и из корня воркспейса, и изнутри
+# репозитория, и из дерева задачи — раньше относительный путь, не разрешимый от cwd,
+# ошибался или давал пустой пакет.
+#
+# Кандидат принимается, только если это git-репозиторий: иначе каталог с тем же именем
+# (например, `Kouki` с вложенным `Kouki/`) затенял бы настоящий репозиторий из следующего
+# кандидата, и мы бы падали «не репозиторий» вместо того, чтобы поискать ещё.
+SCRIPT_REPO="$REPO"
 REPO_IN="$REPO"
 REPO=""
-for candidate in "$REPO_IN" "$(find_workspace "$PWD")/$REPO_IN" "$(dirname "$SCRIPT_DIR")/$REPO_IN"; do
-    if REPO="$(resolve_dir "$candidate")"; then
+
+resolve_repo() {
+    local dir
+    dir="$(resolve_dir "$1")" || return 1
+    git -C "$dir" rev-parse --git-dir >/dev/null 2>&1 || return 2
+    REPO="$dir"
+}
+
+for candidate in "$REPO_IN" "$(find_workspace "$PWD")/$REPO_IN" "$SCRIPT_REPO/$REPO_IN"; do
+    if resolve_repo "$candidate"; then
         break
     fi
 done
 if [ -z "$REPO" ]; then
-    echo "Каталог не найден: $REPO_IN (искал от $PWD, от корня воркспейса и от $SCRIPT_DIR)" >&2
+    echo "Репозиторий не найден: $REPO_IN (искал от $PWD, от корня воркспейса и от '$SCRIPT_REPO')" >&2
     exit 2
 fi
-
-git -C "$REPO" rev-parse --git-dir >/dev/null 2>&1 || {
-    echo "Не репозиторий: $REPO" >&2
-    exit 2
-}
 
 
 WORKSPACE="$(find_workspace "$REPO")"
