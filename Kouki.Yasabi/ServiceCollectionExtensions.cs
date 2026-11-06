@@ -44,14 +44,24 @@ public static class ServiceCollectionExtensions
             // формулировок. По умолчанию они работают связкой: правила отвечают первыми,
             // модель подключается только на фразах, где правила не уверены.
             IIntentClassifier rules = sp.GetRequiredService<RuleIntentClassifier>();
-            IIntentClassifier inner = rules;
+            IIntentClassifier level1 = rules;
+
+            if (!string.IsNullOrWhiteSpace(intentOptions.OnnxModelPath)
+                && File.Exists(intentOptions.OnnxModelPath)
+                && !string.IsNullOrWhiteSpace(intentOptions.OnnxVocabPath)
+                && File.Exists(intentOptions.OnnxVocabPath))
+            {
+                level1 = new OnnxIntentClassifier(intentOptions.OnnxModelPath, intentOptions.OnnxVocabPath);
+            }
+
+            IIntentClassifier inner = level1;
 
             if (intentOptions.Llm is { Enabled: true, UseForIntake: true })
             {
                 var llm = new LlmIntentClassifier(new HttpClient(), intentOptions.Llm);
 
                 inner = intentOptions.HybridForIntake
-                    ? new HybridIntentClassifier(rules, llm, intentOptions.HybridFallbackBelow)
+                    ? new HybridIntentClassifier(level1, llm, intentOptions.HybridFallbackBelow)
                     : llm;
             }
 
@@ -67,14 +77,22 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IClassifierCatalog>(sp =>
         {
             ClassifierCatalog catalog = new ClassifierCatalog().Add("rules", sp.GetRequiredService<RuleIntentClassifier>());
+            YasabiOptions intentOptions = sp.GetRequiredService<YasabiOptions>();
+
+            if (!string.IsNullOrWhiteSpace(intentOptions.OnnxModelPath)
+                && File.Exists(intentOptions.OnnxModelPath)
+                && !string.IsNullOrWhiteSpace(intentOptions.OnnxVocabPath)
+                && File.Exists(intentOptions.OnnxVocabPath))
+            {
+                catalog.Add(OnnxIntentClassifier.ModelName, new OnnxIntentClassifier(intentOptions.OnnxModelPath, intentOptions.OnnxVocabPath));
+            }
+
             LlmIntentOptions llm = sp.GetRequiredService<LlmIntentOptions>();
 
             if (llm.Enabled)
             {
                 var llmClassifier = new LlmIntentClassifier(new HttpClient(), llm);
                 catalog.Add(LlmIntentClassifier.ModelName, llmClassifier);
-
-                YasabiOptions intentOptions = sp.GetRequiredService<YasabiOptions>();
 
                 if (llm.UseForIntake && intentOptions.HybridForIntake)
                 {

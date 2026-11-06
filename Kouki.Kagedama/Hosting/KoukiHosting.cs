@@ -57,6 +57,11 @@ public sealed record KoukiHostSettings
     public string? TimeZone { get; init; }
 
     /// <summary>
+    /// Каталог с моделью классификации интентов RuBERT (rubert-tiny2-intents.onnx, vocab.txt).
+    /// </summary>
+    public string? IntentModelDirectory { get; init; }
+
+    /// <summary>
     /// Режим тегов по умолчанию, см. <see cref="TagModes"/>. Неизвестное значение — ошибка запуска.
     /// </summary>
     public string TagMode { get; init; } = TagModes.Extract;
@@ -151,6 +156,17 @@ public static class KoukiHosting
 
             options.HybridForIntake = settings.HybridIntents;
             options.HybridFallbackBelow = settings.HybridFallbackBelow;
+
+            if (!string.IsNullOrWhiteSpace(settings.IntentModelDirectory))
+            {
+                string modelPath = Path.Combine(settings.IntentModelDirectory, "rubert-tiny2-intents.onnx");
+                string vocabPath = Path.Combine(settings.IntentModelDirectory, "vocab.txt");
+                if (File.Exists(modelPath) && File.Exists(vocabPath))
+                {
+                    options.OnnxModelPath = modelPath;
+                    options.OnnxVocabPath = vocabPath;
+                }
+            }
         });
         services.AddSingleton(new IntakeOptions
         {
@@ -158,10 +174,20 @@ public static class KoukiHosting
             DefaultSource = settings.DefaultSource,
             TagMode = settings.TagMode,
             TagModeBySource = settings.TagModeBySource,
+            AsyncModelTagging = true,
         });
         services.AddSingleton<TaskIntakeService>();
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton(_ => ReminderTimeZones.Resolve(settings.TimeZone));
+        services.TryAddSingleton<ITaskTitleGenerator>(sp =>
+        {
+            if (settings.IntentLlm is { Enabled: true } llm)
+            {
+                return new LlmTaskTitleGenerator(new HttpClient(), llm.Endpoint, llm.Model, RuleTaskTitleGenerator.Instance);
+            }
+
+            return RuleTaskTitleGenerator.Instance;
+        });
 
         // Ответчик подключается всегда: без ключа это DisabledAnswerer, и в
         // диагностике видно причину, а команда ask отвечает заглушкой.

@@ -19,7 +19,8 @@ public sealed record AddTaskCommand(
     string? Text = null,
     string? Source = null,
     Guid? ParentId = null,
-    int? Priority = null) : ICommand;
+    int? Priority = null,
+    string? Title = null) : ICommand;
 
 /// <summary>
 /// Создаёт задачу: единственная команда, которая это делает.
@@ -34,13 +35,18 @@ public sealed record AddTaskCommand(
 public sealed class AddTaskHandler : ICommandHandler<AddTaskCommand>
 {
     private readonly ITaskStore _store;
+    private readonly ITaskTitleGenerator? _titleGenerator;
 
     /// <summary>
     /// Создаёт обработчик создания задачи.
     /// </summary>
     /// <param name="store">Хранилище задач.</param>
-    public AddTaskHandler(ITaskStore store)
-        => _store = store ?? throw new ArgumentNullException(nameof(store));
+    /// <param name="titleGenerator">Генератор чистого заголовка; при null заголовок строится по TaskTitles.Make.</param>
+    public AddTaskHandler(ITaskStore store, ITaskTitleGenerator? titleGenerator = null)
+    {
+        _store = store ?? throw new ArgumentNullException(nameof(store));
+        _titleGenerator = titleGenerator;
+    }
 
     /// <inheritdoc />
     public async Task<JsonNode> HandleAsync(
@@ -76,7 +82,16 @@ public sealed class AddTaskHandler : ICommandHandler<AddTaskCommand>
         }
 
         string source = string.IsNullOrWhiteSpace(command.Source) ? TaskSources.Command : command.Source.Trim();
-        TaskRecord record = TaskFactory.Create(command.Text, source);
+        string rawText = command.Text.Trim();
+        string cleanTitle = !string.IsNullOrWhiteSpace(command.Title)
+            ? command.Title.Trim()
+            : _titleGenerator is not null
+                ? await _titleGenerator.GenerateTitleAsync(rawText, cancellationToken).ConfigureAwait(false)
+                : TaskTitles.Make(rawText);
+
+        TaskRecord record = TaskFactory.Create(rawText, source);
+        record.Title = cleanTitle;
+        record.RawText = rawText;
 
         // Дерево и позицию досчитывает хранилище в той же транзакции, что и вставку.
         record.ParentId = command.ParentId;
