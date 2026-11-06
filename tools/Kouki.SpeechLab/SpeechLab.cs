@@ -13,11 +13,13 @@ using System.Text;
 /// </remarks>
 internal static class SpeechLab
 {
-    private const string DefaultAsr =
-        @"models\asr\sherpa-onnx-whisper-small";
+    // Path.Combine, а не строка с обратными слэшами: на Linux они — часть имени
+    // каталога, и SpeechLab искал бы «models\asr\…» вместо models/asr/….
+    private static readonly string DefaultAsr =
+        Path.Combine("models", "asr", "sherpa-onnx-whisper-small");
 
-    private const string DefaultTts =
-        @"models\tts\vits-piper-ru_RU-irina-medium";
+    private static readonly string DefaultTts =
+        Path.Combine("models", "tts", "vits-piper-ru_RU-irina-medium");
 
     /// <summary>Точка входа.</summary>
     public static int Run(string[] args)

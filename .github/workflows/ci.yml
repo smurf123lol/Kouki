@@ -98,6 +98,151 @@ jobs:
           --no-build --configuration Release -p:KoukiEnableSherpa=true
           --logger "console;verbosity=normal"
 
+  # Сквозной прогон станции без платы и без человека: синтезируем фразу, шлём её
+  # как станция, проверяем удачный путь и отказы (401/415/400). Падает, если
+  # контракт станция ↔ сервер сломан — раньше это ловили руками.
+  e2e:
+    name: E2E станции (без платы)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Станция живёт отдельным репозиторием, скрипт прогона — там.
+      # Репозиторий публичный, отдельный токен не нужен (см. §5 спеки T28).
+      - name: Checkout станции
+        uses: actions/checkout@v4
+        with:
+          repository: smurf123lol/kouki-station
+          path: kouki-station
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Кеш NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-e2e-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'global.json') }}
+          restore-keys: nuget-e2e-${{ runner.os }}-
+
+      # Модели большие и качаются с GitHub Releases, поэтому лежат в кеше.
+      # Ключ привязан к скриптам, где записаны имена/версии моделей: поменяли
+      # модель в scripts/fetch-*.ps1 — кеш пересоберётся.
+      - name: Кеш моделей ASR/TTS
+        uses: actions/cache@v4
+        with:
+          path: |
+            models/asr
+            models/tts
+          key: models-${{ runner.os }}-${{ hashFiles('scripts/fetch-asr-model.ps1', 'scripts/fetch-tts-model.ps1') }}
+
+      - name: Модели (при промахе кеша)
+        # Скрипты скачивания кладут архив в $env:TEMP; на Linux-раннере этой переменной
+        # нет, и Join-Path падает. Даём ей каталог раннера, в репозиторий ничего не пишем.
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          # ASR нужен серверу, TTS — Kouki.SpeechLab для синтеза фразы.
+          if [ ! -d models/asr/sherpa-onnx-whisper-small ]; then pwsh scripts/fetch-asr-model.ps1; fi
+          if [ ! -d models/tts/vits-piper-ru_RU-irina-medium ]; then pwsh scripts/fetch-tts-model.ps1; fi
+
+      - name: Restore
+        run: dotnet restore Kouki.slnx -p:KoukiEnableSherpa=true
+
+      - name: Build
+        run: dotnet build Kouki.slnx --no-restore --configuration Release -p:KoukiEnableSherpa=true
+
+      # В решение входит Kouki.Yasabi с Microsoft.ML.OnnxRuntime, и в bin API он
+      # кладёт свой libonnxruntime.so — без VERS_1.28.2, который нужен
+      # libsherpa-onnx-c-api.so. Тот же обход делает tools/publish-linux.sh:197-202.
+      - name: Нативная библиотека sherpa
+        run: |
+          set -euo pipefail
+          sherpa_ort="$(find "$HOME/.nuget/packages/org.k2fsa.sherpa.onnx.runtime.linux-x64" -name libonnxruntime.so -print -quit)"
+          cp -f "$sherpa_ort" Kagedama.api/bin/Release/net10.0/runtimes/linux-x64/native/libonnxruntime.so
+
+      - name: Каталоги прогона
+        run: mkdir -p "$RUNNER_TEMP/e2e/audio"
+
+      - name: Запуск API
+        env:
+          Kouki__Token: ci-e2e-token
+          Kouki__DatabasePath: ${{ runner.temp }}/e2e/kouki.sqlite
+          Kouki__AudioDirectory: ${{ runner.temp }}/e2e/audio
+          Kouki__SpeechModelDirectory: ${{ github.workspace }}/models/asr/sherpa-onnx-whisper-small
+          # Голос озвучивания: путь по умолчанию относителен каталогу приложения,
+          # а в сборке с sherpa без найденного голоса endpoint с ISpeechSynthesizer
+          # не регистрируется и /api/health отвечает 500. TTS уже скачан для синтеза.
+          Kouki__SpeechVoiceDirectory: ${{ github.workspace }}/models/tts
+          Kouki__SpeechVoice: ru_RU-irina-medium
+          ASPNETCORE_URLS: http://127.0.0.1:5300
+        run: |
+          set -euo pipefail
+          nohup dotnet Kagedama.api/bin/Release/net10.0/Kagedama.api.dll > server.log 2>&1 &
+          echo "SERVER_PID=$!" >> "$GITHUB_ENV"
+          disown || true
+
+      - name: Ожидание /api/health
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 60); do
+            code="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5300/api/health || true)"
+            if [ "$code" = "200" ]; then
+              echo "Сервер ответил за ${attempt} с"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Сервер не ответил за 60 с — лог:"
+          cat server.log
+          exit 1
+
+      # Токен тестовый и несекретный: это переменная job, а не секрет.
+      - name: Прогон add_task (14 проверок)
+        run: |
+          set -o pipefail
+          pwsh kouki-station/tools/e2e-station.ps1 \
+            -Server http://127.0.0.1:5300 \
+            -Token ci-e2e-token \
+            -SpeechLab "$GITHUB_WORKSPACE/tools/Kouki.SpeechLab/bin/Release/net10.0/Kouki.SpeechLab" \
+            -Intent add_task 2>&1 | tee e2e-add_task.log
+
+      - name: Прогон ask (11 проверок)
+        run: |
+          set -o pipefail
+          pwsh kouki-station/tools/e2e-station.ps1 \
+            -Server http://127.0.0.1:5300 \
+            -Token ci-e2e-token \
+            -SpeechLab "$GITHUB_WORKSPACE/tools/Kouki.SpeechLab/bin/Release/net10.0/Kouki.SpeechLab" \
+            -Phrase "Сколько минут варить пельмени?" \
+            -Intent ask 2>&1 | tee e2e-ask.log
+
+      - name: Артефакты при провале
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-logs
+          path: |
+            server.log
+            e2e-add_task.log
+            e2e-ask.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Остановка сервера
+        if: always()
+        run: |
+          if [ -n "${SERVER_PID:-}" ] && kill -0 "$SERVER_PID" 2>/dev/null; then
+            kill "$SERVER_PID" || true
+          fi
+
   scripts:
     name: Скрипты развёртывания
     runs-on: ubuntu-latest
