@@ -4,6 +4,8 @@ on:
   push:
     branches: [ master, main, dev ]
   pull_request:
+  # Кнопка «Run workflow»: job e2e проверяют на настоящем раннере до мержа в master.
+  workflow_dispatch:
 
 # Один прогон на ветку: новый пуш отменяет старый.
 concurrency:
