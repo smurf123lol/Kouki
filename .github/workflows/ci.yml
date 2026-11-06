@@ -286,6 +286,9 @@ jobs:
           node-version: '22'
 
       # Клиент MCP без внешних зависимостей: тесты гоняют транспорт на фейковом спавне.
+      # Без аргумента: на Node 22 `node --test test/` падает «Cannot find module …
+      # /test» (каталог как аргумент не разрешается), а `node --test` сам находит
+      # `test/**/*.test.mjs`. Проверено локально: v22.22.1 — та же ошибка.
       - name: Test
         working-directory: dsh-kouki
-        run: node --test test/
+        run: node --test
