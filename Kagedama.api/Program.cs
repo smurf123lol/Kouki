@@ -15,6 +15,7 @@ using Kouki.Un;
 using Kouki.Ubusuna;
 using Kouki.Ubusuna.DependencyInjection;
 using Kouki.Yasabi;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -143,51 +144,18 @@ builder.Services.AddUbusuna();
 // с -p:KoukiEnableSherpa=true подключается настоящее распознавание.
 // Модели может не быть (свежая установка, чужой сервер): это повод работать
 // без распознавания, а не падать на старте — поэтому каталог проверяем до
-// регистрации распознавателя.
-string? speechFallbackReason = null;
-string? voiceFallbackReason = null;
-#if KOUKI_SHERPA
-if (Kouki.Un.SpeechModelCheck.TryValidate(serverOptions.SpeechModelDirectory, out string? modelProblem))
-{
-    Kouki.Un.Sherpa.ServiceCollectionExtensions.AddUnSherpa(
-        builder.Services,
-        sherpa =>
-        {
-            sherpa.ModelDirectory = serverOptions.SpeechModelDirectory;
-            sherpa.Language = serverOptions.SpeechLanguage;
-        });
-
-    // Голос — та же библиотека: без каталога голоса озвучивание просто выключается,
-    // распознавание при этом продолжает работать.
-    string? defaultVoiceDir = Kouki.Un.SpeechVoiceResolver.ResolveVoiceDirectory(
+// регистрации распознавателя. Решение вынесено в SpeechRegistration, чтобы
+// четыре ветки регистрации проверялись тестами, а не только руками (T108).
+SpeechRegistration.Result speech = SpeechRegistration.AddSpeech(
+    builder.Services,
+    new SpeechRegistration.SpeechSettings(
+        serverOptions.SpeechModelDirectory,
+        serverOptions.SpeechLanguage,
         serverOptions.SpeechVoiceDirectory,
         serverOptions.SpeechVoice,
-        serverOptions.SpeechVoice);
-
-    if (defaultVoiceDir is not null)
-    {
-        Kouki.Un.Sherpa.ServiceCollectionExtensions.AddUnSherpaVoice(
-            builder.Services,
-            voice =>
-            {
-                voice.VoiceDirectory = serverOptions.SpeechVoiceDirectory;
-                voice.DefaultVoice = serverOptions.SpeechVoice;
-                voice.MaxLoadedVoices = serverOptions.SpeechMaxLoadedVoices;
-            });
-    }
-    else
-    {
-        voiceFallbackReason = $"голос по умолчанию '{serverOptions.SpeechVoice}' не найден в '{serverOptions.SpeechVoiceDirectory}'";
-    }
-}
-else
-{
-    speechFallbackReason = modelProblem;
-    builder.Services.AddUn();
-}
-#else
-builder.Services.AddUn();
-#endif
+        serverOptions.SpeechMaxLoadedVoices));
+string? speechFallbackReason = speech.SpeechFallbackReason;
+string? voiceFallbackReason = speech.VoiceFallbackReason;
 
 // Голос: распознавание приходит из Kouki.Un (пока заглушка), склейка — VoiceIntakeService.
 builder.Services.AddSingleton<IAudioStore>(sp =>

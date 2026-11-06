@@ -30,6 +30,7 @@
     <ProjectReference Include="..\Kouki.Yasabi\Kouki.Yasabi.csproj" />
     <ProjectReference Include="..\Shimi\Shimi.csproj" />
     <ProjectReference Include="..\Ubusuna\Ubusuna.csproj" />
+    <ProjectReference Include="..\tools\Kouki.IntentDataset\Kouki.IntentDataset.csproj" />
   </ItemGroup>
 
   <ItemGroup>

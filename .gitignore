@@ -381,3 +381,6 @@ kouki.sqlite
 station-db/
 station-audio/
 audio/
+
+# датасет интентов собирается из фраз команд и журнала (T80): артефакт, не исходник
+datasets/intents/*.jsonl

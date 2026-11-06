@@ -58,7 +58,8 @@ public sealed class CommandRegistry
                     RequiresConfirmation: attr.RequiresConfirmation,
                     Category: attr.Category,
                     ValidationRules: ExtractValidationRules(commandType).AsReadOnly(),
-                    Example: attr.Example
+                    Example: attr.Example,
+                    PhrasesFile: attr.PhrasesFile
                 );
 
                 builderByName[attr.Name] = entry;
