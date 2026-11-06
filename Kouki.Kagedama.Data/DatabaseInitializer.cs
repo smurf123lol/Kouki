@@ -61,10 +61,13 @@ public static class DatabaseInitializer
         EnsureColumn(connection, "classifications", "hinted_intent", "TEXT NULL");
 
         // Идентификаторы пишутся текстом в нижнем регистре. Раньше Guid, переданный параметром,
-        // попадал в файл в верхнем регистре — выравниваем уже сохранённые строки.
-        command.CommandText = "UPDATE tasks SET id = lower(id) WHERE id <> lower(id); " +
-            "UPDATE classifications SET id = lower(id) WHERE id <> lower(id);";
-        command.ExecuteNonQuery();
+        // попадал в файл в верхнем регистре — выравниваем уже сохранённые строки ровно один раз:
+        // признак «приведено» хранится в PRAGMA user_version. Без него UPDATE сканировал бы
+        // tasks и classifications на каждом старте сервера.
+        if (ReadUserVersion(connection) < IdentifierCaseVersion)
+        {
+            MigrateIdentifierCase(connection);
+        }
 
         // Дерево было позже задач: колонки добавляются после выравнивания идентификаторов,
         // иначе tree_id у старой базы остался бы в верхнем регистре.
@@ -74,6 +77,50 @@ public static class DatabaseInitializer
         EnsureRequestLogSchema(connection);
 
         return fullPath;
+    }
+
+    /// <summary>
+    /// Версия разовых миграций в <c>PRAGMA user_version</c> (целое в заголовке файла SQLite).
+    /// </summary>
+    /// <remarks>
+    /// 1 — идентификаторы <c>tasks.id</c> и <c>classifications.id</c> приведены к нижнему регистру.
+    /// Будущие разовые миграции получают следующие номера; идемпотентные <c>Ensure*</c> версией
+    /// не управляются.
+    /// </remarks>
+    private const int IdentifierCaseVersion = 1;
+
+    /// <summary>
+    /// Читает <c>PRAGMA user_version</c>: 0 — разовые миграции ещё не выполнялись.
+    /// </summary>
+    private static int ReadUserVersion(SqliteConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA user_version;";
+        return Convert.ToInt32(command.ExecuteScalar());
+    }
+
+    /// <summary>
+    /// Приводит уже сохранённые идентификаторы к нижнему регистру и запоминает это в
+    /// <c>PRAGMA user_version</c>.
+    /// </summary>
+    /// <remarks>
+    /// Оба <c>UPDATE</c> и запись версии идут в одной транзакции: состояния «версия есть,
+    /// данные не приведены» быть не должно. Ошибка внутри транзакции откатывает всё,
+    /// версия остаётся 0, и следующий старт повторит попытку.
+    /// </remarks>
+    private static void MigrateIdentifierCase(SqliteConnection connection)
+    {
+        using var transaction = connection.BeginTransaction();
+        using (var command = connection.CreateCommand())
+        {
+            command.Transaction = transaction;
+            command.CommandText = "UPDATE tasks SET id = lower(id) WHERE id <> lower(id); " +
+                "UPDATE classifications SET id = lower(id) WHERE id <> lower(id); " +
+                $"PRAGMA user_version = {IdentifierCaseVersion};";
+            command.ExecuteNonQuery();
+        }
+
+        transaction.Commit();
     }
 
     /// <summary>
