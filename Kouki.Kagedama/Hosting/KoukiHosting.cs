@@ -188,6 +188,15 @@ public static class KoukiHosting
 
             return RuleTaskTitleGenerator.Instance;
         });
+        services.TryAddSingleton<ITaskTagGenerator>(sp =>
+        {
+            if (settings.IntentLlm is { Enabled: true } llm)
+            {
+                return new LlmTaskTagGenerator(new HttpClient(), llm.Endpoint, llm.Model);
+            }
+
+            return NullTaskTagGenerator.Instance;
+        });
 
         // Ответчик подключается всегда: без ключа это DisabledAnswerer, и в
         // диагностике видно причину, а команда ask отвечает заглушкой.

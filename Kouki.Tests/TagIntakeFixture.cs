@@ -27,7 +27,8 @@ internal sealed class TagIntakeFixture : IDisposable
     public TagIntakeFixture(
         IIntentClassifier? classifier = null,
         IntakeOptions? options = null,
-        ITagStore? tags = null)
+        ITagStore? tags = null,
+        ITaskTagGenerator? tagGenerator = null)
     {
         DirectoryPath = Path.Combine(Path.GetTempPath(), "kouki-tag-intake-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(DirectoryPath);
@@ -62,7 +63,9 @@ internal sealed class TagIntakeFixture : IDisposable
             },
             sp.GetRequiredService<IClassificationJournal>(),
             sp.GetRequiredService<IUnitOfWork>(),
-            tags ?? sp.GetRequiredService<ITagStore>()));
+            tags ?? sp.GetRequiredService<ITagStore>(),
+            null,
+            tagGenerator));
 
         Provider = services.BuildServiceProvider();
         Provider.GetRequiredService<IContextRegistry>().SetDefaultContext(TestHost.Context("server"));
