@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Kouki.IntentDataset;
 
 /// <summary>
@@ -15,6 +17,8 @@ public static class PhraseFileReader
     /// <summary>Маркер строки-комментария.</summary>
     public const char CommentMarker = '#';
 
+    private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+
     /// <summary>
     /// Читает фразы из файла и проверяет формат. Любая поломка — <see cref="DatasetException"/>
     /// с точным текстом из спецификации.
@@ -29,11 +33,29 @@ public static class PhraseFileReader
             throw new DatasetException($"{owner}: '{displayPath}' не найден (ожидался в '{resolvedPath}').");
         }
 
-        string[] lines = File.ReadAllLines(resolvedPath);
+        // Спека §2: файл строго в UTF-8 без BOM. File.ReadAllLines молча снимает BOM
+        // и подставляет U+FFFD на cp1251, поэтому декодируем сами и падаем fail-closed.
+        byte[] bytes = File.ReadAllBytes(resolvedPath);
+        if (HasUtf8Bom(bytes))
+        {
+            throw new DatasetException($"{owner}: файл должен быть в UTF-8 без BOM.");
+        }
+
+        string content;
+        try
+        {
+            content = StrictUtf8.GetString(bytes);
+        }
+        catch (DecoderFallbackException)
+        {
+            throw new DatasetException($"{owner}: файл не является корректным UTF-8.");
+        }
+
+        string[] lines = content.Split('\n');
         var phrases = new List<string>();
         for (int index = 0; index < lines.Length; index++)
         {
-            string line = lines[index];
+            string line = lines[index].TrimEnd('\r');
             if (line.Length == 0)
             {
                 continue;
@@ -70,5 +92,10 @@ public static class PhraseFileReader
         }
 
         return phrases;
+    }
+
+    private static bool HasUtf8Bom(byte[] bytes)
+    {
+        return bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF;
     }
 }

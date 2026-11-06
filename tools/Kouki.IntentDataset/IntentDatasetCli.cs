@@ -75,6 +75,12 @@ public static class IntentDatasetCli
 
             if (string.IsNullOrWhiteSpace(options.OutPath))
             {
+                // --stats без --out — это отчёт, а не сборка: счётчики уже напечатаны.
+                if (options.Stats)
+                {
+                    return ExitSuccess;
+                }
+
                 throw new DatasetException("Не задан путь вывода: --out <path>.");
             }
 
@@ -225,9 +231,21 @@ public static class IntentDatasetCli
         if (build.DuplicateTextsAcrossClasses.Count > 0)
         {
             stdout.WriteLine($"Дубли текстов между классами: {build.DuplicateTextsAcrossClasses.Count}.");
-            foreach (string text in build.DuplicateTextsAcrossClasses.Take(10))
+            foreach (DuplicateText duplicate in build.DuplicateTextsAcrossClasses.Where(static duplicate => !duplicate.HasJournalSource).Take(10))
             {
-                stdout.WriteLine($"  {text}");
+                stdout.WriteLine($"  {duplicate.Text}");
+            }
+
+            // Тексты из журнала — живые фразы человека: печатаем только счётчик и классы.
+            DuplicateText[] fromJournal = build.DuplicateTextsAcrossClasses
+                .Where(static duplicate => duplicate.HasJournalSource)
+                .ToArray();
+            if (fromJournal.Length > 0)
+            {
+                string journalClasses = string.Join(
+                    ", ",
+                    fromJournal.SelectMany(static duplicate => duplicate.Labels).Distinct(StringComparer.Ordinal).OrderBy(static label => label, StringComparer.Ordinal));
+                stdout.WriteLine($"  из журнала: {fromJournal.Length} — тексты не печатаются (классы: {journalClasses}).");
             }
         }
         else
@@ -242,10 +260,11 @@ public static class IntentDatasetCli
         stdout.WriteLine();
         stdout.WriteLine("Использование:");
         stdout.WriteLine("  Kouki.IntentDataset --out <path> [--db <path>] [--journal-weight <n>] [--stats]");
+        stdout.WriteLine("  Kouki.IntentDataset --stats [--db <path>] — только счётчики, без записи");
         stdout.WriteLine("  Kouki.IntentDataset --check [--db <path>]");
         stdout.WriteLine();
         stdout.WriteLine("Аргументы:");
-        stdout.WriteLine("  --out <path>            куда писать JSONL (обязательно без --check)");
+        stdout.WriteLine("  --out <path>            куда писать JSONL (обязательно, если не --check и не --stats)");
         stdout.WriteLine("  --db <path>             SQLite с журналом classifications; без него — только файлы");
         stdout.WriteLine("  --journal-weight <n>    вес записи журнала, по умолчанию 3");
         stdout.WriteLine("  --check                 только проверить вход и вернуть код 0/1");

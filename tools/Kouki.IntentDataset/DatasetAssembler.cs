@@ -109,6 +109,7 @@ public static class DatasetAssembler
         }
 
         var labelsByText = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        var journalTexts = new HashSet<string>(StringComparer.Ordinal);
         foreach (DatasetRecord record in records)
         {
             if (!labelsByText.TryGetValue(record.Text, out HashSet<string>? labels))
@@ -118,12 +119,19 @@ public static class DatasetAssembler
             }
 
             labels.Add(record.Label);
+            if (string.Equals(record.Source, "journal", StringComparison.Ordinal))
+            {
+                journalTexts.Add(record.Text);
+            }
         }
 
-        string[] duplicates = labelsByText
+        DuplicateText[] duplicates = labelsByText
             .Where(static pair => pair.Value.Count > 1)
-            .Select(static pair => pair.Key)
-            .OrderBy(static text => text, StringComparer.Ordinal)
+            .OrderBy(static pair => pair.Key, StringComparer.Ordinal)
+            .Select(pair => new DuplicateText(
+                pair.Key,
+                classes.Where(pair.Value.Contains).ToArray(),
+                journalTexts.Contains(pair.Key)))
             .ToArray();
 
         return new DatasetBuild

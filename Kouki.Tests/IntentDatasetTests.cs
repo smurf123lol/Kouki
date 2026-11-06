@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Kouki.IntentDataset;
 using Microsoft.Data.Sqlite;
@@ -224,6 +225,64 @@ public sealed class IntentDatasetTests
         }
 
         Assert.Contains("Итого: 8 классов", result.Output);
+    }
+
+    [Fact]
+    public void Stats_without_out_succeeds_and_does_not_write()
+    {
+        CliResult result = Run("--stats");
+
+        Assert.Equal(IntentDatasetCli.ExitSuccess, result.Code);
+        Assert.Empty(result.Error);
+        Assert.Contains("Итого: 8 классов", result.Output);
+        Assert.DoesNotContain("Датасет записан", result.Output);
+    }
+
+    [Fact]
+    public void Phrase_file_with_bom_fails_with_exact_message()
+    {
+        using var temp = new TempDirectory();
+        string phrasesRoot = CopyPhrasesTo(temp.Path);
+        string path = Path.Combine(phrasesRoot, "Phrases", "add_task.txt");
+        byte[] body = Encoding.UTF8.GetBytes("купить хлеб\n");
+        File.WriteAllBytes(path, [0xEF, 0xBB, 0xBF, .. body]);
+
+        CliResult result = RunWithPhraseRoot(phrasesRoot, "--out", Path.Combine(temp.Path, "dataset.jsonl"));
+
+        Assert.Equal(IntentDatasetCli.ExitInvalid, result.Code);
+        Assert.Equal("Файл фраз команды 'add_task': файл должен быть в UTF-8 без BOM.", result.Error.Trim());
+    }
+
+    [Fact]
+    public void Phrase_file_with_invalid_utf8_fails_with_exact_message()
+    {
+        using var temp = new TempDirectory();
+        string phrasesRoot = CopyPhrasesTo(temp.Path);
+        string path = Path.Combine(phrasesRoot, "Phrases", "add_task.txt");
+        File.WriteAllBytes(path, [0xD0, 0xE8, 0xE2, (byte)'\n']);
+
+        CliResult result = RunWithPhraseRoot(phrasesRoot, "--out", Path.Combine(temp.Path, "dataset.jsonl"));
+
+        Assert.Equal(IntentDatasetCli.ExitInvalid, result.Code);
+        Assert.Equal("Файл фраз команды 'add_task': файл не является корректным UTF-8.", result.Error.Trim());
+    }
+
+    [Fact]
+    public void Stats_hides_duplicate_texts_from_journal()
+    {
+        using var temp = new TempDirectory();
+        string database = Path.Combine(temp.Path, "kouki.sqlite");
+        string journalPhrase = File.ReadAllLines(Path.Combine(AppContext.BaseDirectory, "Phrases", "list_tasks.txt"))
+            .Select(static line => line.Trim())
+            .First(static line => line.Length > 0 && !line.StartsWith('#'));
+        CreateJournal(database, (inputText: journalPhrase, intent: "list_tasks", label: (string?)"add_task"));
+
+        CliResult result = Run("--stats", "--db", database);
+
+        Assert.Equal(IntentDatasetCli.ExitSuccess, result.Code);
+        Assert.Contains("Дубли текстов между классами: 1.", result.Output);
+        Assert.Contains("из журнала: 1 — тексты не печатаются", result.Output);
+        Assert.DoesNotContain(journalPhrase, result.Output);
     }
 
     private static CliResult Run(params string[] args)

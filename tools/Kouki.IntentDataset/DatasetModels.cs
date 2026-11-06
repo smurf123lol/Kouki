@@ -58,6 +58,12 @@ public sealed record DatasetRecord(string Text, string Label, string Source, dou
 /// <param name="Label">Метка: размеченная, а если её нет — интент.</param>
 public sealed record JournalEntry(string Text, string Label);
 
+/// <summary>Текст, который встречается больше чем под одной меткой.</summary>
+/// <param name="Text">Текст фразы.</param>
+/// <param name="Labels">Классы, в которых встречается текст, в порядке модели.</param>
+/// <param name="HasJournalSource">Текст пришёл хотя бы из одной записи журнала — его нельзя печатать.</param>
+public sealed record DuplicateText(string Text, IReadOnlyList<string> Labels, bool HasJournalSource);
+
 /// <summary>Итог сборки: что прочитали и что получилось.</summary>
 public sealed class DatasetBuild
 {
@@ -80,6 +86,6 @@ public sealed class DatasetBuild
     /// <summary>Сколько записей журнала по классам.</summary>
     public required IReadOnlyDictionary<string, int> JournalByClass { get; init; }
 
-    /// <summary>Тексты, которые встречаются больше чем под одной меткой.</summary>
-    public required IReadOnlyList<string> DuplicateTextsAcrossClasses { get; init; }
+    /// <summary>Тексты, которые встречаются больше чем под одной меткой, с пометкой источника.</summary>
+    public required IReadOnlyList<DuplicateText> DuplicateTextsAcrossClasses { get; init; }
 }
