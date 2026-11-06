@@ -54,6 +54,8 @@ serverOptions.SpeechModelDirectory = KoukiPaths.Resolve(
     serverOptions.SpeechModelDirectory, "models", nameof(KoukiServerOptions.SpeechModelDirectory), serverOptions.RequireAbsolutePaths);
 serverOptions.SpeechVoiceDirectory = KoukiPaths.Resolve(
     serverOptions.SpeechVoiceDirectory, "models/tts", nameof(KoukiServerOptions.SpeechVoiceDirectory), serverOptions.RequireAbsolutePaths);
+serverOptions.IntentModelDirectory = KoukiPaths.Resolve(
+    serverOptions.IntentModelDirectory, "models/intent", nameof(KoukiServerOptions.IntentModelDirectory), serverOptions.RequireAbsolutePaths);
 
 // Один экземпляр настроек на всё приложение: и IOptions, и прямой резолв дают уже разрешённые пути.
 builder.Services.AddSingleton(serverOptions);
@@ -133,6 +135,7 @@ builder.Services.AddKoukiCore(new KoukiHostSettings
     IntentLlm = intentLlmOptions,
     TagMode = serverOptions.TagMode,
     TagModeBySource = new Dictionary<string, string>(serverOptions.TagModeBySource, StringComparer.OrdinalIgnoreCase),
+    IntentModelDirectory = serverOptions.IntentModelDirectory,
 });
 builder.Services.AddUbusuna();
 

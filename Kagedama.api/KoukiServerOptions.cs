@@ -117,6 +117,11 @@ public sealed class KoukiServerOptions
     public string SpeechLanguage { get; set; } = "ru";
 
     /// <summary>
+    /// Каталог с моделью классификации интентов RuBERT (rubert-tiny2-intents.onnx, vocab.txt).
+    /// </summary>
+    public string IntentModelDirectory { get; set; } = "models/intent";
+
+    /// <summary>
     /// Каталог голоса для озвучивания ответов (<c>*.onnx</c>, <c>tokens.txt</c>);
     /// пустая строка — озвучивание выключено, <c>/api/speech</c> отвечает 503.
     /// </summary>

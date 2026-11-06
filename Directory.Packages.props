@@ -32,6 +32,10 @@
     <PackageVersion Include="org.k2fsa.sherpa.onnx" Version="1.13.8" />
   </ItemGroup>
 
+  <ItemGroup Label="ONNX Runtime">
+    <PackageVersion Include="Microsoft.ML.OnnxRuntime" Version="1.20.1" />
+  </ItemGroup>
+
   <ItemGroup Label="Тесты">
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.4.0" />
     <PackageVersion Include="xunit" Version="2.4.2" />

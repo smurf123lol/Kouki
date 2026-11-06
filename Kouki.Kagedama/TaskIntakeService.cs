@@ -383,8 +383,31 @@ public sealed class TaskIntakeService
                 // «эта фраза стала этой задачей» нужна датасету, как и у задач на разборе.
                 await LinkJournalAsync(classificationId, created.Id, cancellationToken).ConfigureAwait(false);
                 await AttachTagsAsync(created.Id, textTags, TagSources.Text, cancellationToken).ConfigureAwait(false);
-                await AttachTagsAsync(created.Id, modelTags, TagSources.Model, cancellationToken).ConfigureAwait(false);
                 created.MetaJson = metaJson;
+
+                // Фоновые автотеги модели (П4): не блокируют транзакцию и отдачу ответа пользователю/станции
+                if (modelTags.Count > 0)
+                {
+                    if (_options.AsyncModelTagging)
+                    {
+                        Guid taskIdForTags = created.Id;
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await AttachTagsAsync(taskIdForTags, modelTags, TagSources.Model, CancellationToken.None).ConfigureAwait(false);
+                            }
+                            catch
+                            {
+                                // Фоновое добавление тегов модели не должно ронять процесс
+                            }
+                        });
+                    }
+                    else
+                    {
+                        await AttachTagsAsync(created.Id, modelTags, TagSources.Model, cancellationToken).ConfigureAwait(false);
+                    }
+                }
 
                 if (isDialogueSave && dialogueQuestion is not null)
                 {

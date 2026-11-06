@@ -45,4 +45,15 @@ public sealed class YasabiOptions
     /// модель подключается только на неуверенных фразах.
     /// </summary>
     public bool HybridForIntake { get; set; } = true;
+
+    /// <summary>
+    /// Путь к файлу модели ONNX (rubert-tiny2-intents.onnx).
+    /// Если файл существует, используется как уровень 1 классификации вместо чистых правил.
+    /// </summary>
+    public string? OnnxModelPath { get; set; }
+
+    /// <summary>
+    /// Путь к словарю vocab.txt токенизатора RuBERT.
+    /// </summary>
+    public string? OnnxVocabPath { get; set; }
 }
