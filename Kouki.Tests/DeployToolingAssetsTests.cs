@@ -1044,12 +1044,16 @@ public sealed class DeployToolingAssetsTests
         {
             CreateDeployShape(artifact, app, mcp, stub);
 
-            // Подставной rsync посылает SIGINT родителю во время раскладки API:
-            // trap должен откатить уже скопированные файлы.
+            // Подставной rsync посылает SIGTERM родителю во время раскладки API:
+            // trap должен откатить уже скопированные файлы. Именно TERM, а не INT:
+            // если тесты запущены фоновым процессом (`dotnet test &`), bash на входе
+            // игнорирует SIGINT, SIG_IGN наследуется через exec, и trap на INT не
+            // ставится — тогда тест ложно падал. TERM так не игнорируется и совпадает
+            // с остановкой деплоя через systemd.
             string rsyncPath = Path.Combine(stub, "rsync");
             File.WriteAllText(
                 rsyncPath,
-                "#!/usr/bin/env bash\ncase \"$*\" in\n  *--dry-run*) exec /usr/bin/rsync \"$@\" ;;\n  *artifact*app*) kill -INT \"$PPID\" 2>/dev/null; sleep 0.2; exit 0 ;;\nesac\nexec /usr/bin/rsync \"$@\"\n",
+                "#!/usr/bin/env bash\ncase \"$*\" in\n  *--dry-run*) exec /usr/bin/rsync \"$@\" ;;\n  *artifact*app*) kill -TERM \"$PPID\" 2>/dev/null; sleep 0.2; exit 0 ;;\nesac\nexec /usr/bin/rsync \"$@\"\n",
                 new UTF8Encoding(false));
             Assert.Equal(0, RunBash("-c", $"chmod +x '{rsyncPath}'").Rc);
 
