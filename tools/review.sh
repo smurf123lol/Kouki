@@ -68,19 +68,6 @@ if [ "$MAX_LINES" -lt 1 ]; then
     exit 2
 fi
 
-# Путь из -r может быть относительным (или «.»): нормализуем до абсолютного, иначе
-# поиск воркспейса вверх по dirname зацикливается на каталоге «.».
-REPO_IN="$REPO"
-REPO="$(cd "$REPO" 2>/dev/null && pwd)" || {
-    echo "Каталог не найден: $REPO_IN" >&2
-    exit 2
-}
-
-git -C "$REPO" rev-parse --git-dir >/dev/null 2>&1 || {
-    echo "Не репозиторий: $REPO" >&2
-    exit 2
-}
-
 # Рабочие деревья задач живут в <workspace>/_scratch/wt/<repo>-<task>, поэтому notes
 # и каталог пакета нельзя брать от родителя репозитория — ищем корень воркспейса вверх.
 find_workspace() {
@@ -97,6 +84,33 @@ find_workspace() {
     done
     dirname "$1"
 }
+
+resolve_dir() {
+    [ -d "$1" ] || return 1
+    ( cd "$1" && pwd )
+}
+
+# Путь из -r: сначала от текущего каталога, затем от корня воркспейса (найденного
+# вверх от cwd) и от каталога репозитория, в котором лежит скрипт. Так «-r Kouki»
+# работает и из корня воркспейса, и изнутри репозитория, и из дерева задачи —
+# раньше относительный путь, не разрешимый от cwd, ошибался или давал пустой пакет.
+REPO_IN="$REPO"
+REPO=""
+for candidate in "$REPO_IN" "$(find_workspace "$PWD")/$REPO_IN" "$(dirname "$SCRIPT_DIR")/$REPO_IN"; do
+    if REPO="$(resolve_dir "$candidate")"; then
+        break
+    fi
+done
+if [ -z "$REPO" ]; then
+    echo "Каталог не найден: $REPO_IN (искал от $PWD, от корня воркспейса и от $SCRIPT_DIR)" >&2
+    exit 2
+fi
+
+git -C "$REPO" rev-parse --git-dir >/dev/null 2>&1 || {
+    echo "Не репозиторий: $REPO" >&2
+    exit 2
+}
+
 
 WORKSPACE="$(find_workspace "$REPO")"
 
@@ -131,6 +145,15 @@ if [ -z "$DIFF" ]; then
     DIFF=""
 else
     DIFF_LINES="$(printf '%s\n' "$DIFF" | grep -c '')"
+fi
+
+# Пустой дифф раньше создавал бодрый пакет без изменений: это почти всегда
+# неверная база/голова, и молчать об этом нельзя. Пакет собираем, но громко
+# предупреждаем и завершаемся кодом 3.
+EMPTY_DIFF=""
+if [ "$DIFF_LINES" -eq 0 ]; then
+    EMPTY_DIFF="1"
+    echo "Дифф пуст: '$BASE..$HEAD_REF' не меняет ни одного файла — проверьте базу и голову (пакет всё равно собран)." >&2
 fi
 
 TRUNCATED=""
@@ -185,6 +208,11 @@ fi
     echo "| Ветка | \`$BRANCH\` |"
     echo "| Репозиторий | \`$REPO\` |"
     echo "| **Отпечаток** | \`$FP\` (sha256 по \`git diff --raw\`, 16 символов) |"
+    if [ -n "$EMPTY_DIFF" ]; then
+        echo
+        echo "> ⚠️ **Дифф пуст:** \`$BASE..$HEAD_REF\` не меняет файлов. Проверьте базу"
+        echo "> и голову — ревью пустого набора изменений бессмысленно."
+    fi
     echo
     echo "> Повторное ревью запрашивайте по отпечатку: если \`$FP\` не изменился,"
     echo "> набор изменений тот же, даже если пакет собран заново."
@@ -286,3 +314,7 @@ CHECKLIST
 
 echo "Пакет для ревью: $OUT · отпечаток $FP"
 echo "Файлов в дифе: $FILES_COUNT · строк дифа: $DIFF_LINES${TRUNCATED:+ (обрезано)}"
+
+if [ -n "$EMPTY_DIFF" ]; then
+    exit 3
+fi
