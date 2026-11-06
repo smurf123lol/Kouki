@@ -3,28 +3,25 @@
 train_intent_bert.py
 Обучение RuBERT-tiny2 классификатора интентов для Kouki и экспорт в ONNX.
 
-8 интентов:
-  0: add_task
-  1: list_tasks
-  2: complete_task
-  3: add_reminder
-  4: list_reminders
-  5: complete_reminder
-  6: ask
-  7: chat
+Датасет НЕ генерируется внутри скрипта: он собирается из файлов фраз команд и
+журнала разбора командой
 
-Скрипт собирает обучающий датасет:
-  1. Синтетические эталоны и шаблоны с вариациями (глаголы, формы, вводные слова, пунктуация).
-  2. Реальные фразы из SQLite базы Kouki (/var/lib/kouki/db/kouki.sqlite).
-  3. Обучает BertForSequenceClassification на базе cointegrated/rubert-tiny2 (3 эпохи).
-  4. Проверяет качество (F1 > 0.95) на тестовой выборке.
-  5. Экспортирует модель в ONNX с динамическими осями и сохраняет vocab.txt и intents.json.
+    dotnet run --project tools/Kouki.IntentDataset -- --out datasets/intents/dataset.jsonl
+
+Скрипт читает:
+  1. datasets/intents/dataset.jsonl — строки {"text", "label", "source", "weight"};
+  2. datasets/intents/classes.json — единственный список классов модели (порядок = id).
+
+Вес записи из датасета эмулируется повтором примера в выборке. Аугментация
+(префиксы/суффиксы) остаётся отдельным флагом --augment/--no-augment и по
+умолчанию включена. Модель учится на cointegrated/rubert-tiny2, проверяет
+F1 ≥ 0.95 и экспортирует ONNX с динамическими осями, vocab.txt и intents.json.
 """
 
+import io
 import os
 import sys
 import json
-import sqlite3
 import random
 import argparse
 import numpy as np
@@ -36,335 +33,118 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, f1_score
 
-INTENTS = [
-    "add_task",
-    "list_tasks",
-    "complete_task",
-    "add_reminder",
-    "list_reminders",
-    "complete_reminder",
-    "ask",
-    "chat"
-]
-
-INTENT2ID = {name: i for i, name in enumerate(INTENTS)}
-ID2INTENT = {i: name for i, name in enumerate(INTENTS)}
-
-# Синтетический корпус
-SEED_DATA = {
-    "add_task": [
-        "запиши задачу купить хлеб",
-        "запиши задачу купить молоко и яйца",
-        "надо починить кран на кухне",
-        "сохрани таск сделать презентацию",
-        "добавь дело позвонить врачу",
-        "запиши помыть машину на выходных",
-        "нужно купить новые батарейки",
-        "создай задачу убраться в комнате",
-        "запиши в список дел оплатить интернет",
-        "поставь задачу проверить рабочую почту",
-        "надо не забыть забрать посылку",
-        "запиши купить корм для кота",
-        "сделай задачу заказать пиццу на вечер",
-        "зафиксируй таску поправить баг в коде",
-        "купи билеты на поезд",
-        "надо вызвать сантехника завтра",
-        "запиши пожалуйста переустановить систему",
-        "сохрани задачу сдать анализы в клинике",
-        "добавь таск приготовить вкусный ужин",
-        "надо погладить рубашку к утру",
-        "запиши задачу поменять масло в автомобиле",
-        "добавь задачу вынести мусор",
-        "надо купить подарок на день рождения",
-        "запиши забрать документы из мфц",
-        "сохрани дело полить цветы на балконе",
-        "нужно дописать отчет по проекту",
-        "запиши задачу оплатить коммунальные услуги",
-        "поставь задачу купить кофе в зернах",
-        "запиши в дела почистить ноутбук от пыли",
-        "надо заказать корм для собаки",
-        "запиши отправить резюме в компанию",
-        "создай таск настроить роутер",
-        "запиши дело постирать шторы",
-        "надо распечатать договор",
-        "запиши задачу купить лампочки",
-        "добавь в задачи поменять фильтр для воды",
-        "сохрани в список дел купить кроссовки",
-        "надо записаться на стрижку к мастеру",
-        "запиши проверить тормоза на машине",
-        "нужно сделать резервную копию базы данных",
-        "добавь задачу заказать лекарства в аптеке",
-        "запиши купить новый провод для зарядки",
-        "надо разобрать вещи в шкафу",
-        "сохрани задачу заплатить налоги",
-        "запиши в список тасков собрать чемодан"
-    ],
-    "list_tasks": [
-        "покажи мои задачи",
-        "какие у меня задачи",
-        "список задач",
-        "что мне нужно сделать",
-        "какие дела запланированы",
-        "покажи список дел",
-        "что у меня по задачам",
-        "выведи список тасков",
-        "какие задачи висят",
-        "покажи открытые задачи",
-        "что делать сегодня",
-        "прочитай мои дела",
-        "покажи все задачи",
-        "список моих дел на сегодня",
-        "какие таски в работе",
-        "что у нас по планам",
-        "список дел",
-        "покажи задачи",
-        "какие задачи на сегодня",
-        "озвучь список задач",
-        "какие дела у меня есть",
-        "покажи текущие таски",
-        "что запланировано на день",
-        "выведи активные дела",
-        "какие дела остались",
-        "список активных задач",
-        "покажи невыполненные задачи",
-        "что там по моим задачам",
-        "прочитай список задач",
-        "открой список дел"
-    ],
-    "complete_task": [
-        "выполнил задачу купить молоко",
-        "закрой задачу сделать отчет",
-        "готово задача помыть посуду",
-        "заверши таск пофиксить баг",
-        "я сделал задачу позвонить врачу",
-        "отметь выполненной задачу забрать посылку",
-        "закрой таску",
-        "задача сделана",
-        "готово",
-        "выполнил",
-        "сделал",
-        "завершил дело",
-        "пометь задачу как решенную",
-        "закрой дело купить хлеб",
-        "задача выполнена успешно",
-        "сделал таск настроить сервер",
-        "закрой последнюю задачу",
-        "отметь задачу готовой",
-        "заверши задачу убраться в комнате",
-        "готово оплатить интернет",
-        "выполнил дело помыть машину",
-        "завершить задачу",
-        "отметь выполненным",
-        "я все сделал",
-        "таск закрыт",
-        "дело сделано"
-    ],
-    "add_reminder": [
-        "напомни мне завтра в девять утра позвонить маме",
-        "поставь напоминание через 15 минут выключить духовку",
-        "напомни в понедельник оплатить счета",
-        "создай напоминание через час проверить стирку",
-        "напомни в 18:00 пойти на тренировку",
-        "напомни через полчаса снять чайник с плиты",
-        "поставь напоминалку на 10 утра",
-        "напомни завтра купить таблетки",
-        "сделай напоминание в пятницу вечером встретить гостей",
-        "напомни через 10 минут забрать пиццу",
-        "напоминание на 15:30 совещание с коллегами",
-        "напомни через два часа выпить стакан воды",
-        "напомни вечером позвонить бабушке",
-        "поставь напоминание на завтра в полдень",
-        "напомни через сорок минут забрать ребенка из садика",
-        "создай напоминалку выпить лекарство через 20 минут",
-        "напомни в субботу утром полить цветы",
-        "напомни в три часа дня включить вебинар",
-        "поставь напоминание через пять минут выключить воду",
-        "напомни завтра в восемь проснуться"
-    ],
-    "list_reminders": [
-        "какие у меня напоминания",
-        "покажи список напоминаний",
-        "что у меня в напоминалках",
-        "какие напоминания стоят",
-        "покажи мои напоминания",
-        "список напоминалок",
-        "что мне напомнить сегодня",
-        "выведи напоминания на завтра",
-        "какие есть активные напоминалки",
-        "покажи напоминания",
-        "список напоминаний на сегодня",
-        "какие напоминалки активны",
-        "озвучь напоминания",
-        "прочитай список напоминаний",
-        "что у меня запланировано по напоминаниям",
-        "какие напоминания",
-        "мои напоминания",
-        "список моих напоминаний",
-        "что нужно напомнить",
-        "какие есть напоминания",
-        "озвучь мои напоминания",
-        "покажи все напоминания",
-        "какие стоят напоминалки",
-        "напоминания на сегодня",
-        "напоминания на завтра",
-        "что в напоминаниях",
-        "прочитай все напоминалки",
-        "открой список напоминаний"
-    ],
-    "complete_reminder": [
-        "выполнил напоминание",
-        "закрой напоминание выключить плиту",
-        "готово с напоминанием",
-        "удали напоминание позвонить другу",
-        "сделал напоминалку",
-        "заверши напоминание",
-        "отмени напоминание на вечер",
-        "выполнено напоминание принять таблетки",
-        "закрой напоминалку",
-        "напоминание выполнено",
-        "сними напоминание",
-        "удали напоминалку",
-        "готово напоминание",
-        "выполнил напоминалку выпить воды",
-        "закрой напоминание",
-        "удали напоминание",
-        "сними напоминалку",
-        "отмени напоминание",
-        "заверши напоминалку",
-        "напоминание сделано",
-        "напоминалка закрыта",
-        "удали эту напоминалку",
-        "сделай напоминание выполненным",
-        "отметь напоминание выполненным",
-        "отметь напоминалку сделанной"
-    ],
-    "ask": [
-        "сколько минут варить яйцо",
-        "какая сегодня погода на улице",
-        "почему небо синее",
-        "кто такой Илон Маск",
-        "как приготовить пасту карбонара",
-        "что такое фотосинтез",
-        "сколько километров до луны",
-        "в каком году родился Пушкин",
-        "почему шумит холодильник",
-        "где находится Париж",
-        "сколько будет 25 умножить на 4",
-        "как переводится слово apple",
-        "какой фильм посмотреть сегодня вечером",
-        "расскажи про квантовые компьютеры",
-        "кто автор войны и мира",
-        "сколько времени варить картошку",
-        "что лучше iOS или Android",
-        "почему трава зеленая",
-        "как называется столица Австралии",
-        "когда начался двадцать первый век",
-        "сколько дней в високосном году",
-        "как работает двигатель внутреннего сгорания",
-        "кто открыл закон всемирного тяготения",
-        "какая самая высокая гора на земле",
-        "почему идет дождь",
-        "как научиться играть на гитаре",
-        "что приготовить на обед быстро и вкусно",
-        "какое сегодня число и день недели",
-        "кто президент Бразилии",
-        "как устроена черная дыра"
-    ],
-    "chat": [
-        "привет",
-        "здравствуй",
-        "доброе утро",
-        "добрый вечер",
-        "добрый день",
-        "как твои дела",
-        "спасибо огромное за помощь",
-        "большое спасибо",
-        "пожалуйста",
-        "ты кто такая",
-        "расскажи анекдот",
-        "расскажи смешную шутку",
-        "поговори со мной",
-        "мне скучно",
-        "пока",
-        "до свидания",
-        "спокойной ночи",
-        "хорошего дня",
-        "ты молодец",
-        "отлично сработано",
-        "давай поболтаем",
-        "как тебя зовут",
-        "приятно познакомиться",
-        "чем занимаешься",
-        "какой твой любимый цвет",
-        "ты робот или человек",
-        "рад тебя слышать",
-        "ты классная",
-        "все супер спасибо",
-        "до скорой встречи"
-    ]
-}
+# Пути по умолчанию: датасет и классы собираются сборщиком tools/Kouki.IntentDataset.
+DEFAULT_DATASET_FILE = "datasets/intents/dataset.jsonl"
+DEFAULT_CLASSES_FILE = "datasets/intents/classes.json"
+DEFAULT_OUTPUT_DIR = "models/intent"
 
 # Вспомогательные префиксы и суффиксы для аугментации
 PREFIXES = ["", "слушай, ", "коуки, ", "алиса, ", "эй, ", "пожалуйста, ", "скажи, "]
 SUFFIXES = ["", ".", "!", "?", " пожалуйста", " срочно"]
 
-def generate_augmented_dataset(db_path=None):
+# Минимальное качество, при котором модель можно выкладывать.
+MIN_F1 = 0.95
+
+
+class DataError(Exception):
+    """Входные данные непригодны: нет датасета, битая строка, неизвестная метка."""
+
+
+def load_classes(path):
+    """Читает единый список классов модели: порядок в файле задаёт id класса."""
+    if not os.path.exists(path):
+        raise DataError(f"Файл классов '{path}' не найден.")
+    try:
+        with io.open(path, encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except (OSError, json.JSONDecodeError) as error:
+        raise DataError(f"Файл классов '{path}' не разбирается: {error}") from error
+
+    classes = payload.get("classes") if isinstance(payload, dict) else None
+    if not isinstance(classes, list) or not classes:
+        raise DataError(f"Файл классов '{path}' пуст.")
+    if any(not isinstance(name, str) or not name.strip() for name in classes):
+        raise DataError(f"Файл классов '{path}': пустое имя класса.")
+    if len(set(classes)) != len(classes):
+        raise DataError(f"Файл классов '{path}': имена классов повторяются.")
+    return classes
+
+
+def load_dataset(path, classes):
+    """Читает JSONL-датасет и проверяет, что все метки входят в классы модели."""
+    if not os.path.exists(path):
+        raise DataError(
+            f"Датасет '{path}' не найден. Соберите его: "
+            f"dotnet run --project tools/Kouki.IntentDataset -- --out {path}"
+        )
+
+    known = set(classes)
+    records = []
+    with io.open(path, encoding="utf-8") as handle:
+        for number, line in enumerate(handle, start=1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError as error:
+                raise DataError(f"Датасет '{path}': строка {number} не разбирается: {error}") from error
+
+            text = row.get("text")
+            label = row.get("label")
+            if not isinstance(text, str) or not text.strip():
+                raise DataError(f"Датасет '{path}': строка {number}: пустой текст.")
+            if label not in known:
+                raise DataError(f"Метка '{label}' из датасета не входит в классы модели.")
+            weight = row.get("weight", 1)
+            if not isinstance(weight, (int, float)) or weight <= 0:
+                raise DataError(f"Датасет '{path}': строка {number}: вес должен быть положительным числом.")
+            records.append((text.strip(), label, float(weight), row.get("source", "command")))
+
+    if not records:
+        raise DataError(f"Датасет '{path}' пуст.")
+    return records
+
+
+def generate_training_dataset(records, classes, augment=True):
+    """Разворачивает датасет в обучающие примеры: вес = повтор, аугментация — для команд."""
+    intents = {name: index for index, name in enumerate(classes)}
     texts = []
     labels = []
 
-    # 1. Синтетические с аугментацией
-    for intent, phrases in SEED_DATA.items():
-        intent_id = INTENT2ID[intent]
-        for phrase in phrases:
-            # Оригинал
-            texts.append(phrase)
+    for text, label, weight, source in records:
+        intent_id = intents[label]
+        repeats = max(1, int(round(weight)))
+        for _ in range(repeats):
+            texts.append(text)
             labels.append(intent_id)
 
-            # Вариации с префиксами / суффиксами
+            # Аугментация только для фраз команд: журнальные фразы — как их сказал человек.
+            if not augment or source != "command":
+                continue
             for prefix in PREFIXES:
                 if not prefix:
                     continue
-                texts.append(prefix + phrase)
+                texts.append(prefix + text)
                 labels.append(intent_id)
-
             for suffix in SUFFIXES:
-                if not suffix or phrase.endswith(suffix):
+                if not suffix or text.endswith(suffix):
                     continue
-                texts.append(phrase + suffix)
+                texts.append(text + suffix)
                 labels.append(intent_id)
 
-    # 2. Реальные фразы из SQLite базы, если база доступна
-    if db_path and os.path.exists(db_path):
-        try:
-            con = sqlite3.connect(db_path)
-            cur = con.cursor()
-            cur.execute("SELECT input_text, intent, label FROM classifications")
-            rows = cur.fetchall()
-            real_count = 0
-            for input_text, intent, label in rows:
-                target_intent = label or intent
-                if target_intent in INTENT2ID and input_text:
-                    clean_text = input_text.strip().lower()
-                    if clean_text:
-                        # Дублируем реальные фразы для повышения их веса
-                        for _ in range(3):
-                            texts.append(clean_text)
-                            labels.append(INTENT2ID[target_intent])
-                        real_count += 1
-            print(f"Загружено {real_count} реальных фраз из {db_path}")
-            con.close()
-        except Exception as e:
-            print(f"Предупреждение: не удалось прочитать SQLite базу {db_path}: {e}")
-
-    # Удаление дубликатов (сохраняя метку)
-    unique_pairs = list({(t, l) for t, l in zip(texts, labels)})
+    # Перемешиваем детерминированно, чтобы прогоны совпадали.
+    order = list(range(len(texts)))
     random.seed(42)
-    random.shuffle(unique_pairs)
-    
-    unique_texts = [p[0] for p in unique_pairs]
-    unique_labels = [p[1] for p in unique_pairs]
+    random.shuffle(order)
+    texts = [texts[i] for i in order]
+    labels = [labels[i] for i in order]
 
-    return unique_texts, unique_labels
+    for name in classes:
+        if not any(label == intents[name] for label in labels):
+            raise DataError(f"В датасете нет фраз класса '{name}'.")
+
+    return texts, labels
 
 class IntentDataset(Dataset):
     def __init__(self, encodings, labels):
@@ -379,15 +159,19 @@ class IntentDataset(Dataset):
     def __len__(self):
         return len(self.labels)
 
-def train_and_export(output_dir, db_path=None, epochs=3, batch_size=32, lr=3e-5):
+def train_and_export(output_dir, dataset_path, classes_path, epochs=3, batch_size=32, lr=3e-5, augment=True):
     os.makedirs(output_dir, exist_ok=True)
     model_name = "cointegrated/rubert-tiny2"
     print(f"Загрузка токенизатора и базовой модели: {model_name}...")
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=len(INTENTS))
+    classes = load_classes(classes_path)
+    records = load_dataset(dataset_path, classes)
+    print(f"Записей в датасете '{dataset_path}': {len(records)}")
 
-    texts, labels = generate_augmented_dataset(db_path)
-    print(f"Всего обучающих примеров после аугментации: {len(texts)}")
+    model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=len(classes))
+
+    texts, labels = generate_training_dataset(records, classes, augment=augment)
+    print(f"Всего обучающих примеров после взвешивания и аугментации: {len(texts)}")
 
     train_texts, val_texts, train_labels, val_labels = train_test_split(
         texts, labels, test_size=0.15, random_state=42, stratify=labels
@@ -452,9 +236,9 @@ def train_and_export(output_dir, db_path=None, epochs=3, batch_size=32, lr=3e-5)
         print(f"Эпоха {epoch+1}/{epochs} - Loss: {avg_loss:.4f} - Val Macro F1: {f1:.4f}")
 
     print("\nОтчет о классификации на валидации:")
-    print(classification_report(all_targets, all_preds, target_names=INTENTS, digits=4))
+    print(classification_report(all_targets, all_preds, target_names=classes, digits=4))
 
-    assert f1 >= 0.95, f"Критерий готовности не выполнен: F1={f1:.4f} < 0.95"
+    assert f1 >= MIN_F1, f"Критерий готовности не выполнен: F1={f1:.4f} < {MIN_F1}"
 
     # Экспорт в ONNX
     print("\nЭкспорт модели в ONNX...")
@@ -500,9 +284,9 @@ def train_and_export(output_dir, db_path=None, epochs=3, batch_size=32, lr=3e-5)
     meta = {
         "model_name": "rubert-tiny2-intents",
         "base_model": model_name,
-        "classes": INTENTS,
-        "intent2id": INTENT2ID,
-        "id2intent": ID2INTENT,
+        "classes": classes,
+        "intent2id": {name: index for index, name in enumerate(classes)},
+        "id2intent": {index: name for index, name in enumerate(classes)},
         "threshold": 0.75,
         "f1_macro": float(f1)
     }
@@ -513,11 +297,17 @@ def train_and_export(output_dir, db_path=None, epochs=3, batch_size=32, lr=3e-5)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Обучение RuBERT-tiny2 классификатора интентов")
-    parser.add_argument("--output-dir", default="models/intent", help="Каталог сохранения ONNX и словаря")
-    parser.add_argument("--db-path", default=None, help="Путь к SQLite базе Kouki")
+    parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR, help="Каталог сохранения ONNX и словаря")
+    parser.add_argument("--dataset", default=DEFAULT_DATASET_FILE, help="JSONL, собранный tools/Kouki.IntentDataset")
+    parser.add_argument("--classes-file", default=DEFAULT_CLASSES_FILE, help="Список классов модели")
+    parser.add_argument("--augment", action=argparse.BooleanOptionalAction, default=True, help="Аугментация префиксами/суффиксами (по умолчанию включена)")
     parser.add_argument("--epochs", type=int, default=3, help="Количество эпох")
     parser.add_argument("--batch-size", type=int, default=32, help="Размер батча")
     parser.add_argument("--lr", type=float, default=4e-5, help="Learning rate")
     args = parser.parse_args()
 
-    train_and_export(args.output_dir, args.db_path, args.epochs, args.batch_size, args.lr)
+    try:
+        train_and_export(args.output_dir, args.dataset, args.classes_file, args.epochs, args.batch_size, args.lr, args.augment)
+    except DataError as error:
+        print(f"Ошибка: {error}", file=sys.stderr)
+        sys.exit(2)

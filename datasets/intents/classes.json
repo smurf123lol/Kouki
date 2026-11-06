@@ -1,0 +1,12 @@
+{
+  "classes": [
+    "add_task",
+    "list_tasks",
+    "complete_task",
+    "add_reminder",
+    "list_reminders",
+    "complete_reminder",
+    "ask",
+    "chat"
+  ]
+}

@@ -11,6 +11,7 @@
     <Project Path="Kouki.Tests/Kouki.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/">
+    <Project Path="tools/Kouki.IntentDataset/Kouki.IntentDataset.csproj" />
     <Project Path="tools/Kouki.SpeechLab/Kouki.SpeechLab.csproj" />
   </Folder>
   <Project Path="Kouki.Kotae/Kouki.Kotae.csproj" />

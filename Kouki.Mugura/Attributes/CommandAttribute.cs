@@ -12,6 +12,17 @@ public sealed class CommandAttribute : Attribute
     public CommandCategory Category { get; set; } = CommandCategory.Uncategorized;
     public string? Example { get; set; }
 
+    /// <summary>
+    /// Путь к файлу фраз команды — относительно каталога приложения
+    /// (<see cref="AppContext.BaseDirectory"/>), например <c>"Phrases/add_task.txt"</c>.
+    /// </summary>
+    /// <remarks>
+    /// Файл — материал для обучения классификатора интентов, а не рантайм-правила:
+    /// ядро путь не открывает и содержимое не разбирает, а передаёт его потребителю
+    /// через <see cref="Registry.CommandEntry.PhrasesFile"/>. <c>null</c> — фраз у команды нет.
+    /// </remarks>
+    public string? PhrasesFile { get; set; }
+
     public CommandAttribute(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);

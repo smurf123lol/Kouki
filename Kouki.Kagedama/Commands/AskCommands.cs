@@ -43,7 +43,8 @@ public sealed record LastDialogueTurn(string Question, string Answer, DateTimeOf
     "ask",
     Description = "Отвечает на вопрос",
     Category = CommandCategory.Navigation,
-    Example = "Сколько минут варить пельмени?")]
+    Example = "Сколько минут варить пельмени?",
+    PhrasesFile = "Phrases/ask.txt")]
 public sealed class AskHandler(IAnswerer? answerer = null) : ICommandHandler<AskCommand>
 {
     /// <summary>Срок годности памяти предыдущего хода диалога.</summary>
