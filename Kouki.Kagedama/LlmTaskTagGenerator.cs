@@ -20,7 +20,7 @@ public sealed class LlmTaskTagGenerator : ITaskTagGenerator
         string model = "qwen3")
     {
         _http = http ?? throw new ArgumentNullException(nameof(http));
-        _endpoint = string.IsNullOrWhiteSpace(endpoint) ? "http://192.168.1.157:8080/v1/chat/completions" : endpoint;
+        _endpoint = NormalizeEndpoint(endpoint);
         _model = string.IsNullOrWhiteSpace(model) ? "qwen3" : model;
     }
 
@@ -124,5 +124,13 @@ public sealed class LlmTaskTagGenerator : ITaskTagGenerator
         }
 
         return Array.Empty<string>();
+    }
+
+    private static string NormalizeEndpoint(string endpoint)
+    {
+        string trimmed = string.IsNullOrWhiteSpace(endpoint) ? "http://192.168.1.157:8080/v1" : endpoint.Trim().TrimEnd('/');
+        return trimmed.EndsWith("/chat/completions", StringComparison.OrdinalIgnoreCase)
+            ? trimmed
+            : trimmed + "/chat/completions";
     }
 }

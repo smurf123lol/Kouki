@@ -22,7 +22,7 @@ public sealed class LlmTaskTitleGenerator : ITaskTitleGenerator
         ITaskTitleGenerator? fallback = null)
     {
         _http = http ?? throw new ArgumentNullException(nameof(http));
-        _endpoint = string.IsNullOrWhiteSpace(endpoint) ? "http://192.168.1.157:8080/v1/chat/completions" : endpoint;
+        _endpoint = NormalizeEndpoint(endpoint);
         _model = string.IsNullOrWhiteSpace(model) ? "qwen3" : model;
         _fallback = fallback ?? RuleTaskTitleGenerator.Instance;
     }
@@ -104,5 +104,13 @@ public sealed class LlmTaskTitleGenerator : ITaskTitleGenerator
         }
 
         return await _fallback.GenerateTitleAsync(trimmed, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static string NormalizeEndpoint(string endpoint)
+    {
+        string trimmed = string.IsNullOrWhiteSpace(endpoint) ? "http://192.168.1.157:8080/v1" : endpoint.Trim().TrimEnd('/');
+        return trimmed.EndsWith("/chat/completions", StringComparison.OrdinalIgnoreCase)
+            ? trimmed
+            : trimmed + "/chat/completions";
     }
 }
