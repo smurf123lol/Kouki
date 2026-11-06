@@ -244,7 +244,7 @@ public sealed class DeployToolingAssetsTests
             string stub = Path.Combine(root, "stub");
             Directory.CreateDirectory(stub);
             string stubPath = Path.Combine(stub, "dotnet");
-            File.WriteAllText(stubPath, DotnetStub, new UTF8Encoding(false));
+            File.WriteAllText(stubPath, DotnetStub.Replace("\r\n", "\n"), new UTF8Encoding(false));
             var chmod = RunBash("-c", $"chmod +x '{stubPath}'");
             Assert.Equal(0, chmod.Rc);
 
@@ -307,7 +307,7 @@ public sealed class DeployToolingAssetsTests
             string stub = Path.Combine(root, "stub");
             Directory.CreateDirectory(stub);
             string stubPath = Path.Combine(stub, "dotnet");
-            File.WriteAllText(stubPath, DotnetStub, new UTF8Encoding(false));
+            File.WriteAllText(stubPath, DotnetStub.Replace("\r\n", "\n"), new UTF8Encoding(false));
             Assert.Equal(0, RunBash("-c", $"chmod +x '{stubPath}'").Rc);
 
             var env = new Dictionary<string, string>

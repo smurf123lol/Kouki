@@ -52,6 +52,7 @@ public sealed class TaskIntakeService
     private readonly IUnitOfWork? _work;
     private readonly ITagStore? _tags;
     private readonly IQuestionStore _questions;
+    private readonly ITaskTagGenerator? _tagGenerator;
 
     /// <summary>
     /// Создаёт сервис приёма.
@@ -76,7 +77,8 @@ public sealed class TaskIntakeService
         IClassificationJournal journal,
         IUnitOfWork? work = null,
         ITagStore? tags = null,
-        IQuestionStore? questions = null)
+        IQuestionStore? questions = null,
+        ITaskTagGenerator? tagGenerator = null)
     {
         ArgumentNullException.ThrowIfNull(classifier);
         ArgumentNullException.ThrowIfNull(router);
@@ -95,6 +97,7 @@ public sealed class TaskIntakeService
         _work = work;
         _tags = tags;
         _questions = questions ?? NullQuestionStore.Instance;
+        _tagGenerator = tagGenerator;
     }
 
     /// <summary>
@@ -385,28 +388,9 @@ public sealed class TaskIntakeService
                 await AttachTagsAsync(created.Id, textTags, TagSources.Text, cancellationToken).ConfigureAwait(false);
                 created.MetaJson = metaJson;
 
-                // Фоновые автотеги модели (П4): не блокируют транзакцию и отдачу ответа пользователю/станции
-                if (modelTags.Count > 0)
+                if (!_options.AsyncModelTagging && modelTags.Count > 0)
                 {
-                    if (_options.AsyncModelTagging)
-                    {
-                        Guid taskIdForTags = created.Id;
-                        _ = Task.Run(async () =>
-                        {
-                            try
-                            {
-                                await AttachTagsAsync(taskIdForTags, modelTags, TagSources.Model, CancellationToken.None).ConfigureAwait(false);
-                            }
-                            catch
-                            {
-                                // Фоновое добавление тегов модели не должно ронять процесс
-                            }
-                        });
-                    }
-                    else
-                    {
-                        await AttachTagsAsync(created.Id, modelTags, TagSources.Model, cancellationToken).ConfigureAwait(false);
-                    }
+                    await AttachTagsAsync(created.Id, modelTags, TagSources.Model, cancellationToken).ConfigureAwait(false);
                 }
 
                 if (isDialogueSave && dialogueQuestion is not null)
@@ -424,6 +408,38 @@ public sealed class TaskIntakeService
                 enriched.Slots?.ToJsonString(), route.Result?.ToJsonString(), errorText,
                 started, cancellationToken).ConfigureAwait(false);
         }, cancellationToken).ConfigureAwait(false);
+
+        // Фоновые автотеги модели (П4): запускаются ПОСЛЕ коммита транзакции задачи,
+        // чтобы не конфликтовать за блокировку SQLite и соблюсти foreign key task_id -> tasks(id).
+        if (created is not null && _options.AsyncModelTagging)
+        {
+            Guid taskIdForTags = created.Id;
+            string titleForTags = created.Title;
+            string rawTextForTags = created.RawText;
+            IReadOnlyList<string> existingModelTags = modelTags;
+            IReadOnlyList<string> existingTextTags = textTags;
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    IReadOnlyList<string> tagsToAttach = existingModelTags;
+                    if (tagsToAttach.Count == 0 && _tagGenerator is not null)
+                    {
+                        var generated = await _tagGenerator.GenerateTagsAsync(titleForTags, rawTextForTags, CancellationToken.None).ConfigureAwait(false);
+                        tagsToAttach = NormalizeModelTags(generated, existingTextTags);
+                    }
+
+                    if (tagsToAttach.Count > 0)
+                    {
+                        await AttachTagsAsync(taskIdForTags, tagsToAttach, TagSources.Model, CancellationToken.None).ConfigureAwait(false);
+                    }
+                }
+                catch
+                {
+                    // Фоновое добавление тегов модели не должно ронять процесс
+                }
+            });
+        }
 
         return new IntakeResult(created, route, route.Executed && !failed, outcome, action)
         {

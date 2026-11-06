@@ -75,4 +75,46 @@ public sealed class AsyncTaggingTests
         var finalRows = await fixture.TagRowsAsync(task.Id);
         Assert.Equal(2, finalRows.Count);
     }
+    private sealed class StubTagGenerator(IReadOnlyList<string> tags) : ITaskTagGenerator
+    {
+        public Task<IReadOnlyList<string>> GenerateTagsAsync(string title, string rawText, CancellationToken cancellationToken = default)
+            => Task.FromResult(tags);
+    }
+
+    [Fact]
+    public async Task Intake_with_empty_intent_tags_uses_tag_generator_in_background()
+    {
+        var classifier = new StubClassifier(
+            new IntentResult("add_task", 0.95d, Model: "rubert-tiny2-onnx", Tags: Array.Empty<string>()));
+
+        var tagGenerator = new StubTagGenerator(new[] { "rubert", "теги" });
+
+        var options = new IntakeOptions
+        {
+            ConfidenceThreshold = 0.75,
+            DefaultSource = "test",
+            AsyncModelTagging = true,
+        };
+
+        using var fixture = new TagIntakeFixture(classifier, options, tagGenerator: tagGenerator);
+
+        IntakeResult result = await fixture.Intake.IntakeAsync("проверить теги", TaskSources.Telegram);
+        TaskRecord task = Assert.IsType<TaskRecord>(result.Task);
+        Assert.NotNull(task);
+
+        for (int i = 0; i < 50; i++)
+        {
+            var rows = await fixture.TagRowsAsync(task.Id);
+            if (rows.Count == 2)
+            {
+                Assert.Equal(new[] { "rubert", "теги" }, rows.Select(r => r.Tag));
+                Assert.All(rows, r => Assert.Equal(TagSources.Model, r.Source));
+                return;
+            }
+            await Task.Delay(20);
+        }
+
+        var finalRows = await fixture.TagRowsAsync(task.Id);
+        Assert.Equal(2, finalRows.Count);
+    }
 }
