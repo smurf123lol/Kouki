@@ -15,6 +15,7 @@ using Kouki.Un;
 using Kouki.Ubusuna;
 using Kouki.Ubusuna.DependencyInjection;
 using Kouki.Yasabi;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -146,6 +147,11 @@ builder.Services.AddUbusuna();
 // регистрации распознавателя.
 string? speechFallbackReason = null;
 string? voiceFallbackReason = null;
+
+// Заглушки нужны всегда: это фолбэк, когда моделей нет, а также то, что sherpa
+// заменяет, если модели на месте. Без них путь «распознавание есть, голоса нет»
+// оставлял /api/speech без ISpeechSynthesizer — падение на DI вместо 503.
+builder.Services.AddUn();
 #if KOUKI_SHERPA
 if (Kouki.Un.SpeechModelCheck.TryValidate(serverOptions.SpeechModelDirectory, out string? modelProblem))
 {
@@ -178,15 +184,15 @@ if (Kouki.Un.SpeechModelCheck.TryValidate(serverOptions.SpeechModelDirectory, ou
     else
     {
         voiceFallbackReason = $"голос по умолчанию '{serverOptions.SpeechVoice}' не найден в '{serverOptions.SpeechVoiceDirectory}'";
+        // Заглушка должна объяснять настоящую причину: сборка с sherpa, но без голоса.
+        builder.Services.RemoveAll<ISpeechSynthesizer>();
+        builder.Services.AddSingleton<ISpeechSynthesizer>(new UnavailableSpeechSynthesizer(voiceFallbackReason));
     }
 }
 else
 {
     speechFallbackReason = modelProblem;
-    builder.Services.AddUn();
 }
-#else
-builder.Services.AddUn();
 #endif
 
 // Голос: распознавание приходит из Kouki.Un (пока заглушка), склейка — VoiceIntakeService.
